@@ -131,7 +131,12 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         kms_ = kms;
         region_ = region;
         regionName_ = region.getName();
-        kms_.setRegion(region);
+        // When kms_ is created by the builder, it is immutable and will throw an exception when setting something
+        try {
+            kms_.setRegion(region);
+        } catch (UnsupportedOperationException e) {
+            // Ignored. Not a problem, region should already be set by the builder.
+        }
         keyIds_ = new ArrayList<>(keyIds);
     }
 
@@ -244,7 +249,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         return region_;
     }
 
-    private static Region getStartingRegion(final String keyArn) {
+    static Region getStartingRegion(final String keyArn) {
         final String region = parseRegionfromKeyArn(keyArn);
         if (region != null) {
             return Region.getRegion(Regions.fromName(region));
