@@ -1,7 +1,10 @@
 package com.amazonaws.encryptionsdk.kms;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.ClientConfigurationFactory;
+import com.amazonaws.client.AwsSyncClientParams;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.AwsRegionProvider;
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
@@ -13,11 +16,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Used to build a {@link KmsMasterKeyProvider} using {@link AWSKMSClientBuilder}, which will use provider chains to get
- * defaults if the properties are not explicitly set.
+ * Used to build a {@link KmsMasterKeyProvider} which will use the defaults found in the relevant provider chains.
  *
- * Default usage will use all the defaults found by AWSKMSClientBuilder. If a region is not found in the configuration
- * chain, then {@link Regions#DEFAULT_REGION} is used.
+ * If a region is not defined and no region can be found in the region provider chain, then
+ * {@link Regions#DEFAULT_REGION} is used.
  * <pre>
  *     KmsMasterKeyProvider keyProvider = KmsMasterKeyProviderBuilder.defaultProvider();
  * </pre>
@@ -29,9 +31,8 @@ import java.util.List;
  *       .build();
  * </pre>
  */
-public class KmsMasterKeyProviderBuilder {
+public class KmsMasterKeyProviderBuilder extends AwsClientBuilder<KmsMasterKeyProviderBuilder, KmsMasterKeyProvider> {
 
-    private AWSKMSClientBuilder clientBuilder;
     private List<String> keyIds;
 
     /**
@@ -49,7 +50,7 @@ public class KmsMasterKeyProviderBuilder {
     }
 
     private KmsMasterKeyProviderBuilder() {
-        clientBuilder = AWSKMSClientBuilder.standard();
+        super(new ClientConfigurationFactory());
     }
 
     /**
@@ -57,30 +58,6 @@ public class KmsMasterKeyProviderBuilder {
      */
     public KmsMasterKeyProviderBuilder withRegion(Region region) {
         return withRegion(region.getName());
-    }
-
-    /**
-     * Sets the region to be used by the client. Overrides any previously set region.
-     */
-    public KmsMasterKeyProviderBuilder withRegion(String regionName) {
-        clientBuilder.withRegion(regionName);
-        return this;
-    }
-
-    /**
-     * Sets the client configuration to use.
-     */
-    public KmsMasterKeyProviderBuilder withClientConfiguration(ClientConfiguration clientConfiguration) {
-        clientBuilder.withClientConfiguration(clientConfiguration);
-        return this;
-    }
-
-    /**
-     * Sets the credentials to use.
-     */
-    public KmsMasterKeyProviderBuilder withCredentials(AWSCredentialsProvider credentialsProvider) {
-        clientBuilder.withCredentials(credentialsProvider);
-        return this;
     }
 
     /**
@@ -108,21 +85,41 @@ public class KmsMasterKeyProviderBuilder {
     }
 
     /**
-     * Builds the {@link KmsMasterKeyProvider} using the information it was built with or {@link AWSKMSClientBuilder}'s
-     * defaults.
+     * Builds a {@link KmsMasterKeyProvider} using the information it was built with, or with defaults where necessary.
      */
+    @Override
     public KmsMasterKeyProvider build() {
+        return build(getSyncClientParams());
+    }
+
+    private KmsMasterKeyProvider build(AwsSyncClientParams clientParams) {
         keyIds = (keyIds == null) ? Collections.emptyList() : keyIds;
 
-        String clientBuilderRegion = clientBuilder.getRegion();
+        AWSKMSClient client = new AWSKMSClient(clientParams.getCredentialsProvider(),
+                clientParams.getClientConfiguration(),
+                clientParams.getRequestMetricCollector());
 
-        String regionName = (clientBuilderRegion == null) ? Regions.DEFAULT_REGION.getName()
-                : clientBuilderRegion;
+        Region region = determineRegion();
 
-        clientBuilder = clientBuilder.withRegion(regionName);
-
-        return new KmsMasterKeyProvider((AWSKMSClient) clientBuilder.build(),
-                RegionUtils.getRegion(regionName),
+        return new KmsMasterKeyProvider(client,
+                region,
                 keyIds);
+    }
+
+    private Region determineRegion() {
+        Region region = RegionUtils.getRegion(this.getRegion());
+
+        final AwsRegionProvider regionProvider = new DefaultAwsRegionProviderChain();
+
+        if (region != null) {
+            return region;
+        } else {
+            final String regionName = regionProvider.getRegion();
+            if (regionName != null) {
+                return Region.getRegion(Regions.fromName(regionName));
+            } else {
+                return Region.getRegion(Regions.DEFAULT_REGION);
+            }
+        }
     }
 }
