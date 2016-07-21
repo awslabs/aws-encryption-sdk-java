@@ -220,6 +220,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      * Configures this provider to use a custom endpoint. Sets the underlying {@link Region} object
      * to {@code null}, and instructs the internal KMS client to use the specified {@code endPoint}
      * and {@code regionName}.
+     *
+     * Note: This method will not work if this object was created by {@link KmsMasterKeyProviderBuilder}.
      */
     public void setCustomEndpoint(final String regionName, final String endPoint) {
         if (kms_ instanceof AWSKMSClient) {
@@ -235,6 +237,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     /**
      * Set the AWS region of the AWS KMS service for access to the master key. This method simply
      * calls the same method of the underlying {@link AWSKMSClient}
+     *
+     * Note: This method will not work if this object was created by {@link KmsMasterKeyProviderBuilder}.
      *
      * @param region
      *            string containing the region.
