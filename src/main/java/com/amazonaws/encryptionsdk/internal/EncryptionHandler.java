@@ -78,6 +78,27 @@ public class EncryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     private boolean firstOperation_ = true;
     private boolean complete_ = false;
+    private boolean pointCompressionEnabled_ = true;
+
+    /**
+     * Create an encryption handler using the provided master key and encryption context.
+     *
+     * @param masterKeys
+     *            the master keys to use.
+     * @param encryptionContext
+     *            the encryption context to use.
+     * @param cryptoAlgorithm
+     *            the cryptography algorithm to use for encryption
+     * @param frameSize
+     *            the size of the frames to use in storing encrypted content
+     * @throws AwsCryptoException
+     *            if the encryption context or master key is null.
+     */
+    public EncryptionHandler(final List<K> masterKeys, final Map<String, String> encryptionContext,
+                             final CryptoAlgorithm cryptoAlgorithm, final int frameSize)
+            throws AwsCryptoException {
+        this(masterKeys, encryptionContext, cryptoAlgorithm, frameSize, true);
+    }
 
     /**
      * Create an encryption handler using the provided master key and encryption context.
@@ -90,13 +111,17 @@ public class EncryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *            the cryptography algorithm to use for encryption
      * @param frameSize
      *            the size of the frames to use in storing encrypted content
+     * @param pointCompressionEnabled
+     *            determines if point compression is used or not
      * @throws AwsCryptoException
      *             if the encryption context or master key is null.
      */
     public EncryptionHandler(final List<K> masterKeys, final Map<String, String> encryptionContext,
-            final CryptoAlgorithm cryptoAlgorithm, final int frameSize) throws AwsCryptoException {
-
+            final CryptoAlgorithm cryptoAlgorithm, final int frameSize, final boolean pointCompressionEnabled)
+            throws AwsCryptoException {
         assertNonNull(masterKeys, "customerMasterKey");
+
+        this.pointCompressionEnabled_ = pointCompressionEnabled;
 
         cryptoAlgo_ = assertNonNull(cryptoAlgorithm, "cryptoAlgorithm");
         encryptionContext_ = new HashMap<>(assertNonNull(encryptionContext, "encryptionContext"));
@@ -374,7 +399,7 @@ public class EncryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
             case ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
             case ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
                 ECPublicKey ecPub = (ECPublicKey) trailingKeys_.getPublic();
-                return Base64.encodeAsString(ecPub.getQ().getEncoded(true)); // Compressed format
+                return Base64.encodeAsString(ecPub.getQ().getEncoded(pointCompressionEnabled_));
             default:
                 throw new IllegalStateException("Algorithm does not support trailing signature");
         }

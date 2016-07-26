@@ -87,6 +87,8 @@ import com.amazonaws.util.Base64;
 public class AwsCrypto {
     private static final Map<String, String> EMPTY_MAP = Collections.emptyMap();
 
+    private boolean pointCompressionEnabled_ = true;
+
     /**
      * Returns the {@link CryptoAlgorithm} to be used for encryption when none is explicitly
      * selected. Currently it is {@link CryptoAlgorithm#ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384}.
@@ -136,6 +138,18 @@ public class AwsCrypto {
     }
 
     /**
+     * Sets whether or not point compression should be used during encryption. Point compression is enabled by
+     * default. This has no impact on decryption.
+     */
+    public void setPointCompressionEnabled(final boolean pointCompressionEnabled) {
+        this.pointCompressionEnabled_ = pointCompressionEnabled;
+    }
+
+    public boolean getPointCompressionEnabled() {
+        return pointCompressionEnabled_;
+    }
+
+    /**
      * Returns the best estimate for the output length of encrypting a plaintext with the provided
      * {@code plaintextSize} and {@code encryptionContext}. The actual ciphertext may be shorter.
      */
@@ -151,7 +165,8 @@ public class AwsCrypto {
                 mks,
                 encryptionContext,
                 getEncryptionAlgorithm(),
-                getEncryptionFrameSize());
+                getEncryptionFrameSize(),
+                getPointCompressionEnabled());
 
         return cryptoHandler.estimateOutputSize(plaintextSize);
     }
@@ -182,7 +197,8 @@ public class AwsCrypto {
                 mks,
                 encryptionContext,
                 getEncryptionAlgorithm(),
-                getEncryptionFrameSize());
+                getEncryptionFrameSize(),
+                getPointCompressionEnabled());
         final int outSizeEstimate = cryptoHandler.estimateOutputSize(plaintext.length);
         final byte[] out = new byte[outSizeEstimate];
         int outLen = cryptoHandler.processBytes(plaintext, 0, plaintext.length, out, 0).getBytesWritten();
@@ -300,7 +316,8 @@ public class AwsCrypto {
                 mks,
                 encryptionContext,
                 getEncryptionAlgorithm(),
-                getEncryptionFrameSize());
+                getEncryptionFrameSize(),
+                getPointCompressionEnabled());
         return new CryptoOutputStream<K>(os, cryptoHandler);
     }
 
@@ -336,7 +353,8 @@ public class AwsCrypto {
                 mks,
                 encryptionContext,
                 getEncryptionAlgorithm(),
-                getEncryptionFrameSize());
+                getEncryptionFrameSize(),
+                getPointCompressionEnabled());
         return new CryptoInputStream<K>(is, cryptoHandler);
     }
 
