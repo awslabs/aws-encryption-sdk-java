@@ -68,8 +68,8 @@ public class StringExample {
 
         // The SDK may add information to the encryption context, so we check to ensure
         // that all of our values are present
-        for (final Map.Entry<String, String> e : context.entrySet()) {
-            if (!e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey()))) {
+        for (final Map.Entry<String, String> e : decryptResult.getEncryptionContext().entrySet()) {
+            if (!e.getValue().equals(context.get(e.getKey()))) {
                 throw new IllegalStateException("Wrong Encryption Context!");
             }
         }
