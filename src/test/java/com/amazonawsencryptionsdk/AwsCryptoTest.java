@@ -159,6 +159,35 @@ public class AwsCryptoTest {
     }
 
     @Test
+    public void encryptDecryptPointCompressionDisabled() {
+        encryptionClient_.setPointCompressionEnabled(false);
+
+        for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+
+            if (cryptoAlg.getTrailingSignatureAlgo() == null) {
+                continue;
+            }
+
+            final int blockSize = cryptoAlg.getBlockSize();
+            final int[] frameSizeToTest = {0, blockSize, blockSize * 2, blockSize * 10,
+                    AwsCrypto.getDefaultFrameSize()};
+
+            for (int i = 0; i < frameSizeToTest.length; i++) {
+                final int frameSize = frameSizeToTest[i];
+                int[] bytesToTest = { 0, 1, frameSize - 1, frameSize, frameSize + 1, (int) (frameSize * 1.5),
+                        frameSize * 2, 1000000 };
+
+                for (int j = 0; j < bytesToTest.length; j++) {
+                    final int byteSize = bytesToTest[j];
+                    if (byteSize >= 0) {
+                        doEncryptDecrypt(cryptoAlg, byteSize, frameSize);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     public void encryptDecryptWithBadSignature() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
             if (cryptoAlg.getTrailingSignatureAlgo() == null) {
