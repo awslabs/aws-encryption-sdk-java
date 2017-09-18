@@ -2,5 +2,6 @@ language: java
 jdk:
   - openjdk8
   - oraclejdk8
-install: /bin/true
-script: mvn install --quiet -Dgpg.skip=true
+script: mvn install -Dgpg.skip=true
+sudo: false
+dist: trusty
