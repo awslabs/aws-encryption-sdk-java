@@ -32,6 +32,7 @@ import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -43,6 +44,8 @@ import com.amazonaws.services.kms.AWSKMSClient;
  * if you want to use keys from multiple regions, you'll need multiple copies of this object.
  */
 public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implements KmsMethods {
+	private static final ClientConfiguration DEFAULT_CLIENT_CONFIG =
+			new ClientConfiguration().withUserAgentSuffix(VersionInfo.USER_AGENT);
     private static final String PROVIDER_NAME = "aws-kms";
     private final AWSKMS kms_;
     private final List<String> keyIds_;
@@ -55,7 +58,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      * to talk to the {@link Regions#DEFAULT_REGION}.
      */
     public KmsMasterKeyProvider() {
-        this(new AWSKMSClient(), Region.getRegion(Regions.DEFAULT_REGION), Collections.<String> emptyList());
+        this(new AWSKMSClient(DEFAULT_CLIENT_CONFIG), Region.getRegion(Regions.DEFAULT_REGION), Collections.<String> emptyList());
     }
 
     /**
@@ -64,7 +67,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      * {@code keyId} as appropriate.
      */
     public KmsMasterKeyProvider(final String keyId) {
-        this(new AWSKMSClient(), getStartingRegion(keyId), Collections.singletonList(keyId));
+        this(new AWSKMSClient(DEFAULT_CLIENT_CONFIG), getStartingRegion(keyId), Collections.singletonList(keyId));
     }
 
     /**
@@ -110,7 +113,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      */
     public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
             final ClientConfiguration clientConfiguration, final String keyId) {
-        this(new AWSKMSClient(creds, clientConfiguration), region, Collections.singletonList(keyId));
+        this(
+            new AWSKMSClient(creds, clientConfiguration.withUserAgentSuffix(VersionInfo.USER_AGENT)),
+            region,
+            Collections.singletonList(keyId));
     }
 
     /**
@@ -119,7 +125,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      */
     public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
             final ClientConfiguration clientConfiguration, final List<String> keyIds) {
-        this(new AWSKMSClient(creds, clientConfiguration), region, keyIds);
+        this(
+            new AWSKMSClient(creds, clientConfiguration.withUserAgentSuffix(VersionInfo.USER_AGENT)),
+            region,
+            keyIds);
     }
 
     /**
