@@ -27,7 +27,7 @@ import java.util.List;
  * Example, specifying a region:
  * <pre>
  *     KmsMasterKeyProvider keyProvider = KmsMasterKeyProviderBuilder.standard()
- *       .withRegion("us-east-1")
+ *       .withDefaultRegion("us-east-1")
  *       .build();
  * </pre>
  */
@@ -54,9 +54,9 @@ public class KmsMasterKeyProviderBuilder extends AwsClientBuilder<KmsMasterKeyPr
     }
 
     /**
-     * Sets the region to be used by the client. Overrides any previously set region.
+     * Sets the default region to be used by the client. Overrides any previously set region.
      */
-    public KmsMasterKeyProviderBuilder withRegion(Region region) {
+    public KmsMasterKeyProviderBuilder withDefaultRegion(Region region) {
         return withRegion(region.getName());
     }
 
@@ -66,7 +66,7 @@ public class KmsMasterKeyProviderBuilder extends AwsClientBuilder<KmsMasterKeyPr
     public KmsMasterKeyProviderBuilder withKeyId(String keyId) {
         withKeyIds(Collections.singletonList(keyId));
 
-        withRegion(KmsMasterKeyProvider.getStartingRegion(keyId));
+        withDefaultRegion(KmsMasterKeyProvider.getStartingRegion(keyId));
 
         return this;
     }
