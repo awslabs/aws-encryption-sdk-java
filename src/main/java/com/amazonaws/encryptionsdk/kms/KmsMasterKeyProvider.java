@@ -140,6 +140,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         keyIds_ = new ArrayList<>(keyIds);
     }
 
+    public static KmsMasterKeyProviderBuilder builder() {
+        return KmsMasterKeyProviderBuilder.standard();
+    }
+
     /**
      * Returns "aws-kms"
      */
