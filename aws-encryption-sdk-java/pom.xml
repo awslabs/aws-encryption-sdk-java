@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.amazonaws</groupId>
-    <artifactId>aws-encryption-sdk-java-parent</artifactId>
+    <artifactId>aws-encryption-sdk-java</artifactId>
     <version>1.3.1-STAGING</version>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>aws-encryption-sdk-java</name>
     <description>AWS Encryption SDK for Java</description>
@@ -204,10 +204,4 @@
             </build>
         </profile>
     </profiles>
-
-<modules>
-	<module>aws-encryption-sdk-java</module>
-	<module>aws-encryption-sdk-java-examples</module>
-</modules>
-
 </project>
