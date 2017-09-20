@@ -142,4 +142,4 @@ You can find more examples in the [examples directory][examples].
 
 See the [Frequently Asked Questions](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/faq.html) page in the official documentation.
 
-[examples]: https://github.com/pravsingh/aws-encryption-sdk-java/tree/master/aws-encryption-sdk-java-examples/src/main/java/com/amazonaws/crypto/examples
+[examples]: https://github.com/awslabs/aws-encryption-sdk-java/tree/master/aws-encryption-sdk-java-examples/src/main/java/com/amazonaws/crypto/examples
