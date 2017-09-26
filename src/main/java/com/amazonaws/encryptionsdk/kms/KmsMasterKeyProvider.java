@@ -114,7 +114,9 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
             final ClientConfiguration clientConfiguration, final String keyId) {
         this(
-            new AWSKMSClient(creds, clientConfiguration.withUserAgentSuffix(VersionInfo.USER_AGENT)),
+            new AWSKMSClient(
+                creds,
+                new ClientConfiguration(clientConfiguration).withUserAgentSuffix(VersionInfo.USER_AGENT)),
             region,
             Collections.singletonList(keyId));
     }
@@ -126,7 +128,9 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
             final ClientConfiguration clientConfiguration, final List<String> keyIds) {
         this(
-            new AWSKMSClient(creds, clientConfiguration.withUserAgentSuffix(VersionInfo.USER_AGENT)),
+            new AWSKMSClient(
+                creds,
+                new ClientConfiguration(clientConfiguration).withUserAgentSuffix(VersionInfo.USER_AGENT)),
             region,
             keyIds);
     }
