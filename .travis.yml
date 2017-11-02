@@ -1,7 +1,10 @@
 language: java
 jdk:
-  - openjdk8
-  - oraclejdk8
-script: mvn install -Dgpg.skip=true
+- openjdk8
+- oraclejdk8
+script: "env; mvn install -Dgpg.skip=true"
 sudo: false
 dist: trusty
+env:
+  global:
+    secure: sMv9JyGACp/N6pdDrXR2RuniTTH4l5i4O6NvgvVosbZJs3qo23SZ23i8LuENGS7y3ANuvlh8jc9dMDQIM/zdLSAUEhzPeMkEzPA0JGuS/3beiTRYt7lPs5MydcNqb+QtNCAOtQZ62HVYJdAZzpRaWZgLd/UN4NVuWlHyD164nbG58z2cdX2U9hZFKaXeCLSYqH9bSfbJh+fRWJTfd1vwwfHHvQvTVoC6wkQbKQYLS48jewk6DmZVUMFM39WpMDi3p0ClJIFTat1Q4EbxdkpvwKEc96M4cNDtXIbUOj0q95/sOv5khA6Z5X6VKV40YIqgZH8Mq8gQppyeoRqKKWJgpeua4dEMPZxlhoiLymrOYFCPe3PqF9OBXB2sZm7HShrxkmld65PX6u8PUI1CvG7Z94wPjTf+VCrB7iSCZLvoah6m2MbcJ9BgqAN57cO9uNrDuqVlkoeolEWd+qtemdOXL5rjFwfE+YiNSSJ2oEZcL09pn4sHWR8vDvuQcwAnHnEn1mdnHJccmOF6u1MKx2Fue68jdWJbRAmoFfZ9oq7/ae3YU/XY7C/QXG+tA85l9UTzhhv5RkkdcjL378ju2NmSw9Teg1TLRgeDkMsOoKtwTNXPn2yMYnx0mXp6zSVPYSnlVyCbrsvWnPBHfkDVOkXIpijAmCJRaUqF3CbR78Htzic=
