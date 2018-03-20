@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.2
+
+### Minor Changes
+* Frame size restriction removed again
+* Support Builders for use with AWS KMS
+* Fix estimateCipherText when used with cached data keys
+* Do not automatically set a default region in KmsMasterKeyProvider
+
 ## 1.3.1
 
 ### Minor changes
