@@ -75,8 +75,8 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
      */
     public static JceMasterKey getInstance(final SecretKey key, final String provider, final String keyId,
             final String wrappingAlgorithm) {
-        switch (wrappingAlgorithm) {
-            case "AES/GCM/NoPadding":
+        switch (wrappingAlgorithm.toUpperCase()) {
+            case "AES/GCM/NOPADDING":
                 return new AesGcm(key, provider, keyId);
             default:
                 throw new IllegalArgumentException("Right now only AES/GCM/NoPadding is supported");
