@@ -1,5 +1,6 @@
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.encryptionsdk.jce.JceMasterKeyTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -52,7 +53,8 @@ import com.amazonaws.services.kms.KMSProviderBuilderMockTests;
         LocalCryptoMaterialsCacheThreadStormTest.class,
         UtilsTest.class,
         MultipleMasterKeyTest.class,
-        KMSProviderBuilderMockTests.class
+        KMSProviderBuilderMockTests.class,
+        JceMasterKeyTest.class
 })
 public class AllTestsSuite {
 }
