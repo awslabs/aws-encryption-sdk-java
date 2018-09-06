@@ -113,7 +113,7 @@ public final class CipherFrameHeaders {
             dataStream.close();
             return outBytes.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to serialize cipher frame headers", e);
+            throw new AwsCryptoException("Failed to serialize cipher frame headers", e);
         }
     }
 

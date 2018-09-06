@@ -14,8 +14,6 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import java.io.ByteArrayOutputStream;
-import java.security.SecureRandom;
-
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
@@ -33,7 +31,6 @@ import com.amazonaws.encryptionsdk.model.CipherBlockHeaders;
  * {@link BlockDecryptionHandler}.
  */
 class BlockEncryptionHandler implements CryptoHandler {
-    private static final SecureRandom RND = new SecureRandom();
     private final SecretKey encryptionKey_;
     private final CryptoAlgorithm cryptoAlgo_;
     private final int nonceLen_;

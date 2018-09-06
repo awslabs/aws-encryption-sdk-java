@@ -33,7 +33,7 @@ public enum CiphertextType {
      * This is a static method so the map is created when the class is loaded.
      * This enables fast lookups of the CiphertextType given a value.
      */
-    private static final Map<Byte, CiphertextType> ID_MAPPING = new HashMap<Byte, CiphertextType>();
+    private static final Map<Byte, CiphertextType> ID_MAPPING = new HashMap<>();
     static {
         for (final CiphertextType s : EnumSet.allOf(CiphertextType.class)) {
             ID_MAPPING.put(s.value_, s);

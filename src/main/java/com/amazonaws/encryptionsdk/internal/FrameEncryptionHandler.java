@@ -15,7 +15,6 @@ package com.amazonaws.encryptionsdk.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;

@@ -125,7 +125,7 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
                 }
 
                 pubKey = deserializeTrailingKeyFromEc(request.getAlgorithm(), serializedPubKey);
-            } catch (final GeneralSecurityException ex) {
+            } catch (final IllegalStateException ex) {
                 throw new AwsCryptoException(ex);
             }
         }
@@ -136,10 +136,7 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
                                   .build();
     }
 
-    private PublicKey deserializeTrailingKeyFromEc(
-            CryptoAlgorithm algo,
-            String pubKey
-    ) throws GeneralSecurityException {
+    private PublicKey deserializeTrailingKeyFromEc(CryptoAlgorithm algo, String pubKey)  {
         return TrailingSignatureAlgorithm.forCryptoAlgorithm(algo).deserializePublicKey(pubKey);
     }
 

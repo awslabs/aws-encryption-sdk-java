@@ -33,6 +33,6 @@ public class VersionInfo {
     /**
      * The current version number of the ciphertext produced by this library.
      */
-    public final static byte CURRENT_CIPHERTEXT_VERSION = 1;
+    public static final byte CURRENT_CIPHERTEXT_VERSION = 1;
 
 }

@@ -37,8 +37,6 @@ public class CacheIdentifierTests {
         contextFull.put("encryption", "context");
     }
 
-    CachingCryptoMaterialsManager cmm;
-
     static List<KeyBlob> keyBlobs = Arrays.asList(
             new KeyBlob("this is a provider ID", "this is some key info".getBytes(UTF_8),
                         "super secret key, now with encryption!".getBytes(UTF_8)

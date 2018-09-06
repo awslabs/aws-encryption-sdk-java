@@ -30,21 +30,21 @@ public class LocalCryptoMaterialsCacheTest {
     CryptoMaterialsCache.CacheHint hint = () -> 1000; // maxAge = 1000
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp()  {
         clock = new FakeClock();
         cache = new LocalCryptoMaterialsCache(5);
         cache.clock = clock;
     }
 
     @Test
-    public void whenNoEntriesInCache_noEntriesReturned() throws Exception {
+    public void whenNoEntriesInCache_noEntriesReturned() {
         assertNull(cache.getEntryForDecrypt(new byte[10]));
         byte[] cacheId = new byte[10];
         assertNull(cache.getEntryForEncrypt(cacheId, UsageStats.ZERO));
     }
 
     @Test
-    public void whenEntriesAddedToDecryptCache_correctEntriesReturned() throws Exception {
+    public void whenEntriesAddedToDecryptCache_correctEntriesReturned() {
         DecryptionMaterials result1 = CacheTestFixtures.createDecryptResult(CacheTestFixtures.createDecryptRequest(1));
         DecryptionMaterials result2 = CacheTestFixtures.createDecryptResult(CacheTestFixtures.createDecryptRequest(2));
 
@@ -55,7 +55,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyDecryptEntriesAdded_LRURespected() throws Exception {
+    public void whenManyDecryptEntriesAdded_LRURespected() {
         DecryptionMaterials[] results = new DecryptionMaterials[6];
 
         for (int i = 0; i < results.length; i++) {
@@ -86,7 +86,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenEncryptEntriesAdded_theyCanBeRetrieved() throws Exception {
+    public void whenEncryptEntriesAdded_theyCanBeRetrieved() {
         EncryptionMaterials
                 result1a = CacheTestFixtures.createMaterialsResult(CacheTestFixtures.createMaterialsRequest(0));
         EncryptionMaterials
@@ -103,7 +103,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenInitialUsagePassed_itIsRetained() throws Exception {
+    public void whenInitialUsagePassed_itIsRetained() {
         UsageStats stats = new UsageStats(123, 456);
         EncryptionMaterials
                 result1a = CacheTestFixtures.createMaterialsResult(CacheTestFixtures.createMaterialsRequest(0));
@@ -113,7 +113,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyEncryptEntriesAdded_LRUIsRespected() throws Exception {
+    public void whenManyEncryptEntriesAdded_LRUIsRespected() {
         EncryptionMaterials[] results = new EncryptionMaterials[6];
         for (int i = 0; i < results.length; i++) {
             results[i] = CacheTestFixtures.createMaterialsResult(CacheTestFixtures.createMaterialsRequest(i / 3));
@@ -128,7 +128,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyEncryptEntriesAdded_andEntriesTouched_LRUIsRespected() throws Exception {
+    public void whenManyEncryptEntriesAdded_andEntriesTouched_LRUIsRespected() {
         EncryptionMaterials[] results = new EncryptionMaterials[6];
         for (int i = 0; i < 3; i++) {
             results[i] = CacheTestFixtures.createMaterialsResult(CacheTestFixtures.createMaterialsRequest(0));
@@ -151,7 +151,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyEncryptEntriesAdded_andEntryInvalidated_LRUIsRespected() throws Exception {
+    public void whenManyEncryptEntriesAdded_andEntryInvalidated_LRUIsRespected() {
         EncryptionMaterials[] results = new EncryptionMaterials[6];
         for (int i = 0; i < 3; i++) {
             results[i] = CacheTestFixtures.createMaterialsResult(CacheTestFixtures.createMaterialsRequest(0));
@@ -174,7 +174,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void testCacheEntryBehavior() throws Exception {
+    public void testCacheEntryBehavior() {
         EncryptionMaterials result = createResult();
         CryptoMaterialsCache.EncryptCacheEntry e = cache.putEntryForEncrypt(new byte[]{0}, result, hint,
                                                                             new UsageStats(1, 2));
@@ -208,7 +208,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyEntriesExpireAtOnce_expiredEncryptEntriesStillNotReturned() throws Exception {
+    public void whenManyEntriesExpireAtOnce_expiredEncryptEntriesStillNotReturned() {
         // Our active TTL expiration logic will only remove a certain number of entries per call, make sure that even
         // if we bail out before removing a particular entry, it's still filtered from the return value.
         cache = new LocalCryptoMaterialsCache(200);
@@ -225,7 +225,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenAccessed_encryptEntryTTLNotReset() throws Exception {
+    public void whenAccessed_encryptEntryTTLNotReset() {
         EncryptionMaterials result = createResult();
         cache.putEntryForEncrypt(new byte[]{0}, result, hint, UsageStats.ZERO);
 
@@ -249,7 +249,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenAccessed_decryptEntryTTLNotReset() throws Exception {
+    public void whenAccessed_decryptEntryTTLNotReset() {
         DecryptionMaterials result = CacheTestFixtures.createDecryptResult(CacheTestFixtures.createDecryptRequest(0));
 
         cache.putEntryForDecrypt(new byte[]{0}, result, hint);
@@ -261,7 +261,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void whenManyEntriesExpireAtOnce_expiredDecryptEntriesStillNotReturned() throws Exception {
+    public void whenManyEntriesExpireAtOnce_expiredDecryptEntriesStillNotReturned() {
         cache = new LocalCryptoMaterialsCache(200);
         cache.clock = clock;
 
@@ -278,7 +278,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void testDecryptInvalidate() throws Exception {
+    public void testDecryptInvalidate() {
         DecryptionMaterials result = CacheTestFixtures.createDecryptResult(CacheTestFixtures.createDecryptRequest(0));
 
         cache.putEntryForDecrypt(new byte[]{0}, result, hint);
@@ -288,7 +288,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void testDecryptEntryCreationTime() throws Exception {
+    public void testDecryptEntryCreationTime() {
         DecryptionMaterials result = CacheTestFixtures.createDecryptResult(CacheTestFixtures.createDecryptRequest(0));
 
         cache.putEntryForDecrypt(new byte[]{0}, result, hint);
@@ -311,7 +311,7 @@ public class LocalCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void testUsageStatsCtorValidation() throws Exception {
+    public void testUsageStatsCtorValidation() {
         assertThrows(() -> new UsageStats(1, -1));
         assertThrows(() -> new UsageStats(-1, 1));
     }

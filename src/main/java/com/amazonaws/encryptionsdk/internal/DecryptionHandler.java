@@ -515,7 +515,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     private void updateTrailingSignature(final CiphertextHeaders headers) {
         if (trailingSig_ != null) {
-            final byte[] reserializedHeaders = ciphertextHeaders_.toByteArray();
+            final byte[] reserializedHeaders = headers.toByteArray();
             updateTrailingSignature(reserializedHeaders, 0, reserializedHeaders.length);
         }
     }

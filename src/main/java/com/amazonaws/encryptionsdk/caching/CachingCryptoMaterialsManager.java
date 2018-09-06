@@ -11,6 +11,7 @@ import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
@@ -249,7 +250,7 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
                     partitionId.getBytes(StandardCharsets.UTF_8)
             );
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new AwsCryptoException(e);
         }
     }
 
@@ -349,7 +350,7 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
 
             return digest.digest();
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new AwsCryptoException(e);
         }
     }
 
@@ -377,7 +378,7 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
 
             return digest.digest();
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new AwsCryptoException(e);
         }
     }
 

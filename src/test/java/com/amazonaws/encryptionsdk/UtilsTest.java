@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import org.junit.Test;
 
@@ -13,7 +12,7 @@ import com.amazonaws.encryptionsdk.internal.Utils;
 
 public class UtilsTest {
     @Test
-    public void compareObjectIdentityTest() throws Exception {
+    public void compareObjectIdentityTest()  {
         assertNotEquals(0, Utils.compareObjectIdentity(null, new Object()));
         assertNotEquals(0, Utils.compareObjectIdentity(new Object(), null));
 
@@ -63,7 +62,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testSaturatingAdd() throws Exception {
+    public void testSaturatingAdd()  {
         assertEquals(0, Utils.saturatingAdd(0, 0));
         assertEquals(2, Utils.saturatingAdd(1, 1));
         assertEquals(-2, Utils.saturatingAdd(-1, -1));

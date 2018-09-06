@@ -14,7 +14,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 public class NullCryptoMaterialsCacheTest {
     @Test
-    public void testEncryptPath() throws Exception {
+    public void testEncryptPath() {
         NullCryptoMaterialsCache cache = new NullCryptoMaterialsCache();
 
         EncryptionMaterialsRequest req = CacheTestFixtures.createMaterialsRequest(1);
@@ -36,7 +36,7 @@ public class NullCryptoMaterialsCacheTest {
     }
 
     @Test
-    public void testDecryptPath() throws Exception {
+    public void testDecryptPath() {
         NullCryptoMaterialsCache cache = new NullCryptoMaterialsCache();
 
         DecryptionMaterialsRequest request = CacheTestFixtures.createDecryptRequest(1);
