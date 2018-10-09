@@ -54,7 +54,7 @@ public final class DecryptionMaterialsRequest {
 
         private Builder(DecryptionMaterialsRequest request) {
             this.algorithm = request.getAlgorithm();
-            this.encryptedDataKeys = request.getEncryptedDataKeys();
+            this.encryptionContext = request.getEncryptionContext();
             this.encryptedDataKeys = request.getEncryptedDataKeys();
         }
 

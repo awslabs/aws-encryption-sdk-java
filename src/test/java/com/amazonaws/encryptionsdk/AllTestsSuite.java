@@ -22,6 +22,7 @@ import com.amazonaws.encryptionsdk.jce.KeyStoreProviderTest;
 import com.amazonaws.encryptionsdk.model.CipherBlockHeadersTest;
 import com.amazonaws.encryptionsdk.model.CipherFrameHeadersTest;
 import com.amazonaws.encryptionsdk.model.KeyBlobTest;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequestTest;
 import com.amazonaws.encryptionsdk.multi.MultipleMasterKeyTest;
 import com.amazonaws.encryptionsdk.kms.KMSProviderBuilderMockTests;
 
@@ -40,6 +41,7 @@ import com.amazonaws.encryptionsdk.kms.KMSProviderBuilderMockTests;
         CipherBlockHeadersTest.class,
         CipherFrameHeadersTest.class,
         KeyBlobTest.class,
+        DecryptionMaterialsRequestTest.class,
         MultipleMasterKeyTest.class,
         AwsCryptoTest.class,
         CryptoInputStreamTest.class,
