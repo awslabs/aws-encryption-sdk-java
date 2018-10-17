@@ -82,12 +82,12 @@ public class EncryptionContextSerializer {
             for (Entry<String, String> mapEntry : encryptionContext.entrySet()) {
                 if (mapEntry.getKey() == null || mapEntry.getValue() == null) {
                     throw new AwsCryptoException(
-                            "All keys and values in excryption context must be non-null.");
+                            "All keys and values in encryption context must be non-null.");
                 }
 
                 if (mapEntry.getKey().isEmpty() || mapEntry.getValue().isEmpty()) {
                     throw new AwsCryptoException(
-                            "All keys and values in excryption context must be non-empty.");
+                            "All keys and values in encryption context must be non-empty.");
                 }
 
                 final ByteBuffer keyBytes = encoder.encode(CharBuffer.wrap(mapEntry.getKey()));
@@ -100,7 +100,7 @@ public class EncryptionContextSerializer {
 
                 if (keyBytes.limit() > Short.MAX_VALUE || valueBytes.limit() > Short.MAX_VALUE) {
                     throw new AwsCryptoException(
-                            "All keys and values in excryption context must be shorter than " + Short.MAX_VALUE);
+                            "All keys and values in encryption context must be shorter than " + Short.MAX_VALUE);
                 }
             }
 
