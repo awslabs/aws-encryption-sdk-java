@@ -7,3 +7,10 @@ jdk:
 script: mvn install -Dgpg.skip=true
 sudo: false
 dist: trusty
+
+# Run the OpenJML proof only once, on openjdk8
+matrix:
+  include:
+    - stage: proof
+      jdk: openjdk8
+      script: jml/run-proof.sh
