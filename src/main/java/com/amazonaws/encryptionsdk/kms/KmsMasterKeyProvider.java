@@ -645,17 +645,18 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     }
 
     private static String parseRegionfromKeyArn(final String keyArn) {
-        final String[] parts = keyArn.split(":", 5);
+        String region = null;
 
-        if (!parts[0].equals("arn")) {
-            // Not an arn
-            return null;
+        if (keyArn != null) {
+            final String[] parts = keyArn.split(":", 5);
+
+            // parts[1].equals("aws"); // This can vary
+            if (parts[0].equals("arn") && // Check arn
+                    parts[2].equals("kms")) { // Check kms
+                region = parts[3];
+            }
         }
-        // parts[1].equals("aws"); // This can vary
-        if (!parts[2].equals("kms")) {
-            // Not a kms arn
-            return null;
-        }
-        return parts[3]; // return region
+
+        return region;
     }
 }
