@@ -23,7 +23,7 @@ To use this SDK you must have:
   <dependency>
     <groupId>org.bouncycastle</groupId>
     <artifactId>bcprov-ext-jdk15on</artifactId>
-    <version>1.54</version>
+    <version>1.61</version>
   </dependency>
   ```
 
@@ -45,7 +45,7 @@ You can get the latest release from Maven:
 <dependency>
   <groupId>com.amazonaws</groupId>
   <artifactId>aws-encryption-sdk-java</artifactId>
-  <version>1.3.6</version>
+  <version>1.4.0</version>
 </dependency>
 ```
 

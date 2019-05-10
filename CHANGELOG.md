@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 -- 2019-05-10
+
+### Minor Changes
+* Increased BouncyCastle dependency version to 1.61
+* Removed explicit use of BouncyCastle from all cryptography except for EC key generation and RSA encryption/decryption
+
+### Maintenance
+* Increased Mockito test dependency version to 2.23.4
+
 ## 1.3.6 -- 2018-12-10
 
 ### Patches
