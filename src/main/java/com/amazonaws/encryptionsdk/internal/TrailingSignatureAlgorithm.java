@@ -77,7 +77,7 @@ public abstract class TrailingSignatureAlgorithm {
                     new ECDomainParameters(ecSpec.getCurve(), ecSpec.getG(), ecSpec.getN(), ecSpec.getH())
             );
 
-            return new BCECPublicKey("ECDSA", keyParams, ecSpec, BouncyCastleProvider.CONFIGURATION);
+            return new BCECPublicKey("EC", keyParams, ecSpec, BouncyCastleProvider.CONFIGURATION);
         }
 
         @Override
@@ -87,7 +87,8 @@ public abstract class TrailingSignatureAlgorithm {
 
         @Override
         public KeyPair generateKey() throws GeneralSecurityException {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ECDSA", INTERNAL_BOUNCY_CASTLE_PROVIDER);
+            // We use BouncyCastle for this so that we can easily serialize the compressed point.
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", INTERNAL_BOUNCY_CASTLE_PROVIDER);
             keyGen.initialize(ecSpec, Utils.getSecureRandom());
 
             return keyGen.generateKeyPair();

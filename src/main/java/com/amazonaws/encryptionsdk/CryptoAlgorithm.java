@@ -33,7 +33,6 @@ import org.bouncycastle.crypto.params.HKDFParameters;
 
 import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * Describes the cryptographic algorithms available for use in this library.
