@@ -61,7 +61,7 @@ public abstract class MasterKeyProvider<K extends MasterKey<K>> {
      * @param keyId
      * @return
      * @throws UnsupportedProviderException
-     *             if this object cannot return {@link MasterKeys} associated with the given
+     *             if this object cannot return {@link MasterKey}s associated with the given
      *             provider
      * @throws NoSuchMasterKeyException
      *             if this object cannot find (and thus construct) the {@link MasterKey} associated

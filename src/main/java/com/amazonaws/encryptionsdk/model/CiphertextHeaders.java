@@ -105,8 +105,8 @@ public class CiphertextHeaders {
      * @param encryptionContext
      *            the bytes containing the encryption context to set in the
      *            header.
-     * @param keyBlob
-     *            the keyBlob object containing the key provider id, key
+     * @param keyBlobs
+     *            list of keyBlobs containing the key provider id, key
      *            provider info, and encrypted data key to encode in the header.
      * @param contentType
      *            the content type to set in the header.

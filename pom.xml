@@ -115,6 +115,7 @@
                     <minmemory>128m</minmemory>
                     <maxmemory>1024m</maxmemory>
                     <doclint>none</doclint>
+                    <source>8</source>
                 </configuration>
             </plugin>
         </plugins>

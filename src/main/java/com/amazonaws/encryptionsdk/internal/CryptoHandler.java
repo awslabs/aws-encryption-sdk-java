@@ -54,7 +54,7 @@ public interface CryptoHandler {
     /**
      * Return the size of the output buffer required for a
      * {@link #processBytes(byte[], int, int, byte[], int)} plus a {@link #doFinal(byte[], int)}
-     * call with an input of {@code inLen) bytes.
+     * call with an input of {@code inLen} bytes.
      * 
      * <p>
      * Note this method is allowed to return an estimation of the output size that is <i>greater</i>
