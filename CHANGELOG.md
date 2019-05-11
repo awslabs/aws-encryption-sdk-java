@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1 -- 2019-05-10
+
+### Patches
+* Cast ByteBuffer to Buffer prior to using some methods so that it works properly in Java 8.
+
 ## 1.4.0 -- 2019-05-10
 
 ### Minor Changes

@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import java.io.Serializable;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -219,5 +220,41 @@ public final class Utils {
 
     static IllegalArgumentException cannotBeNegative(String field) {
         return new IllegalArgumentException(field + " cannot be negative");
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#flip()} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer flip(final ByteBuffer buff) {
+        ((Buffer) buff).flip();
+        return buff;
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#clear()} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer clear(final ByteBuffer buff) {
+        ((Buffer) buff).clear();
+        return buff;
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#position(int)} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer position(final ByteBuffer buff, final int newPosition) {
+        ((Buffer) buff).position(newPosition);
+        return buff;
+    }
+
+        /**
+     * Equivalent to calling {@link ByteBuffer#limit(int)} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer limit(final ByteBuffer buff, final int newLimit) {
+        ((Buffer) buff).limit(newLimit);
+        return buff;
     }
 }
