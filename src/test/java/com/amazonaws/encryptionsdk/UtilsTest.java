@@ -1,9 +1,11 @@
 package com.amazonaws.encryptionsdk;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.junit.Test;
@@ -73,6 +75,26 @@ public class UtilsTest {
         assertEquals(Long.MAX_VALUE, Utils.saturatingAdd(Long.MAX_VALUE - 1, +2));
         assertEquals(Long.MAX_VALUE, Utils.saturatingAdd(Long.MAX_VALUE, Long.MAX_VALUE));
         assertEquals(Long.MIN_VALUE, Utils.saturatingAdd(Long.MIN_VALUE, Long.MIN_VALUE));
+    }
+
+    /**
+     * Basic sanity check for our Base64 helper methods.
+     */
+    @Test
+    public void base64empty() {
+        assertEquals("", Utils.encodeBase64String(new byte[]{}));
+        assertArrayEquals(new byte[]{}, Utils.decodeBase64String(""));
+    }
+
+    /**
+     * Basic sanity check for our Base64 helper methods.
+     */
+    @Test
+    public void base64something() {
+        byte[] data = "Lorem ipsum dolor sit amet".getBytes(StandardCharsets.UTF_8);
+        String encoded = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQ=";
+        assertEquals(encoded, Utils.encodeBase64String(data));
+        assertArrayEquals(data, Utils.decodeBase64String(encoded));
     }
 }
 

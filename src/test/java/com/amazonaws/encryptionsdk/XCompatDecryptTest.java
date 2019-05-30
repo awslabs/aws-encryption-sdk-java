@@ -32,18 +32,17 @@ import java.util.Map;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.codec.binary.Base64;
 
 import org.bouncycastle.util.io.pem.PemReader;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.amazonaws.encryptionsdk.internal.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -120,7 +119,7 @@ public class XCompatDecryptTest {
                 byte[] keyBytes;
                 switch ((String)thisKey.get("encoding")) {
                     case "base64":
-                        keyBytes = Base64.decodeBase64(keyRaw);
+                        keyBytes = Utils.decodeBase64String(keyRaw);
                         break;
                     case "pem":
                         PemReader pemReader = new PemReader(new StringReader(keyRaw));

@@ -23,6 +23,8 @@ import java.util.Comparator;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.bouncycastle.util.encoders.Base64;
+
 /**
  * Internal utility methods.
  */
@@ -256,5 +258,25 @@ public final class Utils {
     public static ByteBuffer limit(final ByteBuffer buff, final int newLimit) {
         ((Buffer) buff).limit(newLimit);
         return buff;
+    }
+
+    /**
+     * Takes a Base64-encoded String, decodes it, and returns contents as a byte array.
+     *
+     * @param encoded Base64 encoded String
+     * @return decoded data as a byte array
+     */
+    public static byte[] decodeBase64String(final String encoded) {
+        return Base64.decode(encoded);
+    }
+
+    /**
+     * Takes data in a byte array, encodes them in Base64, and returns the result as a String.
+     *
+     * @param data The data to encode.
+     * @return Base64 string that encodes the {@code data}.
+     */
+    public static String encodeBase64String(final byte[] data) {
+        return Base64.toBase64String(data);
     }
 }

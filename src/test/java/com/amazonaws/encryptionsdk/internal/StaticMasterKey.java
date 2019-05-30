@@ -20,8 +20,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.binary.Base64;
-
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
@@ -181,8 +179,8 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     /**
      * Statically configured private key.
      */
-    private static final byte[] privateKey_v1 = Base64.decodeBase64(
-            ("MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKLpwqjYtYExVilW/Hg0ogWv9xZ+"
+    private static final byte[] privateKey_v1 = Utils.decodeBase64String(
+            "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKLpwqjYtYExVilW/Hg0ogWv9xZ+"
     + "THj4IzvISLlPtK8W6KXMcqukfuxdYmndPv8UD1DbdHFYSSistdqoBN32vVQOQnJZyYm45i2TDOV0"
     + "M2DtHtR6aMMlBLGtdPeeaT88nQfI1ORjRDyR1byMwomvmKifZYga6FjLt/sgqfSE9BUnAgMBAAEC"
     + "gYAqnewGL2qLuVRIzDCPYXVg938zqyZmHsNYyDP+BhPGGcASX0FAFW/+dQ9hkjcAk0bOaBo17Fp3"
@@ -193,15 +191,14 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     + "4mSYYs9UZ0S1DAMhl6amPpqIANYX98NJyZUsjtNV9MK2qoUSF/xXqDFvxG1lAkBhP5Ow2Zn3U1mT"
     + "Y/XQxSZjjjwr3vyt1neHjQsEMwa3iGPXJbLSmVBVZfUZoGOBDsvVQoCIiFOlGuKyBpA45MkZAkAH"
     + "ksUrS9xLrDIUOI2BzMNRsK0bH7KJ+PFxm2SBgJOF9+Uf2A9LIP4IvESZq+ufp6c8YaqgR6Id1vws"
-    + "7rUyGoa5").getBytes(StandardCharsets.UTF_8));
+    + "7rUyGoa5");
 
     /**
      * Statically configured public key.
      */
-     private static final byte[] publicKey_v1 = Base64.decodeBase64(
-            ("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCi6cKo2LWBMVYpVvx4NKIFr/cWfkx4+CM7yEi5"
+     private static final byte[] publicKey_v1 = Utils.decodeBase64String(
+            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCi6cKo2LWBMVYpVvx4NKIFr/cWfkx4+CM7yEi5"
     + "T7SvFuilzHKrpH7sXWJp3T7/FA9Q23RxWEkorLXaqATd9r1UDkJyWcmJuOYtkwzldDNg7R7UemjD"
-    + "JQSxrXT3nmk/PJ0HyNTkY0Q8kdW8jMKJr5ion2WIGuhYy7f7IKn0hPQVJwIDAQAB")
-             .getBytes(StandardCharsets.UTF_8));
+    + "JQSxrXT3nmk/PJ0HyNTkY0Q8kdW8jMKJr5ion2WIGuhYy7f7IKn0hPQVJwIDAQAB");
 
 }

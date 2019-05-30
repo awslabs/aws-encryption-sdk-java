@@ -19,8 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
-
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.internal.DecryptionHandler;
@@ -308,7 +306,7 @@ public class AwsCrypto {
                 plaintext.getBytes(StandardCharsets.UTF_8),
                 encryptionContext
         );
-        return new CryptoResult<>(Base64.encodeBase64String(ctBytes.getResult()),
+        return new CryptoResult<>(Utils.encodeBase64String(ctBytes.getResult()),
                                   ctBytes.getMasterKeys(), ctBytes.getHeaders());
     }
 
@@ -424,7 +422,7 @@ public class AwsCrypto {
         Utils.assertNonNull(provider, "provider");
         final byte[] ciphertextBytes;
         try {
-            ciphertextBytes = Base64.decodeBase64(Utils.assertNonNull(ciphertext, "ciphertext"));
+            ciphertextBytes = Utils.decodeBase64String(Utils.assertNonNull(ciphertext, "ciphertext"));
         } catch (final IllegalArgumentException ex) {
             throw new BadCiphertextException("Invalid base 64", ex);
         }

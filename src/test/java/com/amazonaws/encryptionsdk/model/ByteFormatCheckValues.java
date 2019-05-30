@@ -13,7 +13,7 @@
 
 package com.amazonaws.encryptionsdk.model;
 
-import org.apache.commons.codec.binary.Base64;
+import com.amazonaws.encryptionsdk.internal.Utils;
 
 public class ByteFormatCheckValues {
     private static final String base64MessageId_ = "NQ/NXvg4mMN5zm5JFZHUWw==";
@@ -29,38 +29,38 @@ public class ByteFormatCheckValues {
     private static final String base64FinalFrameHeaderHash_ = "/b2fVFOxvnaM5vXDMGyyFPNTWMjuU/c/48qeH3uTHj0=";
 
     public static byte[] getMessageId() {
-        return Base64.decodeBase64(base64MessageId_);
+        return Utils.decodeBase64String(base64MessageId_);
     }
 
     public static byte[] getEncryptedKey() {
-        return Base64.decodeBase64(base64EncryptedKey_);
+        return Utils.decodeBase64String(base64EncryptedKey_);
     }
 
     public static byte[] getPlaintextKey() {
-        return Base64.decodeBase64(base64PlaintextKey_);
+        return Utils.decodeBase64String(base64PlaintextKey_);
     }
 
     public static byte[] getCiphertextHeaderHash() {
-        return Base64.decodeBase64(base64CiphertextHeaderHash_);
+        return Utils.decodeBase64String(base64CiphertextHeaderHash_);
     }
 
     public static byte[] getCipherBlockHeaderHash() {
-        return Base64.decodeBase64(base64BlockHeaderHash_);
+        return Utils.decodeBase64String(base64BlockHeaderHash_);
     }
 
     public static byte[] getCipherFrameHeaderHash() {
-        return Base64.decodeBase64(base64FrameHeaderHash_);
+        return Utils.decodeBase64String(base64FrameHeaderHash_);
     }
 
     public static byte[] getCipherFinalFrameHeaderHash() {
-        return Base64.decodeBase64(base64FinalFrameHeaderHash_);
+        return Utils.decodeBase64String(base64FinalFrameHeaderHash_);
     }
 
     public static byte[] getNonce() {
-        return Base64.decodeBase64(base64Nonce_);
+        return Utils.decodeBase64String(base64Nonce_);
     }
 
     public static byte[] getTag() {
-        return Base64.decodeBase64(base64Tag_);
+        return Utils.decodeBase64String(base64Tag_);
     }
 }

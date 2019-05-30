@@ -41,14 +41,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.commons.codec.binary.Base64;
-
 import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 import com.amazonaws.encryptionsdk.internal.TestIOUtils;
+import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
@@ -450,7 +449,7 @@ public class AwsCryptoTest {
                 encryptionContext).getResult();
         final String decryptedText = encryptionClient_.decryptString(
                 masterKeyProvider,
-                Base64.encodeBase64String(cipherText)).getResult();
+                Utils.encodeBase64String(cipherText)).getResult();
 
         assertEquals(plaintext, decryptedText);
     }
@@ -470,7 +469,7 @@ public class AwsCryptoTest {
                 encryptionContext).getResult();
         final byte[] decryptedText = encryptionClient_.decryptData(
                 masterKeyProvider,
-                Base64.decodeBase64(ciphertext)).getResult();
+                Utils.decodeBase64String(ciphertext)).getResult();
 
         assertArrayEquals(plaintextString.getBytes(StandardCharsets.UTF_8), decryptedText);
     }

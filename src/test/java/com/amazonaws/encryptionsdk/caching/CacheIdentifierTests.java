@@ -17,10 +17,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
-import org.apache.commons.codec.binary.Base64;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -84,7 +84,7 @@ public class CacheIdentifierTests {
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
 
-        assertEquals(expect, Base64.encodeBase64String(id));
+        assertEquals(expect, Utils.encodeBase64String(id));
     }
 
     void assertEncryptId(String partitionName, CryptoAlgorithm algo, Map<String, String> context, String expect) throws Exception {
@@ -95,7 +95,7 @@ public class CacheIdentifierTests {
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
 
-        assertEquals(expect, Base64.encodeBase64String(id));
+        assertEquals(expect, Utils.encodeBase64String(id));
     }
 
     @Test

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 -- 2019-05-31
+
+### Minor Changes
+* Remove dependency on Apache Commons Codec 1.12.
+* Use Base64 encoder from Bouncy Castle.
+* Introduce and use utility methods for Base64 encoding/decoding so that
+  switching the codec provider needs to be done only in one place next time.
+
 ## 1.5.0 -- 2019-05-30
 
 ### Minor Changes
