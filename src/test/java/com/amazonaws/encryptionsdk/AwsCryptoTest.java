@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import org.apache.commons.codec.binary.Base64;
 
 import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
@@ -449,7 +450,7 @@ public class AwsCryptoTest {
                 encryptionContext).getResult();
         final String decryptedText = encryptionClient_.decryptString(
                 masterKeyProvider,
-                Base64.getEncoder().encodeToString(cipherText)).getResult();
+                Base64.encodeBase64String(cipherText)).getResult();
 
         assertEquals(plaintext, decryptedText);
     }
@@ -469,7 +470,7 @@ public class AwsCryptoTest {
                 encryptionContext).getResult();
         final byte[] decryptedText = encryptionClient_.decryptData(
                 masterKeyProvider,
-                Base64.getDecoder().decode(ciphertext)).getResult();
+                Base64.decodeBase64(ciphertext)).getResult();
 
         assertArrayEquals(plaintextString.getBytes(StandardCharsets.UTF_8), decryptedText);
     }

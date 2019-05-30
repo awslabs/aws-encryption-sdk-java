@@ -14,7 +14,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
 
-import java.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 
@@ -70,7 +70,7 @@ public abstract class TrailingSignatureAlgorithm {
 
         @Override
         public PublicKey deserializePublicKey(String keyString) {
-            final ECPoint q = ecSpec.getCurve().decodePoint(Base64.getDecoder().decode(keyString));
+            final ECPoint q = ecSpec.getCurve().decodePoint(Base64.decodeBase64(keyString));
 
             ECPublicKeyParameters keyParams = new ECPublicKeyParameters(
                     q,
@@ -82,7 +82,7 @@ public abstract class TrailingSignatureAlgorithm {
 
         @Override
         public String serializePublicKey(PublicKey key) {
-            return Base64.getEncoder().encodeToString(((ECPublicKey)key).getQ().getEncoded(true));
+            return Base64.encodeBase64String(((ECPublicKey)key).getQ().getEncoded(true));
         }
 
         @Override

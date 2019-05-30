@@ -13,7 +13,7 @@
 
 package com.amazonaws.encryptionsdk.model;
 
-import java.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 public class ByteFormatCheckValues {
     private static final String base64MessageId_ = "NQ/NXvg4mMN5zm5JFZHUWw==";
@@ -29,38 +29,38 @@ public class ByteFormatCheckValues {
     private static final String base64FinalFrameHeaderHash_ = "/b2fVFOxvnaM5vXDMGyyFPNTWMjuU/c/48qeH3uTHj0=";
 
     public static byte[] getMessageId() {
-        return Base64.getDecoder().decode(base64MessageId_);
+        return Base64.decodeBase64(base64MessageId_);
     }
 
     public static byte[] getEncryptedKey() {
-        return Base64.getDecoder().decode(base64EncryptedKey_);
+        return Base64.decodeBase64(base64EncryptedKey_);
     }
 
     public static byte[] getPlaintextKey() {
-        return Base64.getDecoder().decode(base64PlaintextKey_);
+        return Base64.decodeBase64(base64PlaintextKey_);
     }
 
     public static byte[] getCiphertextHeaderHash() {
-        return Base64.getDecoder().decode(base64CiphertextHeaderHash_);
+        return Base64.decodeBase64(base64CiphertextHeaderHash_);
     }
 
     public static byte[] getCipherBlockHeaderHash() {
-        return Base64.getDecoder().decode(base64BlockHeaderHash_);
+        return Base64.decodeBase64(base64BlockHeaderHash_);
     }
 
     public static byte[] getCipherFrameHeaderHash() {
-        return Base64.getDecoder().decode(base64FrameHeaderHash_);
+        return Base64.decodeBase64(base64FrameHeaderHash_);
     }
 
     public static byte[] getCipherFinalFrameHeaderHash() {
-        return Base64.getDecoder().decode(base64FinalFrameHeaderHash_);
+        return Base64.decodeBase64(base64FinalFrameHeaderHash_);
     }
 
     public static byte[] getNonce() {
-        return Base64.getDecoder().decode(base64Nonce_);
+        return Base64.decodeBase64(base64Nonce_);
     }
 
     public static byte[] getTag() {
-        return Base64.getDecoder().decode(base64Tag_);
+        return Base64.decodeBase64(base64Tag_);
     }
 }

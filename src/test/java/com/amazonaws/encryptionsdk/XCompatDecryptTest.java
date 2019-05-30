@@ -23,7 +23,6 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +32,7 @@ import java.util.Map;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.codec.binary.Base64;
 
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -120,7 +120,7 @@ public class XCompatDecryptTest {
                 byte[] keyBytes;
                 switch ((String)thisKey.get("encoding")) {
                     case "base64":
-                        keyBytes = Base64.getDecoder().decode(keyRaw);
+                        keyBytes = Base64.decodeBase64(keyRaw);
                         break;
                     case "pem":
                         PemReader pemReader = new PemReader(new StringReader(keyRaw));

@@ -9,7 +9,6 @@ import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +19,8 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
@@ -180,7 +181,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     /**
      * Statically configured private key.
      */
-    private static final byte[] privateKey_v1 = Base64.getDecoder().decode(
+    private static final byte[] privateKey_v1 = Base64.decodeBase64(
             ("MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKLpwqjYtYExVilW/Hg0ogWv9xZ+"
     + "THj4IzvISLlPtK8W6KXMcqukfuxdYmndPv8UD1DbdHFYSSistdqoBN32vVQOQnJZyYm45i2TDOV0"
     + "M2DtHtR6aMMlBLGtdPeeaT88nQfI1ORjRDyR1byMwomvmKifZYga6FjLt/sgqfSE9BUnAgMBAAEC"
@@ -197,7 +198,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     /**
      * Statically configured public key.
      */
-     private static final byte[] publicKey_v1 = Base64.getDecoder().decode(
+     private static final byte[] publicKey_v1 = Base64.decodeBase64(
             ("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCi6cKo2LWBMVYpVvx4NKIFr/cWfkx4+CM7yEi5"
     + "T7SvFuilzHKrpH7sXWJp3T7/FA9Q23RxWEkorLXaqATd9r1UDkJyWcmJuOYtkwzldDNg7R7UemjD"
     + "JQSxrXT3nmk/PJ0HyNTkY0Q8kdW8jMKJr5ion2WIGuhYy7f7IKn0hPQVJwIDAQAB")
