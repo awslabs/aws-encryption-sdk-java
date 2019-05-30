@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.2 -- 2019-05-30
+## 1.5.0 -- 2019-05-30
 
 ### Minor Changes
 * Add dependency on Apache Commons Codec 1.12.
