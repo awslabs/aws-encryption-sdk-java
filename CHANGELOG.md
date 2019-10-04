@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1 -- Unreleased
+### Maintenance
+* Add support for standard test vectors via `testVectorZip` system property. 
+
 ## 1.6.0 -- 2019-05-31
 
 ### Minor Changes
