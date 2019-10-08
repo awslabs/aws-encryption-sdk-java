@@ -24,17 +24,22 @@ import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.MGF1ParameterSpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
@@ -237,17 +242,58 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
     }
 
     private static class Rsa extends JceMasterKey {
+        // MGF1 with SHA-224 isn't really supported, but we include it in the regex because we need it
+        // for proper handling of the algorithm.
         private static final Pattern SUPPORTED_TRANSFORMATIONS =
-            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWithSHA-(?:1|256|384|512)AndMGF1Padding)",
+            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWith(SHA-(?:1|224|256|384|512))AndMGF1Padding)",
                     Pattern.CASE_INSENSITIVE);
+        private final AlgorithmParameterSpec parameterSpec_;
         private final String transformation_;
 
         private Rsa(PublicKey wrappingKey, PrivateKey unwrappingKey, String providerName, String keyId,
                 String transformation) {
             super(wrappingKey, unwrappingKey, providerName, keyId);
-            transformation_ = transformation;
-            if (!SUPPORTED_TRANSFORMATIONS.matcher(transformation_).matches()) {
-                LOGGER.warning(transformation_ + " is not officially supported by the JceMasterKey");
+
+            final Matcher matcher = SUPPORTED_TRANSFORMATIONS.matcher(transformation);
+            if (matcher.matches()) {
+                final String hashUnknownCase = matcher.group(1);
+                if (hashUnknownCase != null) {
+                    // OAEP mode a.k.a PKCS #1v2
+                    final String hash = hashUnknownCase.toUpperCase();
+                    transformation_ = "RSA/ECB/OAEPPadding";
+
+                    final MGF1ParameterSpec mgf1Spec;
+                    switch (hash) {
+                        case "SHA-1":
+                            mgf1Spec = MGF1ParameterSpec.SHA1;
+                            break;
+                        case "SHA-224":
+                            LOGGER.warning(transformation + " is not officially supported by the JceMasterKey");
+                            mgf1Spec = MGF1ParameterSpec.SHA224;
+                            break;
+                        case "SHA-256":
+                            mgf1Spec = MGF1ParameterSpec.SHA256;
+                            break;
+                        case "SHA-384":
+                            mgf1Spec = MGF1ParameterSpec.SHA384;
+                            break;
+                        case "SHA-512":
+                            mgf1Spec = MGF1ParameterSpec.SHA512;
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unsupported algorithm: " + transformation);
+                    }
+                    parameterSpec_ = new OAEPParameterSpec(hash, "MGF1", mgf1Spec, PSource.PSpecified.DEFAULT);
+                } else {
+                    // PKCS #1 v1.x
+                    transformation_ = transformation;
+                    parameterSpec_ = null;
+                }
+            } else {
+                LOGGER.warning(transformation + " is not officially supported by the JceMasterKey");
+                // Unsupported transformation, just use exactly what we are given
+                transformation_ = transformation;
+                parameterSpec_ = null;
             }
         }
 
@@ -256,8 +302,8 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
                 throws GeneralSecurityException {
             // We require BouncyCastle to avoid some bugs in the default Java implementation
             // of OAEP.
-            final Cipher cipher = Cipher.getInstance(transformation_, "BC");
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+            final Cipher cipher = Cipher.getInstance(transformation_);
+            cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec_);
             return new WrappingData(cipher, EMPTY_ARRAY);
         }
 
@@ -269,8 +315,8 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             }
             // We require BouncyCastle to avoid some bugs in the default Java implementation
             // of OAEP.
-            final Cipher cipher = Cipher.getInstance(transformation_, "BC");
-            cipher.init(Cipher.DECRYPT_MODE, key);
+            final Cipher cipher = Cipher.getInstance(transformation_);
+            cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec_);
             return cipher;
         }
     }
