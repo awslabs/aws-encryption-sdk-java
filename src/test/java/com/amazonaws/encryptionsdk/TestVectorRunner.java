@@ -39,7 +39,7 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 @RunWith(Parameterized.class)
-public class NewCompatTest {
+public class TestVectorRunner {
     // We save the files in memory to avoid repeatedly retrieving them. This won't work if the plaintexts are too
     // large or numerous
     private static final Map<String, byte[]> cachedData = new HashMap<>();
@@ -47,7 +47,7 @@ public class NewCompatTest {
     private final String testName;
     private final TestCase testCase;
 
-    public NewCompatTest(final String testName, TestCase testCase) {
+    public TestVectorRunner(final String testName, TestCase testCase) {
         this.testName = testName;
         this.testCase = testCase;
     }
@@ -61,7 +61,7 @@ public class NewCompatTest {
         Assert.assertArrayEquals(expectedPlaintext, plaintext);
     }
 
-    @Parameterized.Parameters(name="Compatability Test: {0}")
+    @Parameterized.Parameters(name="Compatibility Test: {0}")
     @SuppressWarnings("unchecked")
     public static Collection<Object[]> data() throws Exception {
         final String zipPath = System.getProperty("testVectorZip");
@@ -72,7 +72,6 @@ public class NewCompatTest {
         final JarURLConnection jarConnection = (JarURLConnection) new URL("jar:" + zipPath + "!/").openConnection();
 
         try (JarFile jar = jarConnection.getJarFile()) {
-            final ObjectMapper mapper = new ObjectMapper();
             final Map<String, Object> manifest = readJsonMapFromJar(jar, "manifest.json");
 
             final Map<String, Object> metaData = (Map<String, Object>) manifest.get("manifest");
@@ -114,7 +113,6 @@ public class NewCompatTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> readJsonMapFromJar(JarFile jar, String fileName) throws IOException {
         try (InputStream is = readFromJar(jar, fileName)) {
             final ObjectMapper mapper = new ObjectMapper();
@@ -192,7 +190,7 @@ public class NewCompatTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, KeyEntry> parseKeyManifest(final Map<String, Object> keysManifest) throws IOException, GeneralSecurityException {
+    private static Map<String, KeyEntry> parseKeyManifest(final Map<String, Object> keysManifest) throws GeneralSecurityException {
         // check our type
         final Map<String, Object> metaData = (Map<String, Object>) keysManifest.get("manifest");
         if (!"keys".equals(metaData.get("type"))) {

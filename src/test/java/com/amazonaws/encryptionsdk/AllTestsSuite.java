@@ -46,7 +46,7 @@ import com.amazonaws.encryptionsdk.kms.KMSProviderBuilderMockTests;
         AwsCryptoTest.class,
         CryptoInputStreamTest.class,
         CryptoOutputStreamTest.class,
-        NewCompatTest.class,
+        TestVectorRunner.class,
         XCompatDecryptTest.class,
         DefaultCryptoMaterialsManagerTest.class,
         NullCryptoMaterialsCacheTest.class,
