@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import java.io.Serializable;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -21,6 +22,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.bouncycastle.util.encoders.Base64;
 
 /**
  * Internal utility methods.
@@ -219,5 +222,61 @@ public final class Utils {
 
     static IllegalArgumentException cannotBeNegative(String field) {
         return new IllegalArgumentException(field + " cannot be negative");
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#flip()} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer flip(final ByteBuffer buff) {
+        ((Buffer) buff).flip();
+        return buff;
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#clear()} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer clear(final ByteBuffer buff) {
+        ((Buffer) buff).clear();
+        return buff;
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#position(int)} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer position(final ByteBuffer buff, final int newPosition) {
+        ((Buffer) buff).position(newPosition);
+        return buff;
+    }
+
+    /**
+     * Equivalent to calling {@link ByteBuffer#limit(int)} but in a manner which is
+     * safe when compiled on Java 9 or newer but used on Java 8 or older.
+     */
+    public static ByteBuffer limit(final ByteBuffer buff, final int newLimit) {
+        ((Buffer) buff).limit(newLimit);
+        return buff;
+    }
+
+    /**
+     * Takes a Base64-encoded String, decodes it, and returns contents as a byte array.
+     *
+     * @param encoded Base64 encoded String
+     * @return decoded data as a byte array
+     */
+    public static byte[] decodeBase64String(final String encoded) {
+        return Base64.decode(encoded);
+    }
+
+    /**
+     * Takes data in a byte array, encodes them in Base64, and returns the result as a String.
+     *
+     * @param data The data to encode.
+     * @return Base64 string that encodes the {@code data}.
+     */
+    public static String encodeBase64String(final byte[] data) {
+        return Base64.toBase64String(data);
     }
 }

@@ -257,7 +257,7 @@ public class DefaultCryptoMaterialsManagerTest {
                 assertNull(decryptMaterials.getTrailingSignatureKey());
             } else {
                 Signature sig = Signature.getInstance(
-                        TrailingSignatureAlgorithm.forCryptoAlgorithm(algorithm).getHashAndSignAlgorithm(), "BC"
+                        TrailingSignatureAlgorithm.forCryptoAlgorithm(algorithm).getHashAndSignAlgorithm()
                 );
 
                 sig.initSign(encryptMaterials.getTrailingSignatureKey());

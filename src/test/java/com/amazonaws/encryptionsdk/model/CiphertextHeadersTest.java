@@ -315,6 +315,22 @@ public class CiphertextHeadersTest {
     }
 
     @Test(expected = BadCiphertextException.class)
+    public void invalidVersion(){
+        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
+        encryptionContext.put("ENC", "CiphertextHeader Streaming Test");
+
+        final CiphertextHeaders ciphertextHeaders = createCiphertextHeaders(encryptionContext);
+        final byte[] headerBytes = ciphertextHeaders.toByteArray();
+        final ByteBuffer headerBuff = ByteBuffer.wrap(headerBytes);
+
+        //set version to invalid type of 0.
+        headerBuff.put((byte) 0);
+
+        final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
+        reconstructedHeaders.deserialize(headerBuff.array(), 0);
+    }
+
+    @Test(expected = BadCiphertextException.class)
     public void invalidType() {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC", "CiphertextHeader Streaming Test");

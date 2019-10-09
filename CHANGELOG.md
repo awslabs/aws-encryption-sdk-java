@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.6.1 -- Unreleased
+### Maintenance
+* Add support for standard test vectors via `testVectorZip` system property.
+* No longer require use of BouncyCastle with RSA `JceMasterKey`s
+
+## 1.6.0 -- 2019-05-31
+
+### Minor Changes
+* Remove dependency on Apache Commons Codec 1.12.
+* Use Base64 encoder from Bouncy Castle.
+* Introduce and use utility methods for Base64 encoding/decoding so that
+  switching the codec provider needs to be done only in one place next time.
+
+## 1.5.0 -- 2019-05-30
+
+### Minor Changes
+* Add dependency on Apache Commons Codec 1.12.
+* Use org.apache.commons.codec.binary.Base64 instead of java.util.Base64 so
+  that the SDK can be used on systems that do not have java.util.Base64 but
+  support Java 8 language features.
+
+### Maintenance
+* Upgrade AWS Java SDK version from 1.11.169 to 1.11.561.
+* Upgrade Mockito from 2.23.4 to 2.28.1.
+* Upgrade Apache Commons Lang from 3.4 to 3.9.
+
+## 1.4.1 -- 2019-05-10
+
+### Patches
+* Cast ByteBuffer to Buffer prior to using some methods so that it works properly in Java 8.
+
+## 1.4.0 -- 2019-05-10
+
+### Minor Changes
+* Increased BouncyCastle dependency version to 1.61
+* Removed explicit use of BouncyCastle from all cryptography except for EC key generation and RSA encryption/decryption
+
+### Maintenance
+* Increased Mockito test dependency version to 2.23.4
+
 ## 1.3.6 -- 2018-12-10
 
 ### Patches

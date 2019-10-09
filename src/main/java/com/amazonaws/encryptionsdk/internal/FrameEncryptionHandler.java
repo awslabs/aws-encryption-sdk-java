@@ -359,7 +359,7 @@ class FrameEncryptionHandler implements CryptoHandler {
         // We technically only allocate the low 32 bits for the frame number, and the other bits are defined to be
         // zero. However, since MAX_FRAME_NUMBER is 2^32-1, the high-order four bytes of the long will be zero, so the
         // big-endian representation will also have zeros in that position.
-        buf.position(buf.limit() - Long.BYTES);
+        Utils.position(buf, buf.limit() - Long.BYTES);
         buf.putLong(frameNumber_);
 
         return nonce;

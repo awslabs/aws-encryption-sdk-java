@@ -58,8 +58,7 @@ public class KeyStoreProviderTest {
 
     static {
         try {
-            Security.addProvider(new BouncyCastleProvider());
-            KG = KeyPairGenerator.getInstance("RSA", "BC");
+            KG = KeyPairGenerator.getInstance("RSA");
             KG.initialize(2048);
         } catch (Exception ex) {
             throw new RuntimeException(ex);

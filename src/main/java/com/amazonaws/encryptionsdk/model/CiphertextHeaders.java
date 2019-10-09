@@ -30,6 +30,7 @@ import com.amazonaws.encryptionsdk.exception.ParseException;
 import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
 import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
+import com.amazonaws.encryptionsdk.internal.VersionInfo;
 
 /**
  * This class implements the headers for the message (ciphertext) produced by
@@ -105,8 +106,8 @@ public class CiphertextHeaders {
      * @param encryptionContext
      *            the bytes containing the encryption context to set in the
      *            header.
-     * @param keyBlob
-     *            the keyBlob object containing the key provider id, key
+     * @param keyBlobs
+     *            list of keyBlobs containing the key provider id, key
      *            provider info, and encrypted data key to encode in the header.
      * @param contentType
      *            the content type to set in the header.
@@ -179,6 +180,9 @@ public class CiphertextHeaders {
      */
     private int parseVersion(final byte[] b, final int off) throws ParseException {
         version_ = PrimitivesParser.parseByte(b, off);
+        if (version_ != VersionInfo.CURRENT_CIPHERTEXT_VERSION) {
+            throw new BadCiphertextException("Invalid version ");
+        }
         return 1;
     }
 

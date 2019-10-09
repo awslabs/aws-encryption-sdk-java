@@ -38,7 +38,7 @@ public class FrameEncryptionHandlerVeryLongTest {
         long lastIndex = 1; // starting index for the test
         long lastTS = System.nanoTime();
         for (long i = lastIndex; i <= Constants.MAX_FRAME_NUMBER; i++) {
-            expectedNonce.clear();
+            Utils.clear(expectedNonce);
             expectedNonce.order(ByteOrder.BIG_ENDIAN);
             expectedNonce.putInt(0);
             expectedNonce.putLong(i);

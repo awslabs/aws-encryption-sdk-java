@@ -113,7 +113,7 @@ public class EncryptionContextSerializer {
             }
 
             // get and return the bytes that have been serialized
-            result.flip();
+            Utils.flip(result);
             final byte[] encryptionContextBytes = new byte[result.limit()];
             result.get(encryptionContextBytes);
 
@@ -173,8 +173,8 @@ public class EncryptionContextSerializer {
                 }
 
                 final ByteBuffer keyBytes = encryptionContextBytes.slice();
-                keyBytes.limit(keyLen);
-                encryptionContextBytes.position(encryptionContextBytes.position() + keyLen);
+                Utils.limit(keyBytes, keyLen);
+                Utils.position(encryptionContextBytes, encryptionContextBytes.position() + keyLen);
 
                 final int valueLen = encryptionContextBytes.getShort();
                 if (valueLen <= 0 || valueLen > Short.MAX_VALUE) {
@@ -184,8 +184,8 @@ public class EncryptionContextSerializer {
 
                 // retrieve value
                 final ByteBuffer valueBytes = encryptionContextBytes.slice();
-                valueBytes.limit(valueLen);
-                encryptionContextBytes.position(encryptionContextBytes.position() + valueLen);
+                Utils.limit(valueBytes, valueLen);
+                Utils.position(encryptionContextBytes, encryptionContextBytes.position() + valueLen);
 
                 final CharBuffer keyChars = decoder.decode(keyBytes);
                 final CharBuffer valueChars = decoder.decode(valueBytes);

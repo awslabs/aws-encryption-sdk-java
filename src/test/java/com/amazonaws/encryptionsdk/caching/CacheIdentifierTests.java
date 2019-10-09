@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -84,7 +84,7 @@ public class CacheIdentifierTests {
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
 
-        assertEquals(expect, Base64.getEncoder().encodeToString(id));
+        assertEquals(expect, Utils.encodeBase64String(id));
     }
 
     void assertEncryptId(String partitionName, CryptoAlgorithm algo, Map<String, String> context, String expect) throws Exception {
@@ -95,7 +95,7 @@ public class CacheIdentifierTests {
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
 
-        assertEquals(expect, Base64.getEncoder().encodeToString(id));
+        assertEquals(expect, Utils.encodeBase64String(id));
     }
 
     @Test

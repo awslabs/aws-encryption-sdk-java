@@ -11,7 +11,7 @@ To use this SDK you must have:
 
 * **A Java 8 development environment**
 
-  If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) on the Oracle website, then download and install the Java SE Development Kit (JDK). Java 8 or higher is recommended.
+  If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) on the Oracle website, then download and install the Java SE Development Kit (JDK). Java 8 or higher is required.
 
   **Note:** If you use the Oracle JDK, you must also download and install the [Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html).
 
@@ -23,7 +23,7 @@ To use this SDK you must have:
   <dependency>
     <groupId>org.bouncycastle</groupId>
     <artifactId>bcprov-ext-jdk15on</artifactId>
-    <version>1.54</version>
+    <version>1.61</version>
   </dependency>
   ```
 
@@ -45,7 +45,7 @@ You can get the latest release from Maven:
 <dependency>
   <groupId>com.amazonaws</groupId>
   <artifactId>aws-encryption-sdk-java</artifactId>
-  <version>1.3.6</version>
+  <version>1.6.0</version>
 </dependency>
 ```
 

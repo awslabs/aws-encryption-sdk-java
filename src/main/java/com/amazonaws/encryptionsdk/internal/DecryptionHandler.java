@@ -472,8 +472,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
             try {
                 trailingSig_ = Signature.getInstance(
-                        trailingSignatureAlgorithm.getHashAndSignAlgorithm(),
-                        "BC"
+                        trailingSignatureAlgorithm.getHashAndSignAlgorithm()
                 );
 
                 trailingSig_.initVerify(trailingPublicKey);

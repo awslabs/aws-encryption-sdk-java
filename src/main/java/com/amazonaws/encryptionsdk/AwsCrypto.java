@@ -16,7 +16,6 @@ package com.amazonaws.encryptionsdk;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 
@@ -307,7 +306,7 @@ public class AwsCrypto {
                 plaintext.getBytes(StandardCharsets.UTF_8),
                 encryptionContext
         );
-        return new CryptoResult<>(Base64.getEncoder().encodeToString(ctBytes.getResult()),
+        return new CryptoResult<>(Utils.encodeBase64String(ctBytes.getResult()),
                                   ctBytes.getMasterKeys(), ctBytes.getHeaders());
     }
 
@@ -423,7 +422,7 @@ public class AwsCrypto {
         Utils.assertNonNull(provider, "provider");
         final byte[] ciphertextBytes;
         try {
-            ciphertextBytes = Base64.getDecoder().decode(Utils.assertNonNull(ciphertext, "ciphertext"));
+            ciphertextBytes = Utils.decodeBase64String(Utils.assertNonNull(ciphertext, "ciphertext"));
         } catch (final IllegalArgumentException ex) {
             throw new BadCiphertextException("Invalid base 64", ex);
         }
