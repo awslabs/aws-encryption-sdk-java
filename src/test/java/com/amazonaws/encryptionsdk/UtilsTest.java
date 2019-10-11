@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -96,5 +97,29 @@ public class UtilsTest {
         assertEquals(encoded, Utils.encodeBase64String(data));
         assertArrayEquals(data, Utils.decodeBase64String(encoded));
     }
+
+    @Test
+    public void testBigIntegerToByteArray() {
+        byte[] bytes = new byte[] {23, 47, 126, -42, 34};
+
+        assertArrayEquals(new byte[]{0, 0, 0, 23, 47, 126, -42, 34},
+                Utils.bigIntegerToByteArray(new BigInteger(bytes), 8));
+        assertArrayEquals(new byte[]{23, 47, 126, -42, 34},
+                Utils.bigIntegerToByteArray(new BigInteger(bytes), 5));
+
+        bytes = new byte[] {0, -47, 126, -42, 34};
+
+        assertArrayEquals(new byte[]{-47, 126, -42, 34},
+                Utils.bigIntegerToByteArray(new BigInteger(bytes), 4));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBigIntegerToByteArray_InvalidLength() {
+        byte[] bytes = new byte[] {0, -47, 126, -42, 34};
+
+        assertArrayEquals(bytes,
+                Utils.bigIntegerToByteArray(new BigInteger(bytes), 3));
+    }
+
 }
 

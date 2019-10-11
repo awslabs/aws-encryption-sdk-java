@@ -174,4 +174,41 @@ public class TestUtils {
       };
       return frameSizeToTest;
   }
+
+    /**
+     * Converts an array of unsigned bytes (represented as int values between 0 and 255 inclusive)
+     * to an array of Java primitive type byte, which are by definition signed.
+     *
+     * @param unsignedBytes An array on unsigned bytes
+     * @return An array of signed bytes
+     */
+    public static byte[] unsignedBytesToSignedBytes(final int[] unsignedBytes) {
+        byte[] signedBytes = new byte[unsignedBytes.length];
+
+        for (int i = 0; i < unsignedBytes.length; i++) {
+            if (unsignedBytes[i] > 255) {
+                throw new IllegalArgumentException("Encountered unsigned byte value > 255");
+            }
+            signedBytes[i] = (byte) (unsignedBytes[i] & 0xff);
+        }
+
+        return signedBytes;
+    }
+
+    /**
+     * Converts an array of Java primitive type bytes (which are by definition signed) to
+     * an array of unsigned bytes (represented as int values between 0 and 255 inclusive).
+     *
+     * @param signedBytes An array of signed bytes
+     * @return An array of unsigned bytes
+     */
+    public static int[] signedBytesToUnsignedBytes(final byte[] signedBytes) {
+        int[] unsignedBytes = new int[signedBytes.length];
+
+        for (int i = 0; i < signedBytes.length; i++) {
+            unsignedBytes[i] = ((int) signedBytes[i]) & 0xff;
+        }
+
+        return unsignedBytes;
+    }
 }

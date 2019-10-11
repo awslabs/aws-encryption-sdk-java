@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -278,5 +279,35 @@ public final class Utils {
      */
     public static String encodeBase64String(final byte[] data) {
         return Base64.toBase64String(data);
+    }
+
+    /**
+     * Removes the leading zero sign byte from the byte array representation of a BigInteger (if present)
+     * and left pads with zeroes to produce a byte array of the given length.
+     * @param bigInteger The BigInteger to convert to a byte array
+     * @param length The length of the byte array, must be at least
+     *              as long as the BigInteger byte array without the sign byte
+     * @return The byte array
+     */
+    public static byte[] bigIntegerToByteArray(final BigInteger bigInteger, final int length) {
+        byte[] rawBytes = bigInteger.toByteArray();
+        // If rawBytes is already the correct length, return it.
+        if (rawBytes.length == length) {
+            return rawBytes;
+        }
+
+        // If we're exactly one byte too large, but we have a leading zero byte, remove it and return.
+        if(rawBytes.length == length + 1 && rawBytes[0] == 0) {
+            return Arrays.copyOfRange(rawBytes, 1, rawBytes.length);
+        }
+
+        if (rawBytes.length > length) {
+            throw new IllegalArgumentException("Length must be at least as long as the BigInteger byte array " +
+                    "without the sign byte");
+        }
+
+        final byte[] paddedResult = new byte[length];
+        System.arraycopy(rawBytes, 0, paddedResult, length - rawBytes.length, rawBytes.length);
+        return paddedResult;
     }
 }

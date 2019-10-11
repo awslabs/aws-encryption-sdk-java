@@ -4,6 +4,7 @@
 ### Maintenance
 * Add support for standard test vectors via `testVectorZip` system property.
 * No longer require use of BouncyCastle with RSA `JceMasterKey`s
+* No longer use BouncyCastle for Elliptic Curve key generation and point compression/decompression
 
 ## 1.6.0 -- 2019-05-31
 
