@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -278,5 +279,31 @@ public final class Utils {
      */
     public static String encodeBase64String(final byte[] data) {
         return Base64.toBase64String(data);
+    }
+
+    /**
+     * Removes the leading zero sign byte from the byte array representation of a BigInteger (if present)
+     * and left pads with zeroes to produce a byte array of the given length.
+     * @param bigInteger The BigInteger to convert to a byte array
+     * @param length The length of the byte array
+     * @return The byte array
+     */
+    public static byte[] bigIntegerToByteArray(final BigInteger bigInteger, final int length) {
+        final byte[] result = new byte[length];
+        byte[] rawBytes = bigInteger.toByteArray();
+
+        //Remove sign byte if one is present
+        if(rawBytes[0] == 0) {
+            rawBytes = Arrays.copyOfRange(rawBytes, 1, rawBytes.length);
+        }
+
+        if(length < rawBytes.length) {
+            throw new IllegalArgumentException("Length must be as least as long as the BigInteger byte array " +
+                    "without the sign byte");
+        }
+
+        System.arraycopy(rawBytes, 0, result, length - rawBytes.length, rawBytes.length);
+
+        return result;
     }
 }
