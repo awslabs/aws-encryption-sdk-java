@@ -16,7 +16,7 @@ package com.amazonaws.encryptionsdk;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
-import java.security.Security;
+import java.security.NoSuchAlgorithmException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,11 +25,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.amazonaws.encryptionsdk.internal.BouncyCastleConfiguration;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.bouncycastle.crypto.digests.SHA384Digest;
-import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
-import org.bouncycastle.crypto.params.HKDFParameters;
+import com.amazonaws.encryptionsdk.internal.HmacKeyDerivationFunction;
 
 import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
@@ -267,7 +263,7 @@ public enum CryptoAlgorithm {
                     + dataKey.getAlgorithm());
         }
 
-        final Digest dgst;
+        final String macAlgorithm;
 
         switch (this) {
             case ALG_AES_128_GCM_IV12_TAG16_NO_KDF:
@@ -278,11 +274,11 @@ public enum CryptoAlgorithm {
             case ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA256:
             case ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256:
             case ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256:
-                dgst = new SHA256Digest();
+                macAlgorithm = "HmacSHA256";
                 break;
             case ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
             case ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
-                dgst = new SHA384Digest();
+                macAlgorithm = "HmacSHA384";
                 break;
             default:
                 throw new UnsupportedOperationException("Support for " + this + " not yet built.");
@@ -304,10 +300,14 @@ public enum CryptoAlgorithm {
                     + rawDataKey.length);
         }
 
-        final byte[] rawEncKey = new byte[getKeyLength()];
-        final HKDFBytesGenerator hkdf = new HKDFBytesGenerator(dgst);
-        hkdf.init(new HKDFParameters(rawDataKey, null, info.array()));
-        hkdf.generateBytes(rawEncKey, 0, getKeyLength());
-        return new SecretKeySpec(rawEncKey, getKeyAlgo());
+        final HmacKeyDerivationFunction hkdf;
+        try {
+            hkdf = HmacKeyDerivationFunction.getInstance(macAlgorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+
+        hkdf.init(rawDataKey);
+        return new SecretKeySpec(hkdf.deriveKey(info.array(), getKeyLength()), getKeyAlgo());
     }
 }
