@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.bouncycastle.util.encoders.Base64;
 
 /**
@@ -268,7 +269,7 @@ public final class Utils {
      * @return decoded data as a byte array
      */
     public static byte[] decodeBase64String(final String encoded) {
-        return encoded.isEmpty() ? new byte[0] : Base64.decode(encoded);
+        return encoded.isEmpty() ? ArrayUtils.EMPTY_BYTE_ARRAY : Base64.decode(encoded);
     }
 
     /**

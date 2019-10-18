@@ -43,6 +43,10 @@ import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+
+/* These internal sun classes are included solely for test purposes as
+   this test cannot use BouncyCastle cert generation, as there are incompatibilities
+   between how standard BC and FIPS BC perform cert generation. */
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateSerialNumber;
