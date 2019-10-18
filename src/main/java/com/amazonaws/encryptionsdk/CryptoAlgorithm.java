@@ -24,7 +24,6 @@ import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.amazonaws.encryptionsdk.internal.BouncyCastleConfiguration;
 import com.amazonaws.encryptionsdk.internal.HmacKeyDerivationFunction;
 
 import com.amazonaws.encryptionsdk.internal.Constants;
@@ -99,27 +98,19 @@ public enum CryptoAlgorithm {
     private final int dataKeyLen_;
     private final boolean safeToCache_;
 
-    /**
-     * This block is used to ensure static blocks of BouncyCastleConfiguration are evaluated as a dependency of
-     * the CryptoAlgorithm class
-     */
-    static {
-        BouncyCastleConfiguration.init();
-    }
-
     /*
      * Create a mapping between the CiphertextType object and its byte value representation. Make
      * this is a static method so the map is created when the object is created. This enables fast
      * lookups of the CryptoAlgorithm given its short value representation.
      */
-    private static final Map<Short, CryptoAlgorithm> ID_MAPPING = new HashMap<Short, CryptoAlgorithm>();
+    private static final Map<Short, CryptoAlgorithm> ID_MAPPING = new HashMap<>();
     static {
         for (final CryptoAlgorithm s : EnumSet.allOf(CryptoAlgorithm.class)) {
             ID_MAPPING.put(s.value_, s);
         }
     }
 
-    private CryptoAlgorithm(
+    CryptoAlgorithm(
             final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
             final long maxContentLen, final String keyAlgo, final int keyLenBytes, final int value,
             final String dataKeyAlgo, final int dataKeyLen, boolean safeToCache
@@ -130,7 +121,7 @@ public enum CryptoAlgorithm {
 
     }
 
-    private CryptoAlgorithm(
+    CryptoAlgorithm(
             final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
             final long maxContentLen, final String keyAlgo, final int keyLenBytes, final int value,
             final String dataKeyAlgo, final int dataKeyLen,
@@ -164,8 +155,7 @@ public enum CryptoAlgorithm {
      * @return the CryptoAlgorithm object that matches the given value, null if no match is found.
      */
     public static CryptoAlgorithm deserialize(final short value) {
-        final CryptoAlgorithm result = ID_MAPPING.get(value);
-        return result;
+        return ID_MAPPING.get(value);
     }
 
     /**

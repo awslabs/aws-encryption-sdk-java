@@ -59,14 +59,14 @@ public abstract class TrailingSignatureAlgorithm {
         private static final BigInteger THREE = BigInteger.valueOf(3);
         private static final BigInteger FOUR = BigInteger.valueOf(4);
 
-        private ECDSASignatureAlgorithm(ECGenParameterSpec ecSpec, String messageDigestAlgorithm) {
+        private ECDSASignatureAlgorithm(ECGenParameterSpec ecSpec, String messageDigestAlgorithm, String hashAndSignAlgorithm) {
             if (!ecSpec.getName().startsWith(SEC_PRIME_FIELD_PREFIX)) {
                 throw new IllegalStateException("Non-prime curves are not supported at this time");
             }
 
             this.ecSpec = ecSpec;
             this.messageDigestAlgorithm = messageDigestAlgorithm;
-            this.hashAndSignAlgorithm = messageDigestAlgorithm + "withECDSA";
+            this.hashAndSignAlgorithm = hashAndSignAlgorithm;
 
             try {
                 final AlgorithmParameters parameters = AlgorithmParameters.getInstance(ELLIPTIC_CURVE_ALGORITHM);
@@ -190,9 +190,9 @@ public abstract class TrailingSignatureAlgorithm {
     }
 
     private static final ECDSASignatureAlgorithm SHA256_ECDSA_P256
-            = new ECDSASignatureAlgorithm(new ECGenParameterSpec(SEC_PRIME_FIELD_PREFIX + "256r1"), "SHA256");
+            = new ECDSASignatureAlgorithm(new ECGenParameterSpec(SEC_PRIME_FIELD_PREFIX + "256r1"), "SHA-256", "SHA256withECDSA");
     private static final ECDSASignatureAlgorithm SHA384_ECDSA_P384
-            = new ECDSASignatureAlgorithm(new ECGenParameterSpec(SEC_PRIME_FIELD_PREFIX + "384r1"), "SHA384");
+            = new ECDSASignatureAlgorithm(new ECGenParameterSpec(SEC_PRIME_FIELD_PREFIX + "384r1"), "SHA-384", "SHA384withECDSA");
 
     public static TrailingSignatureAlgorithm forCryptoAlgorithm(CryptoAlgorithm algorithm) {
         switch (algorithm) {

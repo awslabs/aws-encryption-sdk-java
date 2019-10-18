@@ -27,17 +27,14 @@ import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStoreException;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.x500.X500Principal;
 
-import org.bouncycastle.asn1.x509.X509Name;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,8 +43,15 @@ import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import sun.security.x509.AlgorithmId;
+import sun.security.x509.CertificateAlgorithmId;
+import sun.security.x509.CertificateSerialNumber;
+import sun.security.x509.CertificateValidity;
+import sun.security.x509.CertificateX509Key;
+import sun.security.x509.X500Name;
+import sun.security.x509.X509CertImpl;
+import sun.security.x509.X509CertInfo;
 
-@SuppressWarnings("deprecation")
 public class KeyStoreProviderTest {
     private static final SecureRandom RND = new SecureRandom();
     private static final KeyPairGenerator KG;
@@ -72,7 +76,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void singleKeyPkcs1() throws GeneralSecurityException {
+    public void singleKeyPkcs1() throws Exception {
         addEntry("key1");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/PKCS1Padding", "key1");
         final JceMasterKey mk1 = mkp.getMasterKey("key1");
@@ -87,7 +91,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void singleKeyOaepSha1() throws GeneralSecurityException {
+    public void singleKeyOaepSha1() throws Exception {
         addEntry("key1");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-1AndMGF1Padding",
                 "key1");
@@ -103,7 +107,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void singleKeyOaepSha256() throws GeneralSecurityException {
+    public void singleKeyOaepSha256() throws Exception {
         addEntry("key1");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
                 "key1");
@@ -119,7 +123,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void multipleKeys() throws GeneralSecurityException {
+    public void multipleKeys() throws Exception {
         addEntry("key1");
         addEntry("key2");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
@@ -146,7 +150,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test(expected = CannotUnwrapDataKeyException.class)
-    public void encryptOnly() throws GeneralSecurityException {
+    public void encryptOnly() throws Exception {
         addPublicEntry("key1");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
                 "key1");
@@ -157,7 +161,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void escrowAndSymmetric() throws GeneralSecurityException {
+    public void escrowAndSymmetric() throws Exception {
         addPublicEntry("key1");
         addEntry("key2");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
@@ -185,7 +189,7 @@ public class KeyStoreProviderTest {
     }
 
     @Test
-    public void escrowAndSymmetricSecondProvider() throws GeneralSecurityException {
+    public void escrowAndSymmetricSecondProvider() throws GeneralSecurityException, IOException {
         addPublicEntry("key1");
         addEntry("key2");
         final KeyStoreProvider mkp = new KeyStoreProvider(ks, PP, "KeyStore", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
@@ -263,40 +267,34 @@ public class KeyStoreProviderTest {
         assertArrayEquals(PLAINTEXT, crypto.decryptData(ksp, ct.getResult()).getResult());
     }
 
-    private void addEntry(final String alias) throws GeneralSecurityException {
+    private void addEntry(final String alias) throws GeneralSecurityException, IOException {
         final KeyPair pair = KG.generateKeyPair();
-        // build a certificate generator
-        final X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
-        final X500Principal dnName = new X500Principal("cn=" + alias);
-
-        certGen.setSerialNumber(new BigInteger(256, RND));
-        certGen.setSubjectDN(new X509Name("dc=" + alias));
-        certGen.setIssuerDN(dnName); // use the same
-        certGen.setNotBefore(new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000));
-        certGen.setNotAfter(new Date(System.currentTimeMillis() + 2 * 365 * 24 * 60 * 60 * 1000));
-        certGen.setPublicKey(pair.getPublic());
-        certGen.setSignatureAlgorithm("SHA256WithRSA");
-        final X509Certificate cert = certGen.generate(pair.getPrivate(), "BC");
-
-        ks.setEntry(alias, new KeyStore.PrivateKeyEntry(pair.getPrivate(), new X509Certificate[] { cert }), PP);
+        ks.setEntry(alias, new KeyStore.PrivateKeyEntry(pair.getPrivate(),
+                new X509Certificate[] { generateCertificate(pair, alias) }), PP);
     }
 
-    private void addPublicEntry(final String alias) throws GeneralSecurityException {
+    private void addPublicEntry(final String alias) throws GeneralSecurityException, IOException {
         final KeyPair pair = KG.generateKeyPair();
-        // build a certificate generator
-        final X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
-        final X500Principal dnName = new X500Principal("cn=" + alias);
+        ks.setEntry(alias, new KeyStore.TrustedCertificateEntry(generateCertificate(pair, alias)), null);
+    }
 
-        certGen.setSerialNumber(new BigInteger(256, RND));
-        certGen.setSubjectDN(new X509Name("dc=" + alias));
-        certGen.setIssuerDN(dnName); // use the same
-        certGen.setNotBefore(new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000));
-        certGen.setNotAfter(new Date(System.currentTimeMillis() + 2 * 365 * 24 * 60 * 60 * 1000));
-        certGen.setPublicKey(pair.getPublic());
-        certGen.setSignatureAlgorithm("SHA256WithRSA");
-        final X509Certificate cert = certGen.generate(pair.getPrivate(), "BC");
+    private X509Certificate generateCertificate(final KeyPair pair, final String alias) throws GeneralSecurityException, IOException {
+        final X509CertInfo info = new X509CertInfo();
+        final X500Name name = new X500Name("dc=" + alias);
+        info.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(256, RND)));
+        info.set(X509CertInfo.SUBJECT, name);
+        info.set(X509CertInfo.ISSUER, name);
+        info.set(X509CertInfo.VALIDITY,
+                new CertificateValidity(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)),
+                        Date.from(Instant.now().plus(730, ChronoUnit.DAYS))));
+        info.set(X509CertInfo.KEY, new CertificateX509Key(pair.getPublic()));
+        info.set(X509CertInfo.ALGORITHM_ID,
+                new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.sha256WithRSAEncryption_oid)));
 
-        ks.setEntry(alias, new KeyStore.TrustedCertificateEntry(cert), null);
+        final X509CertImpl cert = new X509CertImpl(info);
+        cert.sign(pair.getPrivate(), AlgorithmId.sha256WithRSAEncryption_oid.toString());
+
+        return cert;
     }
 
     private void copyPublicPart(final KeyStore src, final KeyStore dst, final String alias) throws KeyStoreException {

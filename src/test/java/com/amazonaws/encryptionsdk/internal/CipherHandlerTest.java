@@ -47,7 +47,7 @@ public class CipherHandlerTest {
         final byte[] keyBytes = RandomBytesGenerator.generate(cryptoAlgorithm.getKeyLength());
         final byte[] nonce = RandomBytesGenerator.generate(cryptoAlgorithm.getNonceLen());
 
-        final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.name());
+        final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.getKeyAlgo());
         CipherHandler cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
         final byte[] encryptedBytes = cipherHandler.cipherData(nonce, contentAad_, content, 0, content.length);
 
@@ -72,7 +72,7 @@ public class CipherHandlerTest {
         final byte[] keyBytes = RandomBytesGenerator.generate(cryptoAlgorithm.getKeyLength());
         final byte[] nonce = RandomBytesGenerator.generate(cryptoAlgorithm.getNonceLen());
 
-        final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.name());
+        final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.getKeyAlgo());
         CipherHandler cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
         final byte[] encryptedBytes = cipherHandler.cipherData( nonce, contentAad_, content, 0, content.length);
 

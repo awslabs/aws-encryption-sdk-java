@@ -268,7 +268,7 @@ public final class Utils {
      * @return decoded data as a byte array
      */
     public static byte[] decodeBase64String(final String encoded) {
-        return Base64.decode(encoded);
+        return encoded.isEmpty() ? new byte[0] : Base64.decode(encoded);
     }
 
     /**
