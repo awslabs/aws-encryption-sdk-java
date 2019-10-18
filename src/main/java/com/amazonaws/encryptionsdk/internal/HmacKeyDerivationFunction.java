@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public final class HmacKeyDerivationFunction {
     private SecretKey prk = null;
 
     /**
-     * Returns an <code>Hkdf</code> object using the specified algorithm.
+     * Returns an <code>HmacKeyDerivationFunction</code> object using the specified algorithm.
      *
      * @param algorithm the standard name of the requested MAC algorithm. See the Mac
      *                  section in the <a href=
