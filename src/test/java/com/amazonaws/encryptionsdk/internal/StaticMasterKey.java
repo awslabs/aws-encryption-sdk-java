@@ -49,7 +49,12 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     /**
      * Encryption algorithm for the master key-pair
      */
-    private static final String MASTER_KEY_ENCRYPTION_ALGORITHM = "RSA";
+    private static final String MASTER_KEY_ENCRYPTION_ALGORITHM = "RSA/ECB/PKCS1Padding";
+
+    /**
+     * Encryption algorithm for the KeyFactory
+     */
+    private static final String MASTER_KEY_ALGORITHM = "RSA";
     
     /**
      * Encryption algorithm for the randomly generated data key
@@ -95,7 +100,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
         this.keyId_ = Objects.requireNonNull(keyId);
         
         try {
-            KeyFactory keyFactory = KeyFactory.getInstance(MASTER_KEY_ENCRYPTION_ALGORITHM);
+            KeyFactory keyFactory = KeyFactory.getInstance(MASTER_KEY_ALGORITHM);
             KeySpec publicKeySpec = new X509EncodedKeySpec(publicKey_v1);
             PublicKey pubKey = keyFactory.generatePublic(publicKeySpec);
             KeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKey_v1);
