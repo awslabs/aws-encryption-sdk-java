@@ -21,7 +21,7 @@ To use this SDK you must have:
   If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html, then download the provider file that corresponds to your JDK.
   Or, you can pick it up from Maven (groupId: `org.bouncycastle`, artifactId: `bcprov-ext-jdk15on`).
 
-  As of version 1.6.1,
+  Beginning in version 1.6.1,
   the AWS Encryption SDK will also work with Bouncy Castle FIPS (groupId: `org.bouncycastle`, artifactId: `bc-fips`).
   Please follow Bouncy Castle's FIPS [documentation](https://www.bouncycastle.org/documentation.html),
   including User Guides and Security Policy for proper installation and configuration.
