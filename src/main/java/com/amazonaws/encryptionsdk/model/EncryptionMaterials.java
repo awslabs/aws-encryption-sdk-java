@@ -11,6 +11,7 @@ import java.util.Objects;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 
 /**
  * Contains the cryptographic materials needed for an encryption operation.
@@ -24,6 +25,7 @@ public final class EncryptionMaterials {
     private final SecretKey cleartextDataKey;
     private final PrivateKey trailingSignatureKey;
     private final List<MasterKey> masterKeys;
+    private final KeyringTrace keyringTrace;
 
     private EncryptionMaterials(Builder b) {
         this.algorithm = b.algorithm;
@@ -32,6 +34,7 @@ public final class EncryptionMaterials {
         this.cleartextDataKey = b.cleartextDataKey;
         this.trailingSignatureKey = b.trailingSignatureKey;
         this.masterKeys = b.getMasterKeys();
+        this.keyringTrace = b.keyringTrace;
     }
 
     public Builder toBuilder() {
@@ -100,12 +103,13 @@ public final class EncryptionMaterials {
                 Objects.equals(encryptedDataKeys, that.encryptedDataKeys) &&
                 Objects.equals(cleartextDataKey, that.cleartextDataKey) &&
                 Objects.equals(trailingSignatureKey, that.trailingSignatureKey) &&
-                Objects.equals(masterKeys, that.masterKeys);
+                Objects.equals(masterKeys, that.masterKeys) &&
+                Objects.equals(keyringTrace, that.keyringTrace);
     }
 
     @Override public int hashCode() {
         return Objects.hash(algorithm, encryptionContext, encryptedDataKeys, cleartextDataKey, trailingSignatureKey,
-                            masterKeys);
+                            masterKeys, keyringTrace);
     }
 
     public static class Builder {
@@ -115,6 +119,7 @@ public final class EncryptionMaterials {
         private SecretKey cleartextDataKey;
         private PrivateKey trailingSignatureKey;
         private List<MasterKey> masterKeys = Collections.emptyList();
+        private KeyringTrace keyringTrace;
 
         private Builder() {}
 
@@ -125,6 +130,7 @@ public final class EncryptionMaterials {
             cleartextDataKey = r.cleartextDataKey;
             trailingSignatureKey = r.trailingSignatureKey;
             setMasterKeys(r.masterKeys);
+            keyringTrace = r.keyringTrace;
         }
 
         public EncryptionMaterials build() {
@@ -182,6 +188,15 @@ public final class EncryptionMaterials {
 
         public Builder setMasterKeys(List<MasterKey> masterKeys) {
             this.masterKeys = Collections.unmodifiableList(new ArrayList<>(masterKeys));
+            return this;
+        }
+
+        public KeyringTrace getKeyringTrace() {
+            return keyringTrace;
+        }
+
+        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
+            this.keyringTrace = keyringTrace;
             return this;
         }
     }
