@@ -39,7 +39,7 @@ You don't need an Amazon Web Services (AWS) account to use this SDK, but some of
 
 #### Amazon Corretto Crypto Provider
 Many users find that the Amazon Corretto Crypto Provider (ACCP) significantly improves the performance of the AWS Encryption SDK.
-Please see the [ACCP GitHub Respository](https://github.com/corretto/amazon-corretto-crypto-provider) for installation and use guidance.
+For help with installation and using ACCP, see the [ACCP GitHub Respository](https://github.com/corretto/amazon-corretto-crypto-provider) .
 
 ### Download
 
