@@ -9,7 +9,7 @@
 
 ### Patches
 * Correctly validate version [PR #116](https://github.com/aws/aws-encryption-sdk-java/pull/116)
-* `ParsedCiphertext` now properly handles truncated input [PR #119](https://github.com/aws/aws-encryption-sdk-java/pull/119)
+* `ParsedCiphertext` now handles truncated input properly [PR #119](https://github.com/aws/aws-encryption-sdk-java/pull/119)
 
 ### Maintenance
 * Add support for standard test vectors via `testVectorZip` system property. [PR #127](https://github.com/aws/aws-encryption-sdk-java/pull/127)
