@@ -17,7 +17,7 @@ To use this SDK you must have:
 
 * **Bouncy Castle** or **Bouncy Castle FIPS**
 
-  Bouncy Castle provides some utilities the AWS Encryption SDK needs to handle cryptographic objects.
+Although the AWS Encryption SDK for Java no longer depends on Bouncy Castle for cryptography, it requires Bouncy Castle for other tasks, such as handling cryptographic objects.```
   If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html, then download the provider file that corresponds to your JDK.
   Or, you can pick it up from Maven (groupId: `org.bouncycastle`, artifactId: `bcprov-ext-jdk15on`).
 
