@@ -3,7 +3,7 @@
 ## 1.6.1 -- Unreleased
 
 ### Deprecation Warnings
-* `AwsCrypto.encryptString()` and `AwsCrypto.decryptString()` are now deprecated.
+* Deprecated `AwsCrypto.encryptString()` and `AwsCrypto.decryptString()`.
   Please move to `AwsCrypto.encryptData()` and `AwsCrypto.decryptData()` with manual Base64 encoding/decoding.
   [PR #120](https://github.com/aws/aws-encryption-sdk-java/pull/120)
 
