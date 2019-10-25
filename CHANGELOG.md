@@ -13,7 +13,7 @@
 
 ### Maintenance
 * Add support for standard test vectors via `testVectorZip` system property. [PR #127](https://github.com/aws/aws-encryption-sdk-java/pull/127)
-* Remove all explicit cryptographic dependencies on BouncyCastle. PRs
+* Remove all explicit cryptographic dependencies on BouncyCastle. The AWS Encryption SDK for Java still uses Bouncy Castle for other tasks. PRs
   [#128](https://github.com/aws/aws-encryption-sdk-java/pull/128),
   [#129](https://github.com/aws/aws-encryption-sdk-java/pull/129),
   [#130](https://github.com/aws/aws-encryption-sdk-java/pull/130),
