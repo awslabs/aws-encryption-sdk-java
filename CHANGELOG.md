@@ -31,7 +31,7 @@
 ## 1.5.0 -- 2019-05-30
 
 ### Minor Changes
-* Add dependency on Apache Commons Codec 1.12.
+* Added dependency on Apache Commons Codec 1.12.
 * Use org.apache.commons.codec.binary.Base64 instead of java.util.Base64 so
   that the SDK can be used on systems that do not have java.util.Base64 but
   support Java 8 language features.

@@ -23,7 +23,7 @@ Although the AWS Encryption SDK for Java no longer depends on Bouncy Castle for 
 
   Beginning in version 1.6.1,
   the AWS Encryption SDK also works with Bouncy Castle FIPS (groupId: `org.bouncycastle`, artifactId: `bc-fips`).
-  Please follow Bouncy Castle's FIPS [documentation](https://www.bouncycastle.org/documentation.html),
+  For help installing and configuring Bouncy Castle FIPS, see [BC FIPS documentation](https://www.bouncycastle.org/documentation.html),
   including User Guides and Security Policy for proper installation and configuration.
 
 ### Optional Prerequisites
