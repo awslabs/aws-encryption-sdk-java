@@ -17,6 +17,7 @@ import org.junit.Test;
 
 import static java.util.Collections.singleton;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class KeyringTraceTest {
 
@@ -46,5 +47,19 @@ public class KeyringTraceTest {
 
         trace.getEntries().add(new KeyringTraceEntry("ns1", "name1",
                 singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY)));
+    }
+
+    @Test
+    public void testKeyringTraceEntryEquals() {
+        KeyringTraceEntry entry1 = new KeyringTraceEntry("namespace", "name",
+                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY));
+        KeyringTraceEntry entry2 = new KeyringTraceEntry(entry1.getKeyNamespace(), entry1.getKeyName(),
+                entry1.getFlags());
+        KeyringTraceEntry entry3 = new KeyringTraceEntry("othernamespace", "name",
+                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY));
+
+        assertEquals(entry1, entry1);
+        assertEquals(entry1, entry2);
+        assertNotEquals(entry2, entry3);
     }
 }

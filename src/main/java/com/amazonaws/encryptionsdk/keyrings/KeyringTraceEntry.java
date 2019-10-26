@@ -13,7 +13,6 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -80,29 +79,18 @@ public class KeyringTraceEntry {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(keyNamespace, keyName, flags);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KeyringTraceEntry that = (KeyringTraceEntry) o;
+        return Objects.equals(keyNamespace, that.keyNamespace) &&
+                Objects.equals(keyName, that.keyName) &&
+                Objects.equals(flags, that.flags);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-
-        KeyringTraceEntry rhs = (KeyringTraceEntry) obj;
-
-        return new EqualsBuilder()
-                .append(keyNamespace, rhs.keyNamespace)
-                .append(keyName, this.keyName)
-                .append(flags, this.flags)
-                .isEquals();
+    public int hashCode() {
+        return Objects.hash(keyNamespace, keyName, flags);
     }
 
     @Override
