@@ -4,7 +4,10 @@
 
 ### Deprecation Warnings
 * Deprecated `AwsCrypto.encryptString()` and `AwsCrypto.decryptString()`.
-  Please move to `AwsCrypto.encryptData()` and `AwsCrypto.decryptData()` with manual Base64 encoding/decoding.
+  Replace your calls to these methods with calls to AwsCrypto.encryptData() and AwsCrypto.decryptData().
+  Unlike the deprecated methods, these methods don't perform any Base64 encoding or decoding, so they are fully compatible with other language implementations of the AWS Encryption SDK.
+  
+  If you need Base64 encoding or decoding for your application, you can add it outside of the AWS Encryption SDK.
   [PR #120](https://github.com/aws/aws-encryption-sdk-java/pull/120)
 
 ### Patches
