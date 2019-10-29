@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.1 -- Unreleased
+## 1.6.1 -- 2019-10-29
 
 ### Deprecation Warnings
 * Deprecated `AwsCrypto.encryptString()` and `AwsCrypto.decryptString()`.
