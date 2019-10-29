@@ -17,9 +17,9 @@ To use this SDK you must have:
 
 * **Bouncy Castle** or **Bouncy Castle FIPS**
 
-  The AWS Encryption SDK for Java uses Bouncy Castle for serializing and deserializing cryptographic objects.
+  The AWS Encryption SDK for Java uses Bouncy Castle to serialize and deserialize cryptographic objects.
   It does not explicitly use Bouncy Castle (or any other [JCA Provider](https://docs.oracle.com/javase/8/docs/api/java/security/Provider.html)) for the underlying cryptography.
-  Instead, it uses the platform default, which may be configured or overridden as documented in the
+  Instead, it uses the platform default, which you can configure or override as documented in the
   [Java Cryptography Architecture (JCA) Reference Guide](https://docs.oracle.com/javase/9/security/java-cryptography-architecture-jca-reference-guide.htm#JSSEC-GUID-2BCFDD85-D533-4E6C-8CE9-29990DEB0190).
 
   If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html, then download the provider file that corresponds to your JDK.
@@ -28,8 +28,8 @@ To use this SDK you must have:
   Beginning in version 1.6.1,
   the AWS Encryption SDK also works with Bouncy Castle FIPS (groupId: `org.bouncycastle`, artifactId: `bc-fips`)
   as an alternative to non-FIPS Bouncy Castle.
-  For help installing and configuring Bouncy Castle FIPS, see [BC FIPS documentation](https://www.bouncycastle.org/documentation.html),
-  including User Guides and Security Policy for proper installation and configuration.
+  For help installing and configuring Bouncy Castle FIPS properly, see [BC FIPS documentation](https://www.bouncycastle.org/documentation.html),
+  in particular, **User Guides** and **Security Policy**.
 
 ### Optional Prerequisites
 
@@ -44,7 +44,7 @@ You don't need an Amazon Web Services (AWS) account to use this SDK, but some of
 
 #### Amazon Corretto Crypto Provider
 Many users find that the Amazon Corretto Crypto Provider (ACCP) significantly improves the performance of the AWS Encryption SDK.
-For help with installation and using ACCP, see the [ACCP GitHub Respository](https://github.com/corretto/amazon-corretto-crypto-provider) .
+For help installing and using ACCP, see the [ACCP GitHub Respository](https://github.com/corretto/amazon-corretto-crypto-provider) .
 
 ### Download
 
