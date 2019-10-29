@@ -49,7 +49,7 @@ public class BasicEncryptionExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a KMS master key provider
-        final KmsMasterKeyProvider prov = KmsMasterKeyProvider.builder().withKeysForEncryption(keyArn).build();
+        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().withKeysForEncryption(keyArn).build();
 
         // 3. Create an encryption context
         //
@@ -58,14 +58,14 @@ public class BasicEncryptionExample {
         //
         // For more information see:
         // blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
-        final Map<String, String> context = Collections.singletonMap("ExampleContextKey", "ExampleContextValue");
+        final Map<String, String> encryptionContext = Collections.singletonMap("ExampleContextKey", "ExampleContextValue");
 
         // 4. Encrypt the data
-        final CryptoResult<byte[], KmsMasterKey> encryptResult = crypto.encryptData(prov, EXAMPLE_DATA, context);
+        final CryptoResult<byte[], KmsMasterKey> encryptResult = crypto.encryptData(masterKeyProvider, EXAMPLE_DATA, encryptionContext);
         final byte[] ciphertext = encryptResult.getResult();
 
         // 5. Decrypt the data
-        final CryptoResult<byte[], KmsMasterKey> decryptResult = crypto.decryptData(prov, ciphertext);
+        final CryptoResult<byte[], KmsMasterKey> decryptResult = crypto.decryptData(masterKeyProvider, ciphertext);
 
         // 6. Before verifying the plaintext, verify that the customer master key that
         // was used in the encryption operation was the one supplied to the master key provider.
@@ -77,7 +77,7 @@ public class BasicEncryptionExample {
         // encryption context supplied to the encryptData method. Because the
         // SDK can add values to the encryption context, don't require that
         // the entire context matches.
-        if (!context.entrySet().stream()
+        if (!encryptionContext.entrySet().stream()
                 .allMatch(e -> e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey())))) {
             throw new IllegalStateException("Wrong Encryption Context!");
         }
