@@ -24,11 +24,11 @@ public class KeyringTraceTest {
     @Test
     public void testOrderMaintained() {
         KeyringTraceEntry entry1 = new KeyringTraceEntry("ns1", "name1",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY));
+                singleton(KeyringTraceFlag.GENERATED_DATA_KEY));
         KeyringTraceEntry entry2 = new KeyringTraceEntry("ns2", "name2",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_DECRYPTED_DATA_KEY));
+                singleton(KeyringTraceFlag.DECRYPTED_DATA_KEY));
         KeyringTraceEntry entry3 = new KeyringTraceEntry("ns3", "name3",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_ENCRYPTED_DATA_KEY));
+                singleton(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
 
         KeyringTrace trace = new KeyringTrace();
         trace.add(entry1.getKeyNamespace(), entry1.getKeyName(), entry1.getFlags().iterator().next());
@@ -43,20 +43,20 @@ public class KeyringTraceTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testImmutable() {
         KeyringTrace trace = new KeyringTrace();
-        trace.add("namespace", "name", KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY);
+        trace.add("namespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY);
 
         trace.getEntries().add(new KeyringTraceEntry("ns1", "name1",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY)));
+                singleton(KeyringTraceFlag.GENERATED_DATA_KEY)));
     }
 
     @Test
     public void testKeyringTraceEntryEquals() {
         KeyringTraceEntry entry1 = new KeyringTraceEntry("namespace", "name",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY));
+                singleton(KeyringTraceFlag.GENERATED_DATA_KEY));
         KeyringTraceEntry entry2 = new KeyringTraceEntry(entry1.getKeyNamespace(), entry1.getKeyName(),
                 entry1.getFlags());
         KeyringTraceEntry entry3 = new KeyringTraceEntry("othernamespace", "name",
-                singleton(KeyringTraceFlag.WRAPPING_KEY_GENERATED_DATA_KEY));
+                singleton(KeyringTraceFlag.GENERATED_DATA_KEY));
 
         assertEquals(entry1, entry1);
         assertEquals(entry1, entry2);

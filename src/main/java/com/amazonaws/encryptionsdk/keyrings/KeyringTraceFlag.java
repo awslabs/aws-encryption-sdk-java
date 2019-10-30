@@ -22,28 +22,28 @@ public enum KeyringTraceFlag {
     /**
      * A flag to represent that a keyring has generated a plaintext data key.
      */
-    WRAPPING_KEY_GENERATED_DATA_KEY,
+    GENERATED_DATA_KEY,
 
     /**
      * A flag to represent that a keyring has created an encrypted data key.
      */
-    WRAPPING_KEY_ENCRYPTED_DATA_KEY,
+    ENCRYPTED_DATA_KEY,
 
     /**
      * A flag to represent that a keyring has obtained the
      * corresponding plaintext data key from an encrypted data key.
      */
-    WRAPPING_KEY_DECRYPTED_DATA_KEY,
+    DECRYPTED_DATA_KEY,
 
     /**
      * A flag to represent that the keyring has cryptographically
      * bound the encryption context to a newly created encrypted data key.
      */
-    WRAPPING_KEY_SIGNED_ENC_CTX,
+    SIGNED_ENCRYPTION_CONTEXT,
 
     /**
      * A flag to represent that the keyring has verified that an encrypted
      * data key was originally created with a particular encryption context.
      */
-    WRAPPING_KEY_VERIFIED_ENC_CTX
+    VERIFIED_ENCRYPTION_CONTEXT
 }

@@ -62,7 +62,7 @@ public class KeyringTraceEntry {
     /**
      * Returns the key name.
      *
-     * @return THe key name.
+     * @return The key name.
      */
     public String getKeyName() {
         return this.keyName;
