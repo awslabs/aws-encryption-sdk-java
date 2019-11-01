@@ -29,8 +29,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Map;
 
-import static org.apache.commons.lang3.Validate.notNull;
-
 /**
  * Abstract class for encrypting and decrypting JCE data keys.
  */
@@ -64,9 +62,6 @@ public abstract class JceKeyCipher {
     }
 
     JceKeyCipher(Key wrappingKey, Key unwrappingKey) {
-        notNull(wrappingKey, "wrappingKey is required");
-        notNull(wrappingKey, "unwrappingKey is required");
-
         this.wrappingKey = wrappingKey;
         this.unwrappingKey = unwrappingKey;
     }
