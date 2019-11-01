@@ -13,58 +13,38 @@
 
 package com.amazonaws.encryptionsdk.jce;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.spec.AlgorithmParameterSpec;
-import java.security.spec.MGF1ParameterSpec;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.OAEPParameterSpec;
-import javax.crypto.spec.PSource;
-import javax.crypto.spec.SecretKeySpec;
-
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
-import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
+import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
+import com.amazonaws.encryptionsdk.model.KeyBlob;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a {@link MasterKey} backed by one (or more) JCE {@link Key}s. Instances of this should
  * only be acquired using {@link #getInstance(SecretKey, String, String, String)} or
  * {@link #getInstance(PublicKey, PrivateKey, String, String, String)}.
  */
-public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
-    private static final Logger LOGGER = Logger.getLogger(JceMasterKey.class.getName());
-    private static final byte[] EMPTY_ARRAY = new byte[0];
-
+public class JceMasterKey extends MasterKey<JceMasterKey> {
     private final SecureRandom rnd = new SecureRandom();
-    private final Key wrappingKey_;
-    private final Key unwrappingKey_;
     private final String providerName_;
     private final String keyId_;
     private final byte[] keyIdBytes_;
+    private final JceKeyCipher jceKeyCipher_;
 
     /**
      * Returns a {@code JceMasterKey} backed by {@code key} using {@code wrappingAlgorithm}.
@@ -82,7 +62,7 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             final String wrappingAlgorithm) {
         switch (wrappingAlgorithm.toUpperCase()) {
             case "AES/GCM/NOPADDING":
-                return new AesGcm(key, provider, keyId);
+                return new JceMasterKey(provider, keyId, JceKeyCipher.aesGcm(key));
             default:
                 throw new IllegalArgumentException("Right now only AES/GCM/NoPadding is supported");
 
@@ -104,18 +84,16 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             final String provider, final String keyId,
             final String wrappingAlgorithm) {
         if (wrappingAlgorithm.toUpperCase().startsWith("RSA/ECB/")) {
-            return new Rsa(wrappingKey, unwrappingKey, provider, keyId, wrappingAlgorithm);
+            return new JceMasterKey(provider, keyId, JceKeyCipher.rsa(wrappingKey, unwrappingKey, wrappingAlgorithm));
         }
         throw new UnsupportedOperationException("Currently only RSA asymmetric algorithms are supported");
     }
 
-    protected JceMasterKey(final Key wrappingKey, final Key unwrappingKey, final String providerName,
-            final String keyId) {
-        wrappingKey_ = wrappingKey;
-        unwrappingKey_ = unwrappingKey;
+    protected JceMasterKey(final String providerName, final String keyId, final JceKeyCipher jceKeyCipher) {
         providerName_ = providerName;
         keyId_ = keyId;
         keyIdBytes_ = keyId_.getBytes(StandardCharsets.UTF_8);
+        jceKeyCipher_ = jceKeyCipher;
     }
 
     @Override
@@ -133,8 +111,10 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             final Map<String, String> encryptionContext) {
         final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
         rnd.nextBytes(rawKey);
-        final SecretKeySpec key = new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo());
-        return encryptRawKey(key, rawKey, encryptionContext);
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()), keyId_,
+                encryptionContext);
+        return new DataKey<>(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
+                encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
 
     @Override
@@ -150,26 +130,8 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             throw new IllegalArgumentException("Incorrect key algorithm. Expected " + key.getAlgorithm()
                     + " but got " + algorithm.getKeyAlgo());
         }
-        final byte[] rawKey = key.getEncoded();
-        final DataKey<JceMasterKey> result = encryptRawKey(key, rawKey, encryptionContext);
-        Arrays.fill(rawKey, (byte) 0);
-        return result;
-    }
-
-    protected DataKey<JceMasterKey> encryptRawKey(final SecretKey key, final byte[] rawKey,
-            final Map<String, String> encryptionContext) {
-        try {
-            final WrappingData wData = buildWrappingCipher(wrappingKey_, encryptionContext);
-            final Cipher cipher = wData.cipher;
-            final byte[] encryptedKey = cipher.doFinal(rawKey);
-
-            final byte[] provInfo = new byte[keyIdBytes_.length + wData.extraInfo.length];
-            System.arraycopy(keyIdBytes_, 0, provInfo, 0, keyIdBytes_.length);
-            System.arraycopy(wData.extraInfo, 0, provInfo, keyIdBytes_.length, wData.extraInfo.length);
-            return new DataKey<>(key, encryptedKey, provInfo, this);
-        } catch (final GeneralSecurityException gsex) {
-            throw new AwsCryptoException(gsex);
-        }
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(key, keyId_, encryptionContext);
+        return new DataKey<>(key, encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
 
     @Override
@@ -183,9 +145,12 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             try {
                 if (edk.getProviderId().equals(getProviderId())
                         && arrayPrefixEquals(edk.getProviderInformation(), keyIdBytes_, keyIdBytes_.length)) {
-                    final DataKey<JceMasterKey> result = actualDecrypt(algorithm, edk, encryptionContext);
-                    if (result != null) {
-                        return result;
+                    final KeyBlob decryptedKey = jceKeyCipher_.decryptKey(algorithm, edk, keyId_, encryptionContext);
+
+                    if(decryptedKey != null) {
+                        return new DataKey<>(
+                                new SecretKeySpec(decryptedKey.getEncryptedDataKey(), algorithm.getDataKeyAlgo()),
+                                edk.getEncryptedDataKey(), edk.getProviderInformation(), this);
                     }
                 }
             } catch (final Exception ex) {
@@ -195,24 +160,7 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
         throw buildCannotDecryptDksException(exceptions);
     }
 
-    protected DataKey<JceMasterKey> actualDecrypt(final CryptoAlgorithm algorithm, final EncryptedDataKey edk,
-            final Map<String, String> encryptionContext) throws GeneralSecurityException {
-        final Cipher cipher = buildUnwrappingCipher(unwrappingKey_, edk.getProviderInformation(),
-                keyIdBytes_.length,
-                encryptionContext);
-        final byte[] rawKey = cipher.doFinal(edk.getEncryptedDataKey());
-        if (rawKey.length != algorithm.getDataKeyLength()) {
-            // Something's wrong here. Assume that the decryption is invalid.
-            return null;
-        }
-        return new DataKey<>(
-                new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
-                edk.getEncryptedDataKey(),
-                edk.getProviderInformation(), this);
-
-    }
-
-    protected static boolean arrayPrefixEquals(final byte[] a, final byte[] b, final int len) {
+    private static boolean arrayPrefixEquals(final byte[] a, final byte[] b, final int len) {
         if (a == null || b == null || a.length < len || b.length < len) {
             return false;
         }
@@ -222,166 +170,5 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
             }
         }
         return true;
-    }
-
-    protected abstract WrappingData buildWrappingCipher(Key key, Map<String, String> encryptionContext)
-            throws GeneralSecurityException;
-
-    protected abstract Cipher buildUnwrappingCipher(Key key, byte[] extraInfo, int offset,
-            Map<String, String> encryptionContext) throws GeneralSecurityException;
-
-    private static class WrappingData {
-        public final Cipher cipher;
-        public final byte[] extraInfo;
-
-        public WrappingData(final Cipher cipher, final byte[] extraInfo) {
-            super();
-            this.cipher = cipher;
-            this.extraInfo = extraInfo != null ? extraInfo : EMPTY_ARRAY;
-        }
-    }
-
-    private static class Rsa extends JceMasterKey {
-        // MGF1 with SHA-224 isn't really supported, but we include it in the regex because we need it
-        // for proper handling of the algorithm.
-        private static final Pattern SUPPORTED_TRANSFORMATIONS =
-            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWith(SHA-(?:1|224|256|384|512))AndMGF1Padding)",
-                    Pattern.CASE_INSENSITIVE);
-        private final AlgorithmParameterSpec parameterSpec_;
-        private final String transformation_;
-
-        private Rsa(PublicKey wrappingKey, PrivateKey unwrappingKey, String providerName, String keyId,
-                String transformation) {
-            super(wrappingKey, unwrappingKey, providerName, keyId);
-
-            final Matcher matcher = SUPPORTED_TRANSFORMATIONS.matcher(transformation);
-            if (matcher.matches()) {
-                final String hashUnknownCase = matcher.group(1);
-                if (hashUnknownCase != null) {
-                    // OAEP mode a.k.a PKCS #1v2
-                    final String hash = hashUnknownCase.toUpperCase();
-                    transformation_ = "RSA/ECB/OAEPPadding";
-
-                    final MGF1ParameterSpec mgf1Spec;
-                    switch (hash) {
-                        case "SHA-1":
-                            mgf1Spec = MGF1ParameterSpec.SHA1;
-                            break;
-                        case "SHA-224":
-                            LOGGER.warning(transformation + " is not officially supported by the JceMasterKey");
-                            mgf1Spec = MGF1ParameterSpec.SHA224;
-                            break;
-                        case "SHA-256":
-                            mgf1Spec = MGF1ParameterSpec.SHA256;
-                            break;
-                        case "SHA-384":
-                            mgf1Spec = MGF1ParameterSpec.SHA384;
-                            break;
-                        case "SHA-512":
-                            mgf1Spec = MGF1ParameterSpec.SHA512;
-                            break;
-                        default:
-                            throw new IllegalArgumentException("Unsupported algorithm: " + transformation);
-                    }
-                    parameterSpec_ = new OAEPParameterSpec(hash, "MGF1", mgf1Spec, PSource.PSpecified.DEFAULT);
-                } else {
-                    // PKCS #1 v1.x
-                    transformation_ = transformation;
-                    parameterSpec_ = null;
-                }
-            } else {
-                LOGGER.warning(transformation + " is not officially supported by the JceMasterKey");
-                // Unsupported transformation, just use exactly what we are given
-                transformation_ = transformation;
-                parameterSpec_ = null;
-            }
-        }
-
-        @Override
-        protected WrappingData buildWrappingCipher(Key key, Map<String, String> encryptionContext)
-                throws GeneralSecurityException {
-            // We require BouncyCastle to avoid some bugs in the default Java implementation
-            // of OAEP.
-            final Cipher cipher = Cipher.getInstance(transformation_);
-            cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec_);
-            return new WrappingData(cipher, EMPTY_ARRAY);
-        }
-
-        @Override
-        protected Cipher buildUnwrappingCipher(Key key, byte[] extraInfo, int offset,
-                Map<String, String> encryptionContext) throws GeneralSecurityException {
-            if (extraInfo.length != offset) {
-                throw new IllegalArgumentException("Extra info must be empty for RSA keys");
-            }
-            // We require BouncyCastle to avoid some bugs in the default Java implementation
-            // of OAEP.
-            final Cipher cipher = Cipher.getInstance(transformation_);
-            cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec_);
-            return cipher;
-        }
-    }
-
-    private static class AesGcm extends JceMasterKey {
-        private static final int NONCE_LENGTH = 12;
-        private static final int TAG_LENGTH = 128;
-        private static final String TRANSFORMATION = "AES/GCM/NoPadding";
-
-        private final SecureRandom rnd = new SecureRandom();
-
-        public AesGcm(final SecretKey key, final String providerName, final String keyId) {
-            super(key, key, providerName, keyId);
-        }
-
-        private static byte[] specToBytes(final GCMParameterSpec spec) {
-            final byte[] nonce = spec.getIV();
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (final DataOutputStream dos = new DataOutputStream(baos)) {
-                dos.writeInt(spec.getTLen());
-                dos.writeInt(nonce.length);
-                dos.write(nonce);
-                dos.close();
-                baos.close();
-            } catch (final IOException ex) {
-                throw new AssertionError("Impossible exception", ex);
-            }
-            return baos.toByteArray();
-        }
-
-        private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) {
-            final ByteArrayInputStream bais = new ByteArrayInputStream(data, offset, data.length - offset);
-            try (final DataInputStream dis = new DataInputStream(bais)) {
-                final int tagLen = dis.readInt();
-                final int nonceLen = dis.readInt();
-                final byte[] nonce = new byte[nonceLen];
-                dis.readFully(nonce);
-                return new GCMParameterSpec(tagLen, nonce);
-            } catch (final IOException ex) {
-                throw new AssertionError("Impossible exception", ex);
-            }
-        }
-
-        @Override
-        protected WrappingData buildWrappingCipher(final Key key, final Map<String, String> encryptionContext)
-                throws GeneralSecurityException {
-            final byte[] nonce = new byte[NONCE_LENGTH];
-            rnd.nextBytes(nonce);
-            final GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH, nonce);
-            final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-            final byte[] aad = EncryptionContextSerializer.serialize(encryptionContext);
-            cipher.updateAAD(aad);
-            return new WrappingData(cipher, specToBytes(spec));
-        }
-
-        @Override
-        protected Cipher buildUnwrappingCipher(final Key key, final byte[] extraInfo, final int offset,
-                final Map<String, String> encryptionContext) throws GeneralSecurityException {
-            final GCMParameterSpec spec = bytesToSpec(extraInfo, offset);
-            final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, key, spec);
-            final byte[] aad = EncryptionContextSerializer.serialize(encryptionContext);
-            cipher.updateAAD(aad);
-            return cipher;
-        }
     }
 }
