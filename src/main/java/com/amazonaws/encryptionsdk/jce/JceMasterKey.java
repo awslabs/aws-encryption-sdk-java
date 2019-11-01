@@ -20,7 +20,6 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
-import com.amazonaws.encryptionsdk.model.KeyBlob;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -145,12 +144,10 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             try {
                 if (edk.getProviderId().equals(getProviderId())
                         && arrayPrefixEquals(edk.getProviderInformation(), keyIdBytes_, keyIdBytes_.length)) {
-                    final KeyBlob decryptedKey = jceKeyCipher_.decryptKey(algorithm, edk, keyId_, encryptionContext);
+                    final SecretKey decryptedKey = jceKeyCipher_.decryptKey(algorithm, edk, keyId_, encryptionContext);
 
                     if(decryptedKey != null) {
-                        return new DataKey<>(
-                                new SecretKeySpec(decryptedKey.getEncryptedDataKey(), algorithm.getDataKeyAlgo()),
-                                edk.getEncryptedDataKey(), edk.getProviderInformation(), this);
+                        return new DataKey<>(decryptedKey, edk.getEncryptedDataKey(), edk.getProviderInformation(), this);
                     }
                 }
             } catch (final Exception ex) {

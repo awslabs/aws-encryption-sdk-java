@@ -21,6 +21,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -80,7 +81,7 @@ public abstract class JceKeyCipher {
      *                         during encryption and decryption to provide additional authenticated data (AAD).
      * @return The encrypted data key.
      */
-    public EncryptedDataKey encryptKey(final Key key, final String keyName,
+    public EncryptedDataKey encryptKey(final SecretKey key, final String keyName,
                                        final Map<String, String> encryptionContext) {
 
         final byte[] keyBytes = key.getEncoded();
@@ -112,7 +113,7 @@ public abstract class JceKeyCipher {
      * @return The decrypted key.
      * @throws GeneralSecurityException If a problem occurred decrypting the key.
      */
-    public KeyBlob decryptKey(final CryptoAlgorithm algorithm, final EncryptedDataKey edk, final String keyName,
+    public SecretKey decryptKey(final CryptoAlgorithm algorithm, final EncryptedDataKey edk, final String keyName,
                               final Map<String, String> encryptionContext) throws GeneralSecurityException {
         final byte[] keyNameBytes = keyName.getBytes(KEY_NAME_ENCODING);
 
@@ -124,7 +125,7 @@ public abstract class JceKeyCipher {
             return null;
         }
 
-        return new KeyBlob(edk.getProviderId(), edk.getProviderInformation(), rawKey);
+        return new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo());
     }
 
     static class WrappingData {
