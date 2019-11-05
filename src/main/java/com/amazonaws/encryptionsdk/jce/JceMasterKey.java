@@ -110,8 +110,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             final Map<String, String> encryptionContext) {
         final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
         rnd.nextBytes(rawKey);
-        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()), keyId_,
-                encryptionContext);
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(rawKey, keyId_, encryptionContext);
         return new DataKey<>(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
                 encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
@@ -129,7 +128,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             throw new IllegalArgumentException("Incorrect key algorithm. Expected " + key.getAlgorithm()
                     + " but got " + algorithm.getKeyAlgo());
         }
-        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(key, keyId_, encryptionContext);
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(key.getEncoded(), keyId_, encryptionContext);
         return new DataKey<>(key, encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
 
@@ -144,10 +143,12 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             try {
                 if (edk.getProviderId().equals(getProviderId())
                         && arrayPrefixEquals(edk.getProviderInformation(), keyIdBytes_, keyIdBytes_.length)) {
-                    final SecretKey decryptedKey = jceKeyCipher_.decryptKey(algorithm, edk, keyId_, encryptionContext);
+                    final byte[] decryptedKey = jceKeyCipher_.decryptKey(edk, keyId_, encryptionContext);
 
-                    if(decryptedKey != null) {
-                        return new DataKey<>(decryptedKey, edk.getEncryptedDataKey(), edk.getProviderInformation(), this);
+                    // Validate that the decrypted key length is as expected
+                    if (decryptedKey.length == algorithm.getDataKeyLength()) {
+                        return new DataKey<>(new SecretKeySpec(decryptedKey, algorithm.getDataKeyAlgo()),
+                                edk.getEncryptedDataKey(), edk.getProviderInformation(), this);
                     }
                 }
             } catch (final Exception ex) {

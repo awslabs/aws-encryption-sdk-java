@@ -81,16 +81,15 @@ public abstract class JceKeyCipher {
      *                         during encryption and decryption to provide additional authenticated data (AAD).
      * @return The encrypted data key.
      */
-    public EncryptedDataKey encryptKey(final SecretKey key, final String keyName,
+    public EncryptedDataKey encryptKey(final byte[] key, final String keyName,
                                        final Map<String, String> encryptionContext) {
 
-        final byte[] keyBytes = key.getEncoded();
         final byte[] keyNameBytes = keyName.getBytes(KEY_NAME_ENCODING);
 
         try {
             final JceKeyCipher.WrappingData wData = buildWrappingCipher(wrappingKey, encryptionContext);
             final Cipher cipher = wData.cipher;
-            final byte[] encryptedKey = cipher.doFinal(keyBytes);
+            final byte[] encryptedKey = cipher.doFinal(key);
 
             final byte[] provInfo = new byte[keyNameBytes.length + wData.extraInfo.length];
             System.arraycopy(keyNameBytes, 0, provInfo, 0, keyNameBytes.length);
@@ -105,7 +104,6 @@ public abstract class JceKeyCipher {
     /**
      * Decrypts the given encrypted data key.
      *
-     * @param algorithm The algorithm that encrypted the data key.
      * @param edk The encrypted data key.
      * @param keyName A UTF-8 encoded representing a name for the key.
      * @param encryptionContext A key-value mapping of arbitrary, non-secret, UTF-8 encoded strings used
@@ -113,19 +111,13 @@ public abstract class JceKeyCipher {
      * @return The decrypted key.
      * @throws GeneralSecurityException If a problem occurred decrypting the key.
      */
-    public SecretKey decryptKey(final CryptoAlgorithm algorithm, final EncryptedDataKey edk, final String keyName,
+    public byte[] decryptKey(final EncryptedDataKey edk, final String keyName,
                               final Map<String, String> encryptionContext) throws GeneralSecurityException {
         final byte[] keyNameBytes = keyName.getBytes(KEY_NAME_ENCODING);
 
         final Cipher cipher = buildUnwrappingCipher(unwrappingKey, edk.getProviderInformation(),
                 keyNameBytes.length, encryptionContext);
-        final byte[] rawKey = cipher.doFinal(edk.getEncryptedDataKey());
-        if (rawKey.length != algorithm.getDataKeyLength()) {
-            // Something's wrong here. Assume that the decryption is invalid.
-            return null;
-        }
-
-        return new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo());
+        return cipher.doFinal(edk.getEncryptedDataKey());
     }
 
     static class WrappingData {
