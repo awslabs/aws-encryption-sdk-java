@@ -22,6 +22,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Map;
@@ -54,11 +55,20 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
         return baos.toByteArray();
     }
 
-    private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) {
+    private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) throws GeneralSecurityException {
         final ByteArrayInputStream bais = new ByteArrayInputStream(data, offset, data.length - offset);
         try (final DataInputStream dis = new DataInputStream(bais)) {
             final int tagLen = dis.readInt();
             final int nonceLen = dis.readInt();
+
+            if(tagLen != TAG_LENGTH) {
+                throw new InvalidKeyException(String.format("Authentication tag length must be %s", TAG_LENGTH));
+            }
+
+            if(nonceLen != NONCE_LENGTH) {
+                throw new InvalidKeyException(String.format("Initialization vector (IV) length must be %s", NONCE_LENGTH));
+            }
+
             final byte[] nonce = new byte[nonceLen];
             dis.readFully(nonce);
             return new GCMParameterSpec(tagLen, nonce);

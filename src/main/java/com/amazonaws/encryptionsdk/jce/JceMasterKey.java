@@ -20,6 +20,7 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
+import com.amazonaws.encryptionsdk.internal.Utils;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -142,7 +143,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
                 if (edk.getProviderId().equals(getProviderId())
-                        && arrayPrefixEquals(edk.getProviderInformation(), keyIdBytes_, keyIdBytes_.length)) {
+                        && Utils.arrayPrefixEquals(edk.getProviderInformation(), keyIdBytes_, keyIdBytes_.length)) {
                     final byte[] decryptedKey = jceKeyCipher_.decryptKey(edk, keyId_, encryptionContext);
 
                     // Validate that the decrypted key length is as expected
@@ -156,17 +157,5 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             }
         }
         throw buildCannotDecryptDksException(exceptions);
-    }
-
-    private static boolean arrayPrefixEquals(final byte[] a, final byte[] b, final int len) {
-        if (a == null || b == null || a.length < len || b.length < len) {
-            return false;
-        }
-        for (int x = 0; x < len; x++) {
-            if (a[x] != b[x]) {
-                return false;
-            }
-        }
-        return true;
     }
 }

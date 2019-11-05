@@ -2,6 +2,7 @@ package com.amazonaws.encryptionsdk;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -119,6 +120,18 @@ public class UtilsTest {
 
         assertArrayEquals(bytes,
                 Utils.bigIntegerToByteArray(new BigInteger(bytes), 3));
+    }
+
+    @Test
+    public void testArrayPrefixEquals() {
+        byte[] a = new byte[] {10, 11, 12, 13, 14, 15};
+        byte[] b = new byte[] {10, 11, 12, 13, 20, 21, 22};
+
+        assertFalse(Utils.arrayPrefixEquals(null, b, 4));
+        assertFalse(Utils.arrayPrefixEquals(a, null, 4));
+        assertFalse(Utils.arrayPrefixEquals(a, b, a.length + 1));
+        assertTrue(Utils.arrayPrefixEquals(a, b, 4));
+        assertFalse(Utils.arrayPrefixEquals(a, b, 5));
     }
 
 }
