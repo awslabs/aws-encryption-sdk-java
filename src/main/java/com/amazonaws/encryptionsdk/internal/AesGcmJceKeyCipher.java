@@ -55,17 +55,17 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
         return baos.toByteArray();
     }
 
-    private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) throws GeneralSecurityException {
+    private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) throws InvalidKeyException {
         final ByteArrayInputStream bais = new ByteArrayInputStream(data, offset, data.length - offset);
         try (final DataInputStream dis = new DataInputStream(bais)) {
             final int tagLen = dis.readInt();
             final int nonceLen = dis.readInt();
 
-            if(tagLen != TAG_LENGTH) {
+            if (tagLen != TAG_LENGTH) {
                 throw new InvalidKeyException(String.format("Authentication tag length must be %s", TAG_LENGTH));
             }
 
-            if(nonceLen != NONCE_LENGTH) {
+            if (nonceLen != NONCE_LENGTH) {
                 throw new InvalidKeyException(String.format("Initialization vector (IV) length must be %s", NONCE_LENGTH));
             }
 

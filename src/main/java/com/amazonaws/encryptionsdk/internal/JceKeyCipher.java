@@ -75,11 +75,12 @@ public abstract class JceKeyCipher {
      * Encrypts the given key, incorporating the given keyName and encryptionContext.
      * @param key The key to encrypt.
      * @param keyName A UTF-8 encoded representing a name for the key.
+     * @param keyNamespace A UTF-8 encoded value that namespaces the key.
      * @param encryptionContext A key-value mapping of arbitrary, non-secret, UTF-8 encoded strings used
      *                         during encryption and decryption to provide additional authenticated data (AAD).
      * @return The encrypted data key.
      */
-    public EncryptedDataKey encryptKey(final byte[] key, final String keyName,
+    public EncryptedDataKey encryptKey(final byte[] key, final String keyName, final String keyNamespace,
                                        final Map<String, String> encryptionContext) {
 
         final byte[] keyNameBytes = keyName.getBytes(KEY_NAME_ENCODING);
@@ -93,7 +94,7 @@ public abstract class JceKeyCipher {
             System.arraycopy(keyNameBytes, 0, provInfo, 0, keyNameBytes.length);
             System.arraycopy(wData.extraInfo, 0, provInfo, keyNameBytes.length, wData.extraInfo.length);
 
-            return new KeyBlob(keyName, provInfo, encryptedKey);
+            return new KeyBlob(keyNamespace, provInfo, encryptedKey);
         } catch (final GeneralSecurityException gsex) {
             throw new AwsCryptoException(gsex);
         }
@@ -103,7 +104,7 @@ public abstract class JceKeyCipher {
      * Decrypts the given encrypted data key.
      *
      * @param edk The encrypted data key.
-     * @param keyName A UTF-8 encoded representing a name for the key.
+     * @param keyName A UTF-8 encoded String representing a name for the key.
      * @param encryptionContext A key-value mapping of arbitrary, non-secret, UTF-8 encoded strings used
      *                          during encryption and decryption to provide additional authenticated data (AAD).
      * @return The decrypted key.

@@ -111,7 +111,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             final Map<String, String> encryptionContext) {
         final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
         rnd.nextBytes(rawKey);
-        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(rawKey, keyId_, encryptionContext);
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(rawKey, keyId_, providerName_, encryptionContext);
         return new DataKey<>(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
                 encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
@@ -129,7 +129,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
             throw new IllegalArgumentException("Incorrect key algorithm. Expected " + key.getAlgorithm()
                     + " but got " + algorithm.getKeyAlgo());
         }
-        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(key.getEncoded(), keyId_, encryptionContext);
+        EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(key.getEncoded(), keyId_, providerName_, encryptionContext);
         return new DataKey<>(key, encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
     }
 
