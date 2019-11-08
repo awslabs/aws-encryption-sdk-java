@@ -29,6 +29,7 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
     private static final int NONCE_LENGTH = 12;
     private static final int TAG_LENGTH = 128;
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final int SPEC_LENGTH = Integer.BYTES + Integer.BYTES + NONCE_LENGTH;
 
     AesGcmJceKeyCipher(SecretKey key) {
         super(key, key);
@@ -36,7 +37,7 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
 
     private static byte[] specToBytes(final GCMParameterSpec spec) {
         final byte[] nonce = spec.getIV();
-        final byte[] result = new byte[Integer.BYTES + Integer.BYTES + nonce.length];
+        final byte[] result = new byte[SPEC_LENGTH];
         final ByteBuffer buffer = ByteBuffer.wrap(result);
         buffer.putInt(spec.getTLen());
         buffer.putInt(nonce.length);
@@ -45,8 +46,11 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
     }
 
     private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) throws InvalidKeyException {
-        final ByteBuffer buffer = ByteBuffer.wrap(data, offset, data.length - offset);
+        if (data.length - offset != SPEC_LENGTH) {
+            throw new InvalidKeyException("Algorithm specification was an invalid data size");
+        }
 
+        final ByteBuffer buffer = ByteBuffer.wrap(data, offset, SPEC_LENGTH);
         final int tagLen = buffer.getInt();
         final int nonceLen = buffer.getInt();
 
@@ -54,7 +58,7 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
             throw new InvalidKeyException(String.format("Authentication tag length must be %s", TAG_LENGTH));
         }
 
-        if (nonceLen != NONCE_LENGTH || buffer.remaining() != NONCE_LENGTH) {
+        if (nonceLen != NONCE_LENGTH) {
             throw new InvalidKeyException(String.format("Initialization vector (IV) length must be %s", NONCE_LENGTH));
         }
 
