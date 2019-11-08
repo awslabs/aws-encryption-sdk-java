@@ -90,9 +90,14 @@ public abstract class JceKeyCipher {
             final Cipher cipher = wData.cipher;
             final byte[] encryptedKey = cipher.doFinal(key);
 
-            final byte[] provInfo = new byte[keyNameBytes.length + wData.extraInfo.length];
-            System.arraycopy(keyNameBytes, 0, provInfo, 0, keyNameBytes.length);
-            System.arraycopy(wData.extraInfo, 0, provInfo, keyNameBytes.length, wData.extraInfo.length);
+            final byte[] provInfo;
+            if (wData.extraInfo.length == 0) {
+                provInfo = keyNameBytes;
+            } else {
+                provInfo = new byte[keyNameBytes.length + wData.extraInfo.length];
+                System.arraycopy(keyNameBytes, 0, provInfo, 0, keyNameBytes.length);
+                System.arraycopy(wData.extraInfo, 0, provInfo, keyNameBytes.length, wData.extraInfo.length);
+            }
 
             return new KeyBlob(keyNamespace, provInfo, encryptedKey);
         } catch (final GeneralSecurityException gsex) {

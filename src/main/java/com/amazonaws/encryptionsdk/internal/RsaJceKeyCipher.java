@@ -101,8 +101,7 @@ class RsaJceKeyCipher extends JceKeyCipher {
         if (extraInfo.length != offset) {
             throw new IllegalArgumentException("Extra info must be empty for RSA keys");
         }
-        // We require BouncyCastle to avoid some bugs in the default Java implementation
-        // of OAEP.
+
         final Cipher cipher = Cipher.getInstance(transformation_);
         cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec_);
         return cipher;

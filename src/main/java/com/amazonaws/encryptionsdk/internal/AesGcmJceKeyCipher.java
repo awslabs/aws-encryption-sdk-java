@@ -16,15 +16,10 @@ package com.amazonaws.encryptionsdk.internal;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.SecureRandom;
 import java.util.Map;
 
 /**
@@ -34,7 +29,6 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
     private static final int NONCE_LENGTH = 12;
     private static final int TAG_LENGTH = 128;
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
-    private final SecureRandom rnd = new SecureRandom();
 
     AesGcmJceKeyCipher(SecretKey key) {
         super(key, key);
@@ -42,46 +36,39 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
 
     private static byte[] specToBytes(final GCMParameterSpec spec) {
         final byte[] nonce = spec.getIV();
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final DataOutputStream dos = new DataOutputStream(baos)) {
-            dos.writeInt(spec.getTLen());
-            dos.writeInt(nonce.length);
-            dos.write(nonce);
-            dos.close();
-            baos.close();
-        } catch (final IOException ex) {
-            throw new AssertionError("Impossible exception", ex);
-        }
-        return baos.toByteArray();
+        final byte[] result = new byte[Integer.BYTES + Integer.BYTES + nonce.length];
+        final ByteBuffer buffer = ByteBuffer.wrap(result);
+        buffer.putInt(spec.getTLen());
+        buffer.putInt(nonce.length);
+        buffer.put(nonce);
+        return result;
     }
 
     private static GCMParameterSpec bytesToSpec(final byte[] data, final int offset) throws InvalidKeyException {
-        final ByteArrayInputStream bais = new ByteArrayInputStream(data, offset, data.length - offset);
-        try (final DataInputStream dis = new DataInputStream(bais)) {
-            final int tagLen = dis.readInt();
-            final int nonceLen = dis.readInt();
+        final ByteBuffer buffer = ByteBuffer.wrap(data, offset, data.length - offset);
 
-            if (tagLen != TAG_LENGTH) {
-                throw new InvalidKeyException(String.format("Authentication tag length must be %s", TAG_LENGTH));
-            }
+        final int tagLen = buffer.getInt();
+        final int nonceLen = buffer.getInt();
 
-            if (nonceLen != NONCE_LENGTH) {
-                throw new InvalidKeyException(String.format("Initialization vector (IV) length must be %s", NONCE_LENGTH));
-            }
-
-            final byte[] nonce = new byte[nonceLen];
-            dis.readFully(nonce);
-            return new GCMParameterSpec(tagLen, nonce);
-        } catch (final IOException ex) {
-            throw new AssertionError("Impossible exception", ex);
+        if (tagLen != TAG_LENGTH) {
+            throw new InvalidKeyException(String.format("Authentication tag length must be %s", TAG_LENGTH));
         }
+
+        if (nonceLen != NONCE_LENGTH || buffer.remaining() != NONCE_LENGTH) {
+            throw new InvalidKeyException(String.format("Initialization vector (IV) length must be %s", NONCE_LENGTH));
+        }
+
+        final byte[] nonce = new byte[nonceLen];
+        buffer.get(nonce);
+
+        return new GCMParameterSpec(tagLen, nonce);
     }
 
     @Override
     WrappingData buildWrappingCipher(final Key key, final Map<String, String> encryptionContext)
             throws GeneralSecurityException {
         final byte[] nonce = new byte[NONCE_LENGTH];
-        rnd.nextBytes(nonce);
+        Utils.getSecureRandom().nextBytes(nonce);
         final GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH, nonce);
         final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, key, spec);

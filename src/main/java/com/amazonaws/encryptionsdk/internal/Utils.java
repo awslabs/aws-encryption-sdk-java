@@ -314,6 +314,7 @@ public final class Utils {
 
     /**
      * Returns true if the prefix of the given length for the input arrays are equal.
+     * This method will return as soon as the first difference is found, and is thus not constant-time.
      *
      * @param a      The first array.
      * @param b      The second array.

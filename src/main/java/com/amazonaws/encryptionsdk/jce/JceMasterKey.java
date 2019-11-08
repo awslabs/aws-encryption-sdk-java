@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,7 +39,6 @@ import java.util.Map;
  * {@link #getInstance(PublicKey, PrivateKey, String, String, String)}.
  */
 public class JceMasterKey extends MasterKey<JceMasterKey> {
-    private final SecureRandom rnd = new SecureRandom();
     private final String providerName_;
     private final String keyId_;
     private final byte[] keyIdBytes_;
@@ -110,7 +108,7 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
     public DataKey<JceMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
         final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
-        rnd.nextBytes(rawKey);
+        Utils.getSecureRandom().nextBytes(rawKey);
         EncryptedDataKey encryptedDataKey = jceKeyCipher_.encryptKey(rawKey, keyId_, providerName_, encryptionContext);
         return new DataKey<>(new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
                 encryptedDataKey.getEncryptedDataKey(), encryptedDataKey.getProviderInformation(), this);
