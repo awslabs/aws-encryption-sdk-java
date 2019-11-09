@@ -131,9 +131,11 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
         }
 
         return DecryptionMaterials.newBuilder()
-                                  .setDataKey(dataKey)
-                                  .setTrailingSignatureKey(pubKey)
-                                  .build();
+                .setAlgorithm(request.getAlgorithm())
+                .setCleartextDataKey(dataKey.getKey())
+                .setMasterKey(dataKey.getMasterKey())
+                .setTrailingSignatureKey(pubKey)
+                .build();
     }
 
     private PublicKey deserializeTrailingKeyFromEc(CryptoAlgorithm algo, String pubKey)  {

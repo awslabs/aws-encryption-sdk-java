@@ -22,7 +22,7 @@ public final class EncryptionMaterials {
     private final CryptoAlgorithm algorithm;
     private final Map<String, String> encryptionContext;
     private final List<KeyBlob> encryptedDataKeys;
-    private final SecretKey cleartextDataKey;
+    private SecretKey cleartextDataKey;
     private final PrivateKey trailingSignatureKey;
     private final List<MasterKey> masterKeys;
     private final KeyringTrace keyringTrace;
@@ -75,6 +75,14 @@ public final class EncryptionMaterials {
         return cleartextDataKey;
     }
 
+    public void setCleartextDataKey(SecretKey cleartextDataKey) {
+        if(this.cleartextDataKey != null) {
+            throw new IllegalStateException("cleartextDataKey was already populated");
+        }
+
+        this.cleartextDataKey = cleartextDataKey;
+    }
+
     /**
      * The private key to be used to sign the message trailer. Must be present if any only if required by the
      * crypto algorithm, and the key type must likewise match the algorithm in use.
@@ -85,6 +93,10 @@ public final class EncryptionMaterials {
      */
     public PrivateKey getTrailingSignatureKey() {
         return trailingSignatureKey;
+    }
+
+    public KeyringTrace getKeyringTrace() {
+        return keyringTrace;
     }
 
     /**
@@ -115,7 +127,7 @@ public final class EncryptionMaterials {
     public static class Builder {
         private CryptoAlgorithm algorithm;
         private Map<String, String> encryptionContext = Collections.emptyMap();
-        private List<KeyBlob> encryptedDataKeys = null;
+        private List<KeyBlob> encryptedDataKeys = new ArrayList<>();
         private SecretKey cleartextDataKey;
         private PrivateKey trailingSignatureKey;
         private List<MasterKey> masterKeys = Collections.emptyList();
@@ -160,7 +172,7 @@ public final class EncryptionMaterials {
         }
 
         public Builder setEncryptedDataKeys(List<KeyBlob> encryptedDataKeys) {
-            this.encryptedDataKeys = Collections.unmodifiableList(new ArrayList<>(encryptedDataKeys));
+            this.encryptedDataKeys = new ArrayList<>(encryptedDataKeys);
             return this;
         }
 

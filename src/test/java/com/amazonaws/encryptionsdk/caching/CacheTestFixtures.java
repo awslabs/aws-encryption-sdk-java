@@ -1,12 +1,9 @@
 package com.amazonaws.encryptionsdk.caching;
 
-import static org.mockito.ArgumentMatchers.eq;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Collections;
 
-import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.TestUtils;
@@ -56,10 +53,8 @@ public class CacheTestFixtures {
         DecryptionMaterials realResult = new DefaultCryptoMaterialsManager(FIXED_KEY).decryptMaterials(request);
         return realResult
                 .toBuilder()
-                .setDataKey(new DataKey(new SentinelKey(),
-                                        realResult.getDataKey().getEncryptedDataKey(),
-                                        realResult.getDataKey().getProviderInformation(),
-                                        realResult.getDataKey().getMasterKey()))
+                .setCleartextDataKey(realResult.getCleartextDataKey())
+                .setMasterKey(realResult.getMasterKey())
                 .build();
     }
 
