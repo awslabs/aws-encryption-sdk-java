@@ -24,7 +24,7 @@ import java.util.Arrays;
  * A {@link Keyring} which does local RSA encryption and decryption of data keys using the
  * provided public and private keys.
  *
- * Instantiate by using the {@code Keyring.rawRsa(...)} factory method.
+ * Instantiate by using the {@code StandardKeyrings.rawRsa(...)} factory method.
  */
 class RawRsaKeyring extends RawKeyring {
 

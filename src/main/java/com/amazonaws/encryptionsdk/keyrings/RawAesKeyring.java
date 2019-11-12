@@ -23,7 +23,7 @@ import javax.crypto.SecretKey;
  * A {@code Keyring} which does local AES-GCM encryption
  * decryption of data keys using the provided wrapping key.
  *
- * Instantiate by using the {@code Keyring.rawAes(...)} factory method.
+ * Instantiate by using the {@code StandardKeyrings.rawAes(...)} factory method.
  */
 class RawAesKeyring extends RawKeyring {
 
@@ -53,15 +53,13 @@ class RawAesKeyring extends RawKeyring {
     void traceOnEncrypt(KeyringTrace keyringTrace) {
         keyringTrace.add(keyNamespace, keyName,
                 KeyringTraceFlag.ENCRYPTED_DATA_KEY,
-                KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT,
-                KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
+                KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT);
     }
 
     @Override
     void traceOnDecrypt(KeyringTrace keyringTrace) {
         keyringTrace.add(keyNamespace, keyName,
                 KeyringTraceFlag.DECRYPTED_DATA_KEY,
-                KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT,
                 KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
     }
 }

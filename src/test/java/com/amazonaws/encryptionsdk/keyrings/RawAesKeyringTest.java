@@ -61,10 +61,9 @@ public class RawAesKeyringTest {
         assertEquals(1, trace.getEntries().size());
         assertEquals(KEYNAME, trace.getEntries().get(0).getKeyName());
         assertEquals(KEYNAMESPACE, trace.getEntries().get(0).getKeyNamespace());
-        assertEquals(3, trace.getEntries().get(0).getFlags().size());
+        assertEquals(2, trace.getEntries().get(0).getFlags().size());
         assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
         assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
-        assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
     }
 
     @Test
@@ -77,9 +76,8 @@ public class RawAesKeyringTest {
         assertEquals(1, trace.getEntries().size());
         assertEquals(KEYNAME, trace.getEntries().get(0).getKeyName());
         assertEquals(KEYNAMESPACE, trace.getEntries().get(0).getKeyNamespace());
-        assertEquals(3, trace.getEntries().get(0).getFlags().size());
+        assertEquals(2, trace.getEntries().get(0).getFlags().size());
         assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
-        assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
         assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
     }
 
