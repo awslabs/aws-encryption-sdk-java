@@ -13,72 +13,117 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
 import org.apache.commons.lang3.ArrayUtils;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 
+import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.ALGORITHM;
+import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.DATA_KEY;
+import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.ENCRYPTION_CONTEXT;
 import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAME;
 import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAMESPACE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(MockitoJUnitRunner.class)
 public class RawRsaKeyringTest {
 
-    @Mock
-    PublicKey publicKey;
-    @Mock
-    PrivateKey privateKey;
     private static final String TRANSFORMATION = "RSA/ECB/PKCS1Padding";
+    private RawRsaKeyring keyring;
+
+    @Before
+    public void setup() throws Exception {
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        keyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, keyPair.getPublic(), keyPair.getPrivate(), TRANSFORMATION);
+    }
 
     @Test
     public void testValidToDecrypt() {
-        RawRsaKeyring rawRsaKeyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, publicKey, privateKey, TRANSFORMATION);
-
-        assertTrue(rawRsaKeyring.validToDecrypt(new KeyBlob(
+        assertTrue(keyring.validToDecrypt(new KeyBlob(
                 KEYNAMESPACE, KEYNAME.getBytes(StandardCharsets.UTF_8), new byte[]{})));
         //Provider info has extra data
-        assertFalse(rawRsaKeyring.validToDecrypt(new KeyBlob(
+        assertFalse(keyring.validToDecrypt(new KeyBlob(
                 KEYNAMESPACE, ArrayUtils.add(KEYNAME.getBytes(StandardCharsets.UTF_8), (byte)5), new byte[]{})));
         //Bad namespace
-        assertFalse(rawRsaKeyring.validToDecrypt(new KeyBlob(
+        assertFalse(keyring.validToDecrypt(new KeyBlob(
                 "WrongNamespace", KEYNAME.getBytes(StandardCharsets.UTF_8), new byte[]{})));
     }
 
     @Test
-    public void testTraceOnEncrypt() {
-        RawRsaKeyring rawRsaKeyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, publicKey, privateKey, TRANSFORMATION);
+    public void testEncryptDecryptExistingDataKey() {
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setKeyringTrace(new KeyringTrace())
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
 
-        KeyringTrace trace = new KeyringTrace();
+        keyring.onEncrypt(encryptionMaterials);
 
-        rawRsaKeyring.traceOnEncrypt(trace);
-        assertEquals(1, trace.getEntries().size());
-        assertEquals(KEYNAME, trace.getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, trace.getEntries().get(0).getKeyNamespace());
-        assertEquals(1, trace.getEntries().get(0).getFlags().size());
-        assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+        assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
+        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
+        assertEquals(KEYNAME, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
+        assertEquals(KEYNAMESPACE, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
+        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
+        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
+                .build();
+
+        keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+
+        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
+        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
+        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
+        assertEquals(1, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
+        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
     }
 
     @Test
-    public void testTraceOnDecrypt() {
-        RawRsaKeyring rawRsaKeyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, publicKey, privateKey, TRANSFORMATION);
+    public void testEncryptDecryptGenerateDataKey() {
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setKeyringTrace(new KeyringTrace())
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
 
-        KeyringTrace trace = new KeyringTrace();
+        keyring.onEncrypt(encryptionMaterials);
 
-        rawRsaKeyring.traceOnDecrypt(trace);
-        assertEquals(1, trace.getEntries().size());
-        assertEquals(KEYNAME, trace.getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, trace.getEntries().get(0).getKeyNamespace());
-        assertEquals(1, trace.getEntries().get(0).getFlags().size());
-        assertTrue(trace.getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
+        assertNotNull(encryptionMaterials.getCleartextDataKey());
+        assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
+        assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
+        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
+        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
+        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.GENERATED_DATA_KEY));
+        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().size());
+        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
+                .build();
+
+        keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+
+        assertEquals(encryptionMaterials.getCleartextDataKey(), decryptionMaterials.getCleartextDataKey());
+        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
+        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
+        assertEquals(1, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
+        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
     }
 
 }
