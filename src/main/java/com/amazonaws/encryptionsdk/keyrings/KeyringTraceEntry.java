@@ -16,7 +16,9 @@ package com.amazonaws.encryptionsdk.keyrings;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -37,17 +39,17 @@ public class KeyringTraceEntry {
      *
      * @param keyNamespace The namespace for the key.
      * @param keyName      The name of the key.
-     * @param flags        A set of one or more KeyringTraceFlag enums
+     * @param flags        One or more KeyringTraceFlags
      *                     indicating what actions were taken by a keyring.
      */
-    KeyringTraceEntry(final String keyNamespace, final String keyName, final Set<KeyringTraceFlag> flags) {
+    public KeyringTraceEntry(final String keyNamespace, final String keyName, final KeyringTraceFlag... flags) {
         notBlank(keyNamespace, "keyNamespace is required");
         notBlank(keyName, "keyName is required");
         notEmpty(flags, "At least one flag is required");
 
         this.keyNamespace = keyNamespace;
         this.keyName = keyName;
-        this.flags = Collections.unmodifiableSet(flags);
+        this.flags = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(flags)));
     }
 
     /**

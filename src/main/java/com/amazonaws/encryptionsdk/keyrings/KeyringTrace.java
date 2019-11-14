@@ -17,9 +17,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -38,8 +36,15 @@ public class KeyringTrace {
      *                     indicating what actions were taken by a keyring.
      */
     public void add(String keyNamespace, String keyName, KeyringTraceFlag... flags) {
-        entries.add(new KeyringTraceEntry(keyNamespace, keyName,
-                new HashSet<>(Arrays.asList(flags))));
+        add(new KeyringTraceEntry(keyNamespace, keyName, flags));
+    }
+
+    /**
+     * Add a new entry to the keyring trace.
+     * @param entry The entry to add.
+     */
+    public void add(KeyringTraceEntry entry) {
+        entries.add(entry);
     }
 
     /**

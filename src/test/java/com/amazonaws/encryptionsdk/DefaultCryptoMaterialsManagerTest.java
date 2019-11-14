@@ -2,6 +2,7 @@ package com.amazonaws.encryptionsdk;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
 import static java.util.Collections.singletonMap;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -249,7 +250,7 @@ public class DefaultCryptoMaterialsManagerTest {
             DecryptionMaterials decryptMaterials
                     = new DefaultCryptoMaterialsManager(mk1).decryptMaterials(decryptReqFromMaterials(encryptMaterials));
 
-            assertArrayEquals(decryptMaterials.getCleartextDataKey().getEncoded(),
+            assertArrayEquals(decryptMaterials.getDataKey().getKey().getEncoded(),
                               encryptMaterials.getCleartextDataKey().getEncoded());
 
             if (encryptMaterials.getTrailingSignatureKey() == null) {

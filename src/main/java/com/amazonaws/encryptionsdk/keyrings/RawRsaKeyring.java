@@ -43,8 +43,7 @@ class RawRsaKeyring extends RawKeyring {
 
         // the encrypted data key's key provider information
         // must have a value equal to this keyring's key name.
-        if(!Arrays.equals(encryptedDataKey.getProviderInformation(), keyNameBytes))
-        {
+        if (!Arrays.equals(encryptedDataKey.getProviderInformation(), keyNameBytes)) {
             return false;
         }
 
@@ -52,12 +51,12 @@ class RawRsaKeyring extends RawKeyring {
     }
 
     @Override
-    void traceOnEncrypt(KeyringTrace keyringTrace) {
-        keyringTrace.add(keyNamespace, keyName, KeyringTraceFlag.ENCRYPTED_DATA_KEY);
+    KeyringTraceEntry traceOnEncrypt() {
+        return new KeyringTraceEntry(keyNamespace, keyName, KeyringTraceFlag.ENCRYPTED_DATA_KEY);
     }
 
     @Override
-    void traceOnDecrypt(KeyringTrace keyringTrace) {
-        keyringTrace.add(keyNamespace, keyName, KeyringTraceFlag.DECRYPTED_DATA_KEY);
+    KeyringTraceEntry traceOnDecrypt() {
+        return new KeyringTraceEntry(keyNamespace, keyName, KeyringTraceFlag.DECRYPTED_DATA_KEY);
     }
 }

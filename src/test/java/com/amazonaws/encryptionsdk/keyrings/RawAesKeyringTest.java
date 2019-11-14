@@ -13,11 +13,11 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
-import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
 import org.apache.commons.lang3.ArrayUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -28,17 +28,17 @@ import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.DATA_KEY;
 import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.ENCRYPTION_CONTEXT;
 import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAME;
 import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAMESPACE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RawAesKeyringTest {
+class RawAesKeyringTest {
 
     private final RawAesKeyring keyring = new RawAesKeyring(KEYNAMESPACE, KEYNAME, new SecretKeySpec(generate(32), "AES"));
 
     @Test
-    public void testValidToDecrypt() {
+    void testValidToDecrypt() {
         assertTrue(keyring.validToDecrypt(new KeyBlob(
                 KEYNAMESPACE, KEYNAME.getBytes(StandardCharsets.UTF_8), new byte[]{})));
         assertTrue(keyring.validToDecrypt(new KeyBlob(
@@ -52,10 +52,9 @@ public class RawAesKeyringTest {
     }
 
     @Test
-    public void testEncryptDecryptExistingDataKey() {
-        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
-                .setAlgorithm(ALGORITHM)
-                .setCleartextDataKey(DATA_KEY)
+    void testEncryptDecryptExistingDataKey() {
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
+                .setPlaintextDataKey(DATA_KEY)
                 .setKeyringTrace(new KeyringTrace())
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
@@ -63,6 +62,12 @@ public class RawAesKeyringTest {
         keyring.onEncrypt(encryptionMaterials);
 
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
+
+        final EncryptedDataKey actualEncryptedDataKey = encryptionMaterials.getEncryptedDataKeys().get(0);
+        assertEquals(KEYNAMESPACE, actualEncryptedDataKey.getProviderId());
+        assertTrue(Utils.arrayPrefixEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation(), keyring.keyNameBytes.length));
+        assertTrue(actualEncryptedDataKey.getProviderInformation().length > keyring.keyNameBytes.length);
+
         assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
         assertEquals(KEYNAME, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
         assertEquals(KEYNAMESPACE, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
@@ -70,15 +75,14 @@ public class RawAesKeyringTest {
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
 
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
-                .setAlgorithm(ALGORITHM)
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
-        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
+        assertEquals(DATA_KEY, decryptionMaterials.getPlaintextDataKey());
         assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
         assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
         assertEquals(2, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
@@ -87,18 +91,23 @@ public class RawAesKeyringTest {
     }
 
     @Test
-    public void testEncryptDecryptGenerateDataKey() {
-        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
-                .setAlgorithm(ALGORITHM)
+    void testEncryptDecryptGenerateDataKey() {
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
                 .setKeyringTrace(new KeyringTrace())
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         keyring.onEncrypt(encryptionMaterials);
 
-        assertNotNull(encryptionMaterials.getCleartextDataKey());
-        assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
+        assertNotNull(encryptionMaterials.getPlaintextDataKey());
+        assertEquals(encryptionMaterials.getPlaintextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
+
+        final EncryptedDataKey actualEncryptedDataKey = encryptionMaterials.getEncryptedDataKeys().get(0);
+        assertEquals(KEYNAMESPACE, actualEncryptedDataKey.getProviderId());
+        assertTrue(Utils.arrayPrefixEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation(), keyring.keyNameBytes.length));
+        assertTrue(actualEncryptedDataKey.getProviderInformation().length > keyring.keyNameBytes.length);
+
         assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
         assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.GENERATED_DATA_KEY));
@@ -106,15 +115,14 @@ public class RawAesKeyringTest {
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
 
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
-                .setAlgorithm(ALGORITHM)
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
-        assertEquals(encryptionMaterials.getCleartextDataKey(), decryptionMaterials.getCleartextDataKey());
+        assertEquals(encryptionMaterials.getPlaintextDataKey(), decryptionMaterials.getPlaintextDataKey());
         assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
         assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
         assertEquals(2, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());

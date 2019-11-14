@@ -14,12 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
-import javax.crypto.SecretKey;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.List;
 
 /**

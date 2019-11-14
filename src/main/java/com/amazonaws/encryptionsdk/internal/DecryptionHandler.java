@@ -28,6 +28,7 @@ import javax.crypto.SecretKey;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
@@ -60,8 +61,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     private CryptoHandler contentCryptoHandler_;
 
-    private SecretKey dataKey_;
-    private K masterKey_;
+    private DataKey<K> dataKey_;
     private SecretKey decryptionKey_;
     private CryptoAlgorithm cryptoAlgo_;
     private Signature trailingSig_;
@@ -454,13 +454,12 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
         DecryptionMaterials result = materialsManager_.decryptMaterials(request);
 
-        dataKey_ = result.getCleartextDataKey();
         //noinspection unchecked
-        masterKey_ = (K)result.getMasterKey();
+        dataKey_ = (DataKey<K>)result.getDataKey();
         PublicKey trailingPublicKey = result.getTrailingSignatureKey();
 
         try {
-            decryptionKey_ = cryptoAlgo_.getEncryptionKeyFromDataKey(dataKey_, ciphertextHeaders);
+            decryptionKey_ = cryptoAlgo_.getEncryptionKeyFromDataKey(dataKey_.getKey(), ciphertextHeaders);
         } catch (final InvalidKeyException ex) {
             throw new AwsCryptoException(ex);
         }
@@ -537,7 +536,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     @Override
     public List<K> getMasterKeys() {
-       return Collections.singletonList(masterKey_);
+        return Collections.singletonList(dataKey_.getMasterKey());
     }
 
     @Override

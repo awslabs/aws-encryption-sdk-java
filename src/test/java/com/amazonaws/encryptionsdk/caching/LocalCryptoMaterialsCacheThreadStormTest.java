@@ -1,6 +1,9 @@
 package com.amazonaws.encryptionsdk.caching;
 
+import static com.amazonaws.encryptionsdk.caching.CacheTestFixtures.createMaterialsResult;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
@@ -25,6 +28,7 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache.UsageStats;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
@@ -133,9 +137,9 @@ public class LocalCryptoMaterialsCacheThreadStormTest {
                 ref[0] = 0;
 
                 CacheTestFixtures.SentinelKey key = new CacheTestFixtures.SentinelKey();
-                DecryptionMaterials result = BASE_DECRYPT.toBuilder()
-                        .setCleartextDataKey(key)
-                        .setMasterKey(BASE_DECRYPT.getMasterKey()).build();
+                DecryptionMaterials result = BASE_DECRYPT.toBuilder().setDataKey(
+                        new DataKey(key, new byte[0], new byte[0], BASE_DECRYPT.getDataKey().getMasterKey())
+                ).build();
 
                 ConcurrentHashMap<CacheTestFixtures.SentinelKey, Object> expectedDecryptMap
                         = possibleDecrypts.computeIfAbsent(ByteBuffer.wrap(ref),
@@ -179,7 +183,7 @@ public class LocalCryptoMaterialsCacheThreadStormTest {
                     CacheTestFixtures.SentinelKey cachedKey = null;
                     if (result != null) {
                         inc("decrypt: hit");
-                        cachedKey = (CacheTestFixtures.SentinelKey) result.getResult().getCleartextDataKey();
+                        cachedKey = (CacheTestFixtures.SentinelKey) result.getResult().getDataKey().getKey();
                         if (expectedDecryptMap.containsKey(cachedKey)) {
                             inc("decrypt: found key in expected");
                         } else {

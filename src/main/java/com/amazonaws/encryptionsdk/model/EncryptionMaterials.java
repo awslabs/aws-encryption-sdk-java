@@ -11,7 +11,6 @@ import java.util.Objects;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.MasterKey;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 
 /**
  * Contains the cryptographic materials needed for an encryption operation.
@@ -22,10 +21,9 @@ public final class EncryptionMaterials {
     private final CryptoAlgorithm algorithm;
     private final Map<String, String> encryptionContext;
     private final List<KeyBlob> encryptedDataKeys;
-    private SecretKey cleartextDataKey;
+    private final SecretKey cleartextDataKey;
     private final PrivateKey trailingSignatureKey;
     private final List<MasterKey> masterKeys;
-    private final KeyringTrace keyringTrace;
 
     private EncryptionMaterials(Builder b) {
         this.algorithm = b.algorithm;
@@ -34,7 +32,6 @@ public final class EncryptionMaterials {
         this.cleartextDataKey = b.cleartextDataKey;
         this.trailingSignatureKey = b.trailingSignatureKey;
         this.masterKeys = b.getMasterKeys();
-        this.keyringTrace = b.keyringTrace;
     }
 
     public Builder toBuilder() {
@@ -75,14 +72,6 @@ public final class EncryptionMaterials {
         return cleartextDataKey;
     }
 
-    public void setCleartextDataKey(SecretKey cleartextDataKey) {
-        if(this.cleartextDataKey != null) {
-            throw new IllegalStateException("cleartextDataKey was already populated");
-        }
-
-        this.cleartextDataKey = cleartextDataKey;
-    }
-
     /**
      * The private key to be used to sign the message trailer. Must be present if any only if required by the
      * crypto algorithm, and the key type must likewise match the algorithm in use.
@@ -93,10 +82,6 @@ public final class EncryptionMaterials {
      */
     public PrivateKey getTrailingSignatureKey() {
         return trailingSignatureKey;
-    }
-
-    public KeyringTrace getKeyringTrace() {
-        return keyringTrace;
     }
 
     /**
@@ -115,23 +100,21 @@ public final class EncryptionMaterials {
                 Objects.equals(encryptedDataKeys, that.encryptedDataKeys) &&
                 Objects.equals(cleartextDataKey, that.cleartextDataKey) &&
                 Objects.equals(trailingSignatureKey, that.trailingSignatureKey) &&
-                Objects.equals(masterKeys, that.masterKeys) &&
-                Objects.equals(keyringTrace, that.keyringTrace);
+                Objects.equals(masterKeys, that.masterKeys);
     }
 
     @Override public int hashCode() {
         return Objects.hash(algorithm, encryptionContext, encryptedDataKeys, cleartextDataKey, trailingSignatureKey,
-                            masterKeys, keyringTrace);
+                            masterKeys);
     }
 
     public static class Builder {
         private CryptoAlgorithm algorithm;
         private Map<String, String> encryptionContext = Collections.emptyMap();
-        private List<KeyBlob> encryptedDataKeys = new ArrayList<>();
+        private List<KeyBlob> encryptedDataKeys = null;
         private SecretKey cleartextDataKey;
         private PrivateKey trailingSignatureKey;
         private List<MasterKey> masterKeys = Collections.emptyList();
-        private KeyringTrace keyringTrace;
 
         private Builder() {}
 
@@ -142,7 +125,6 @@ public final class EncryptionMaterials {
             cleartextDataKey = r.cleartextDataKey;
             trailingSignatureKey = r.trailingSignatureKey;
             setMasterKeys(r.masterKeys);
-            keyringTrace = r.keyringTrace;
         }
 
         public EncryptionMaterials build() {
@@ -172,7 +154,7 @@ public final class EncryptionMaterials {
         }
 
         public Builder setEncryptedDataKeys(List<KeyBlob> encryptedDataKeys) {
-            this.encryptedDataKeys = new ArrayList<>(encryptedDataKeys);
+            this.encryptedDataKeys = Collections.unmodifiableList(new ArrayList<>(encryptedDataKeys));
             return this;
         }
 
@@ -200,15 +182,6 @@ public final class EncryptionMaterials {
 
         public Builder setMasterKeys(List<MasterKey> masterKeys) {
             this.masterKeys = Collections.unmodifiableList(new ArrayList<>(masterKeys));
-            return this;
-        }
-
-        public KeyringTrace getKeyringTrace() {
-            return keyringTrace;
-        }
-
-        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
-            this.keyringTrace = keyringTrace;
             return this;
         }
     }

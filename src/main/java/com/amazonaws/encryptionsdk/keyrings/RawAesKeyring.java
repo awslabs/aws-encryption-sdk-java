@@ -50,15 +50,15 @@ class RawAesKeyring extends RawKeyring {
     }
 
     @Override
-    void traceOnEncrypt(KeyringTrace keyringTrace) {
-        keyringTrace.add(keyNamespace, keyName,
+    KeyringTraceEntry traceOnEncrypt() {
+        return new KeyringTraceEntry(keyNamespace, keyName,
                 KeyringTraceFlag.ENCRYPTED_DATA_KEY,
                 KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT);
     }
 
     @Override
-    void traceOnDecrypt(KeyringTrace keyringTrace) {
-        keyringTrace.add(keyNamespace, keyName,
+    KeyringTraceEntry traceOnDecrypt() {
+        return new KeyringTraceEntry(keyNamespace, keyName,
                 KeyringTraceFlag.DECRYPTED_DATA_KEY,
                 KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
     }
