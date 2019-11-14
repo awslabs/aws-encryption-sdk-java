@@ -13,15 +13,16 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class KeyringTraceTest {
+class KeyringTraceTest {
 
     @Test
-    public void testOrderMaintained() {
+    void testOrderMaintained() {
         KeyringTraceEntry entry1 = new KeyringTraceEntry("ns1", "name1", KeyringTraceFlag.GENERATED_DATA_KEY);
         KeyringTraceEntry entry2 = new KeyringTraceEntry("ns2", "name2", KeyringTraceFlag.DECRYPTED_DATA_KEY);
         KeyringTraceEntry entry3 = new KeyringTraceEntry("ns3", "name3", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
@@ -36,16 +37,17 @@ public class KeyringTraceTest {
         assertEquals(entry3, trace.getEntries().get(2));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testImmutable() {
+    @Test
+    void testImmutable() {
         KeyringTrace trace = new KeyringTrace();
         trace.add("namespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY);
 
-        trace.getEntries().add(new KeyringTraceEntry("ns1", "name1", KeyringTraceFlag.GENERATED_DATA_KEY));
+        assertThrows(UnsupportedOperationException.class, () ->
+                trace.getEntries().add(new KeyringTraceEntry("ns1", "name1", KeyringTraceFlag.GENERATED_DATA_KEY)));
     }
 
     @Test
-    public void testKeyringTraceEntryEquals() {
+    void testKeyringTraceEntryEquals() {
         KeyringTraceEntry entry1 = new KeyringTraceEntry("namespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY);
         KeyringTraceEntry entry2 = new KeyringTraceEntry(entry1.getKeyNamespace(), entry1.getKeyName(), entry1.getFlags().toArray(new KeyringTraceFlag[]{}));
         KeyringTraceEntry entry3 = new KeyringTraceEntry("othernamespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY);

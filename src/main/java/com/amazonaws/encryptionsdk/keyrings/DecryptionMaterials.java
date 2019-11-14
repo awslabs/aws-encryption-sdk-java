@@ -26,7 +26,7 @@ import static org.apache.commons.lang3.Validate.isTrue;
 import static org.apache.commons.lang3.Validate.notNull;
 
 /**
- * Contains the cryptographic materials needed for a decryption operation.
+ * Contains the cryptographic materials needed for a decryption operation with Keyrings.
  */
 public final class DecryptionMaterials {
     private final CryptoAlgorithm algorithm;
@@ -49,8 +49,7 @@ public final class DecryptionMaterials {
     }
 
     /**
-     * The algorithm to use for this decryption operation. Must match the algorithm in DecryptionMaterialsRequest, if that
-     * algorithm was non-null.
+     * The algorithm to use for this decryption operation.
      */
     public CryptoAlgorithm getAlgorithm() {
         return algorithm;

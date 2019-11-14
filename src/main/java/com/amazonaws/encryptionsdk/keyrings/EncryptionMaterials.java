@@ -15,7 +15,6 @@ package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
@@ -30,9 +29,7 @@ import static org.apache.commons.lang3.Validate.isTrue;
 import static org.apache.commons.lang3.Validate.notNull;
 
 /**
- * Contains the cryptographic materials needed for an encryption operation.
- *
- * @see com.amazonaws.encryptionsdk.CryptoMaterialsManager#getMaterialsForEncrypt(EncryptionMaterialsRequest)
+ * Contains the cryptographic materials needed for an encryption operation with Keyrings.
  */
 public final class EncryptionMaterials {
     private final CryptoAlgorithm algorithm;
