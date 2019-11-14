@@ -86,7 +86,8 @@ public final class EncryptionMaterials {
 
     /**
      * Add an encrypted data key to the list of encrypted data keys.
-     * @param encryptedDataKey The encrypted data key to add.
+     *
+     * @param encryptedDataKey  The encrypted data key to add.
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void addEncryptedDataKey(EncryptedDataKey encryptedDataKey, KeyringTraceEntry keyringTraceEntry) {
@@ -105,11 +106,12 @@ public final class EncryptionMaterials {
 
     /**
      * Sets the plaintext data key. The plaintext data key must not already be populated.
-     * @param plaintextDataKey The plaintext data key.
+     *
+     * @param plaintextDataKey  The plaintext data key.
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setPlaintextDataKey(SecretKey plaintextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if(this.plaintextDataKey != null) {
+        if (this.plaintextDataKey != null) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
         notNull(plaintextDataKey, "plaintextDataKey is required");
@@ -138,7 +140,7 @@ public final class EncryptionMaterials {
      * for the data key algorithm specified in the given algorithm suite.
      */
     private void validatePlaintextDataKey(CryptoAlgorithm algorithm, SecretKey plaintextDataKey) throws IllegalArgumentException {
-        if(plaintextDataKey != null) {
+        if (plaintextDataKey != null) {
             isTrue(algorithm.getDataKeyLength() == plaintextDataKey.getEncoded().length,
                     String.format("Incorrect data key length. Expected %s but got %s",
                             algorithm.getDataKeyLength(), plaintextDataKey.getEncoded().length));
@@ -162,7 +164,8 @@ public final class EncryptionMaterials {
         }
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EncryptionMaterials that = (EncryptionMaterials) o;
@@ -174,7 +177,8 @@ public final class EncryptionMaterials {
                 Objects.equals(keyringTrace, that.keyringTrace);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hash(algorithm, encryptionContext, encryptedDataKeys, plaintextDataKey, signingKey, keyringTrace);
     }
 

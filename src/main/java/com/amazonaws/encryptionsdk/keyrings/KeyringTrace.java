@@ -41,6 +41,7 @@ public class KeyringTrace {
 
     /**
      * Add a new entry to the keyring trace.
+     *
      * @param entry The entry to add.
      */
     public void add(KeyringTraceEntry entry) {

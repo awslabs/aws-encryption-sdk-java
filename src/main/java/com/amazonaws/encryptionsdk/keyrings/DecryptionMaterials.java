@@ -62,11 +62,12 @@ public final class DecryptionMaterials {
 
     /**
      * Sets the plaintext data key. The plaintext data key must not already be populated.
-     * @param plaintextDataKey The plaintext data key.
+     *
+     * @param plaintextDataKey  The plaintext data key.
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setPlaintextDataKey(SecretKey plaintextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if(this.plaintextDataKey != null) {
+        if (this.plaintextDataKey != null) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
         notNull(plaintextDataKey, "plaintextDataKey is required");
@@ -114,7 +115,7 @@ public final class DecryptionMaterials {
     }
 
     private void validatePlaintextDataKey(CryptoAlgorithm algorithm, SecretKey plaintextDataKey) throws IllegalArgumentException {
-        if(plaintextDataKey != null) {
+        if (plaintextDataKey != null) {
             isTrue(algorithm.getDataKeyLength() == plaintextDataKey.getEncoded().length,
                     String.format("Incorrect key length. Expected %s but got %s",
                             algorithm.getDataKeyLength(), plaintextDataKey.getEncoded().length));
