@@ -33,11 +33,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DecryptionMaterialsTest {
 
-    private static final CryptoAlgorithm ALGORITHM = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("testKey", "testValue");
     private static final KeyringTrace KEYRING_TRACE = new KeyringTrace();
     private static final KeyringTraceEntry KEYRING_TRACE_ENTRY = new KeyringTraceEntry("Namespace", "Name", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
-    private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength()), ALGORITHM.getDataKeyAlgo());
+    private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static PublicKey VERIFICATION_KEY;
 
     @BeforeAll
@@ -45,7 +45,7 @@ class DecryptionMaterialsTest {
 
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
-        final KeyPair keyPair = TrailingSignatureAlgorithm.forCryptoAlgorithm(ALGORITHM).generateKey();
+        final KeyPair keyPair = TrailingSignatureAlgorithm.forCryptoAlgorithm(ALGORITHM_SUITE).generateKey();
         VERIFICATION_KEY = keyPair.getPublic();
     }
 
@@ -56,14 +56,14 @@ class DecryptionMaterialsTest {
 
     @Test
     void testBuilder() {
-        DecryptionMaterials result = DecryptionMaterials.newBuilder(ALGORITHM)
+        DecryptionMaterials result = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(KEYRING_TRACE)
                 .setPlaintextDataKey(PLAINTEXT_DATA_KEY)
                 .setVerificationKey(VERIFICATION_KEY)
                 .build();
 
-        assertEquals(ALGORITHM, result.getAlgorithm());
+        assertEquals(ALGORITHM_SUITE, result.getAlgorithmSuite());
         assertEquals(ENCRYPTION_CONTEXT, result.getEncryptionContext());
         assertEquals(KEYRING_TRACE, result.getKeyringTrace());
         assertEquals(PLAINTEXT_DATA_KEY, result.getPlaintextDataKey());
@@ -72,19 +72,19 @@ class DecryptionMaterialsTest {
 
     @Test
     void testInvalidPlaintextDataKey() {
-        SecretKey wrongLength = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength() + 1), ALGORITHM.getDataKeyAlgo());
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM)
+        SecretKey wrongLength = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength() + 1), ALGORITHM_SUITE.getDataKeyAlgo());
+        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setPlaintextDataKey(wrongLength)
                 .setVerificationKey(VERIFICATION_KEY)
                 .build());
 
-        SecretKey wrongAlgorithm = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength()), "InvalidAlgorithm");
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM)
+        SecretKey wrongAlgorithm = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), "InvalidAlgorithm");
+        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setPlaintextDataKey(wrongAlgorithm)
                 .setVerificationKey(VERIFICATION_KEY)
                 .build());
 
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM)
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setVerificationKey(VERIFICATION_KEY)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> materials
@@ -95,7 +95,7 @@ class DecryptionMaterialsTest {
 
     @Test
     void testInvalidVerificationKey() {
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM)
+        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setVerificationKey(null)
                 .build());
         assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
@@ -106,7 +106,7 @@ class DecryptionMaterialsTest {
 
     @Test
     void testToBuilder() {
-        DecryptionMaterials expected = DecryptionMaterials.newBuilder(ALGORITHM)
+        DecryptionMaterials expected = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(KEYRING_TRACE)
                 .setPlaintextDataKey(PLAINTEXT_DATA_KEY)
@@ -121,7 +121,7 @@ class DecryptionMaterialsTest {
 
     @Test
     void testSetPlaintextDataKey() {
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM)
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setVerificationKey(VERIFICATION_KEY)
                 .build();
 

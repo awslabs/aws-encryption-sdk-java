@@ -38,11 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ExtendWith(MockitoExtension.class)
 class EncryptionMaterialsTest {
 
-    private static final CryptoAlgorithm ALGORITHM = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("testKey", "testValue");
     private static final KeyringTrace KEYRING_TRACE = new KeyringTrace();
     private static final KeyringTraceEntry KEYRING_TRACE_ENTRY = new KeyringTraceEntry("Namespace", "Name", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
-    private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength()), ALGORITHM.getDataKeyAlgo());
+    private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     @Mock
     private static EncryptedDataKey ENCRYPTED_DATA_KEY;
     private static PrivateKey SIGNING_KEY;
@@ -52,7 +52,7 @@ class EncryptionMaterialsTest {
 
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
-        final KeyPair keyPair = TrailingSignatureAlgorithm.forCryptoAlgorithm(ALGORITHM).generateKey();
+        final KeyPair keyPair = TrailingSignatureAlgorithm.forCryptoAlgorithm(ALGORITHM_SUITE).generateKey();
         SIGNING_KEY = keyPair.getPrivate();
     }
 
@@ -63,7 +63,7 @@ class EncryptionMaterialsTest {
 
     @Test
     void testBuilder() {
-        EncryptionMaterials result = EncryptionMaterials.newBuilder(ALGORITHM)
+        EncryptionMaterials result = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(KEYRING_TRACE)
                 .setPlaintextDataKey(PLAINTEXT_DATA_KEY)
@@ -71,7 +71,7 @@ class EncryptionMaterialsTest {
                 .setSigningKey(SIGNING_KEY)
                 .build();
 
-        assertEquals(ALGORITHM, result.getAlgorithm());
+        assertEquals(ALGORITHM_SUITE, result.getAlgorithmSuite());
         assertEquals(ENCRYPTION_CONTEXT, result.getEncryptionContext());
         assertEquals(KEYRING_TRACE, result.getKeyringTrace());
         assertEquals(PLAINTEXT_DATA_KEY, result.getPlaintextDataKey());
@@ -82,19 +82,19 @@ class EncryptionMaterialsTest {
 
     @Test
     void testInvalidPlaintextDataKey() {
-        SecretKey wrongLength = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength() + 1), ALGORITHM.getDataKeyAlgo());
-        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM)
+        SecretKey wrongLength = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength() + 1), ALGORITHM_SUITE.getDataKeyAlgo());
+        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setPlaintextDataKey(wrongLength)
                 .setSigningKey(SIGNING_KEY)
                 .build());
 
-        SecretKey wrongAlgorithm = new SecretKeySpec(generate(ALGORITHM.getDataKeyLength()), "InvalidAlgorithm");
-        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM)
+        SecretKey wrongAlgorithm = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), "InvalidAlgorithm");
+        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setPlaintextDataKey(wrongAlgorithm)
                 .setSigningKey(SIGNING_KEY)
                 .build());
 
-        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM)
+        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setSigningKey(SIGNING_KEY)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> materials
@@ -105,7 +105,7 @@ class EncryptionMaterialsTest {
 
     @Test
     void testInvalidSigningKey() {
-        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM)
+        assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setSigningKey(null)
                 .build());
         assertThrows(IllegalArgumentException.class, () -> EncryptionMaterials.newBuilder(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
@@ -116,7 +116,7 @@ class EncryptionMaterialsTest {
 
     @Test
     void testToBuilder() {
-        EncryptionMaterials expected = EncryptionMaterials.newBuilder(ALGORITHM)
+        EncryptionMaterials expected = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .setKeyringTrace(KEYRING_TRACE)
                 .setPlaintextDataKey(PLAINTEXT_DATA_KEY)
@@ -132,7 +132,7 @@ class EncryptionMaterialsTest {
 
     @Test
     void testAddEncryptedDataKey() {
-        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM)
+        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setSigningKey(SIGNING_KEY)
                 .build();
 
@@ -148,7 +148,7 @@ class EncryptionMaterialsTest {
 
     @Test
     void testSetPlaintextDataKey() {
-        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM)
+        EncryptionMaterials materials = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
                 .setSigningKey(SIGNING_KEY)
                 .build();
 

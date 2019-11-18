@@ -32,7 +32,7 @@ import static org.apache.commons.lang3.Validate.notNull;
  * Contains the cryptographic materials needed for an encryption operation with Keyrings.
  */
 public final class EncryptionMaterials {
-    private final CryptoAlgorithm algorithm;
+    private final CryptoAlgorithm algorithmSuite;
     private final Map<String, String> encryptionContext;
     private final List<EncryptedDataKey> encryptedDataKeys;
     private SecretKey plaintextDataKey;
@@ -40,11 +40,11 @@ public final class EncryptionMaterials {
     private final KeyringTrace keyringTrace;
 
     private EncryptionMaterials(Builder b) {
-        notNull(b.algorithm, "algorithm is required");
+        notNull(b.algorithmSuite, "algorithmSuite is required");
         notNull(b.keyringTrace, "keyringTrace is required");
-        validatePlaintextDataKey(b.algorithm, b.plaintextDataKey);
-        validateSigningKey(b.algorithm, b.signingKey);
-        this.algorithm = b.algorithm;
+        validatePlaintextDataKey(b.algorithmSuite, b.plaintextDataKey);
+        validateSigningKey(b.algorithmSuite, b.signingKey);
+        this.algorithmSuite = b.algorithmSuite;
         this.encryptionContext = b.encryptionContext;
         this.encryptedDataKeys = b.encryptedDataKeys;
         this.plaintextDataKey = b.plaintextDataKey;
@@ -56,15 +56,15 @@ public final class EncryptionMaterials {
         return new Builder(this);
     }
 
-    public static Builder newBuilder(CryptoAlgorithm algorithm) {
-        return new Builder(algorithm);
+    public static Builder newBuilder(CryptoAlgorithm algorithmSuite) {
+        return new Builder(algorithmSuite);
     }
 
     /**
      * The algorithm suite to be used for encryption.
      */
-    public CryptoAlgorithm getAlgorithm() {
-        return algorithm;
+    public CryptoAlgorithm getAlgorithmSuite() {
+        return algorithmSuite;
     }
 
     /**
@@ -113,7 +113,7 @@ public final class EncryptionMaterials {
         }
         notNull(plaintextDataKey, "plaintextDataKey is required");
         notNull(keyringTraceEntry, "keyringTraceEntry is required");
-        validatePlaintextDataKey(algorithm, plaintextDataKey);
+        validatePlaintextDataKey(algorithmSuite, plaintextDataKey);
         this.plaintextDataKey = plaintextDataKey;
         keyringTrace.add(keyringTraceEntry);
     }
@@ -136,14 +136,14 @@ public final class EncryptionMaterials {
      * Validates that the given plaintext data key fits the specification
      * for the data key algorithm specified in the given algorithm suite.
      */
-    private void validatePlaintextDataKey(CryptoAlgorithm algorithm, SecretKey plaintextDataKey) throws IllegalArgumentException {
+    private void validatePlaintextDataKey(CryptoAlgorithm algorithmSuite, SecretKey plaintextDataKey) throws IllegalArgumentException {
         if (plaintextDataKey != null) {
-            isTrue(algorithm.getDataKeyLength() == plaintextDataKey.getEncoded().length,
+            isTrue(algorithmSuite.getDataKeyLength() == plaintextDataKey.getEncoded().length,
                     String.format("Incorrect data key length. Expected %s but got %s",
-                            algorithm.getDataKeyLength(), plaintextDataKey.getEncoded().length));
-            isTrue(algorithm.getDataKeyAlgo().equalsIgnoreCase(plaintextDataKey.getAlgorithm()),
+                            algorithmSuite.getDataKeyLength(), plaintextDataKey.getEncoded().length));
+            isTrue(algorithmSuite.getDataKeyAlgo().equalsIgnoreCase(plaintextDataKey.getAlgorithm()),
                     String.format("Incorrect data key algorithm. Expected %s but got %s",
-                            algorithm.getDataKeyAlgo(), plaintextDataKey.getAlgorithm()));
+                            algorithmSuite.getDataKeyAlgo(), plaintextDataKey.getAlgorithm()));
         }
     }
 
@@ -151,13 +151,13 @@ public final class EncryptionMaterials {
      * Validates that a signing key is specified only if and only if
      * the given algorithm suite supports signature verification.
      */
-    private void validateSigningKey(CryptoAlgorithm algorithm, PrivateKey signingKey) throws IllegalArgumentException {
-        if (algorithm.getTrailingSignatureAlgo() == null && signingKey != null) {
+    private void validateSigningKey(CryptoAlgorithm algorithmSuite, PrivateKey signingKey) throws IllegalArgumentException {
+        if (algorithmSuite.getTrailingSignatureAlgo() == null && signingKey != null) {
             throw new IllegalArgumentException(
-                    String.format("Algorithm %s does not support signature verification", algorithm.name()));
-        } else if (algorithm.getTrailingSignatureAlgo() != null && signingKey == null) {
+                    String.format("Algorithm Suite %s does not support signature verification", algorithmSuite.name()));
+        } else if (algorithmSuite.getTrailingSignatureAlgo() != null && signingKey == null) {
             throw new IllegalArgumentException(
-                    String.format("Algorithm %s requires a signing key for signature verification", algorithm.name()));
+                    String.format("Algorithm Suite %s requires a signing key for signature verification", algorithmSuite.name()));
         }
     }
 
@@ -166,7 +166,7 @@ public final class EncryptionMaterials {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EncryptionMaterials that = (EncryptionMaterials) o;
-        return algorithm == that.algorithm &&
+        return algorithmSuite == that.algorithmSuite &&
                 Objects.equals(encryptionContext, that.encryptionContext) &&
                 Objects.equals(encryptedDataKeys, that.encryptedDataKeys) &&
                 Objects.equals(plaintextDataKey, that.plaintextDataKey) &&
@@ -176,23 +176,23 @@ public final class EncryptionMaterials {
 
     @Override
     public int hashCode() {
-        return Objects.hash(algorithm, encryptionContext, encryptedDataKeys, plaintextDataKey, signingKey, keyringTrace);
+        return Objects.hash(algorithmSuite, encryptionContext, encryptedDataKeys, plaintextDataKey, signingKey, keyringTrace);
     }
 
     public static class Builder {
-        private CryptoAlgorithm algorithm;
+        private CryptoAlgorithm algorithmSuite;
         private Map<String, String> encryptionContext = Collections.emptyMap();
         private List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         private SecretKey plaintextDataKey;
         private PrivateKey signingKey;
         private KeyringTrace keyringTrace = new KeyringTrace();
 
-        private Builder(CryptoAlgorithm algorithm) {
-            this.algorithm = algorithm;
+        private Builder(CryptoAlgorithm algorithmSuite) {
+            this.algorithmSuite = algorithmSuite;
         }
 
         private Builder(EncryptionMaterials r) {
-            algorithm = r.algorithm;
+            algorithmSuite = r.algorithmSuite;
             encryptionContext = r.encryptionContext;
             encryptedDataKeys = r.encryptedDataKeys;
             plaintextDataKey = r.plaintextDataKey;
@@ -204,8 +204,8 @@ public final class EncryptionMaterials {
             return new EncryptionMaterials(this);
         }
 
-        public Builder setAlgorithm(CryptoAlgorithm algorithm) {
-            this.algorithm = algorithm;
+        public Builder setAlgorithmSuite(CryptoAlgorithm algorithmSuite) {
+            this.algorithmSuite = algorithmSuite;
             return this;
         }
 

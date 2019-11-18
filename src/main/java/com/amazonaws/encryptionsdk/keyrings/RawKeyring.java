@@ -102,7 +102,7 @@ abstract class RawKeyring implements Keyring {
                     final byte[] decryptedKey = jceKeyCipher.decryptKey(
                             encryptedDataKey, keyName, decryptionMaterials.getEncryptionContext());
                     decryptionMaterials.setPlaintextDataKey(
-                            new SecretKeySpec(decryptedKey, decryptionMaterials.getAlgorithm().getDataKeyAlgo()),
+                            new SecretKeySpec(decryptedKey, decryptionMaterials.getAlgorithmSuite().getDataKeyAlgo()),
                             traceOnDecrypt());
                     return;
                 } catch (Exception e) {
@@ -115,9 +115,9 @@ abstract class RawKeyring implements Keyring {
     }
 
     private void generateDataKey(EncryptionMaterials encryptionMaterials) {
-        final byte[] rawKey = new byte[encryptionMaterials.getAlgorithm().getDataKeyLength()];
+        final byte[] rawKey = new byte[encryptionMaterials.getAlgorithmSuite().getDataKeyLength()];
         Utils.getSecureRandom().nextBytes(rawKey);
-        final SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithm().getDataKeyAlgo());
+        final SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithmSuite().getDataKeyAlgo());
 
         encryptionMaterials.setPlaintextDataKey(key, new KeyringTraceEntry(keyNamespace, keyName, KeyringTraceFlag.GENERATED_DATA_KEY));
     }
