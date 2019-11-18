@@ -77,7 +77,7 @@ abstract class RawKeyring implements Keyring {
     public void onEncrypt(EncryptionMaterials encryptionMaterials) {
         notNull(encryptionMaterials, "encryptionMaterials are required");
 
-        if (encryptionMaterials.getPlaintextDataKey() == null) {
+        if (!encryptionMaterials.hasPlaintextDataKey()) {
             generateDataKey(encryptionMaterials);
         }
 
@@ -92,7 +92,7 @@ abstract class RawKeyring implements Keyring {
         notNull(decryptionMaterials, "decryptionMaterials are required");
         notNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.getPlaintextDataKey() != null || encryptedDataKeys.isEmpty()) {
+        if (decryptionMaterials.hasPlaintextDataKey() || encryptedDataKeys.isEmpty()) {
             return;
         }
 

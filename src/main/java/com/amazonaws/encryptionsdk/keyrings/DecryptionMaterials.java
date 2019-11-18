@@ -38,6 +38,7 @@ public final class DecryptionMaterials {
     private DecryptionMaterials(Builder b) {
         notNull(b.algorithmSuite, "algorithmSuite is required");
         notNull(b.keyringTrace, "keyringTrace is required");
+        notNull(b.encryptionContext, "encryptionContext is required");
         validatePlaintextDataKey(b.algorithmSuite, b.plaintextDataKey);
         validateVerificationKey(b.algorithmSuite, b.verificationKey);
 
@@ -55,7 +56,25 @@ public final class DecryptionMaterials {
         return algorithmSuite;
     }
 
-    public SecretKey getPlaintextDataKey() {
+    /**
+     * Returns true if a plaintext data key has been populated.
+     *
+     * @return True if plaintext data key is populated, false otherwise.
+     */
+    public boolean hasPlaintextDataKey() {
+        return this.plaintextDataKey != null;
+    }
+
+    /**
+     * A data key to be used as input for encryption.
+     *
+     * @return The plaintext data key.
+     * @throws IllegalStateException if plaintext data key has not been populated.
+     */
+    public SecretKey getPlaintextDataKey() throws IllegalStateException {
+        if (!hasPlaintextDataKey()) {
+            throw new IllegalStateException("plaintextDataKey has not been populated");
+        }
         return plaintextDataKey;
     }
 
@@ -66,7 +85,7 @@ public final class DecryptionMaterials {
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setPlaintextDataKey(SecretKey plaintextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if (this.plaintextDataKey != null) {
+        if (hasPlaintextDataKey()) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
         notNull(plaintextDataKey, "plaintextDataKey is required");
@@ -76,7 +95,26 @@ public final class DecryptionMaterials {
         keyringTrace.add(keyringTraceEntry);
     }
 
-    public PublicKey getVerificationKey() {
+    /**
+     * Returns true if verification key has been populated.
+     *
+     * @return True if verification key is populated, false otherwise.
+     */
+    public boolean hasVerificationKey() {
+        return verificationKey != null;
+    }
+
+    /**
+     * The verification key used for signature verification.
+     *
+     * @return The verification key.
+     * @throws IllegalStateException if a verification key has not been populated.
+     */
+    public PublicKey getVerificationKey() throws IllegalStateException {
+        if (!hasVerificationKey()) {
+            throw new IllegalStateException(String.format(
+                    "Signature verification is not supported by AlgorithmSuite %s", algorithmSuite.name()));
+        }
         return verificationKey;
     }
 
@@ -125,7 +163,7 @@ public final class DecryptionMaterials {
     }
 
     /**
-     * Validates that a verification key is specified only if and only if
+     * Validates that a verification key is specified if and only if
      * the given algorithm suite supports signature verification.
      */
     private void validateVerificationKey(CryptoAlgorithm algorithmSuite, PublicKey verificationKey) throws IllegalArgumentException {
@@ -142,7 +180,7 @@ public final class DecryptionMaterials {
         private CryptoAlgorithm algorithmSuite;
         private SecretKey plaintextDataKey;
         private PublicKey verificationKey;
-        private Map<String, String> encryptionContext;
+        private Map<String, String> encryptionContext = Collections.emptyMap();
         private KeyringTrace keyringTrace = new KeyringTrace();
 
         private Builder(CryptoAlgorithm algorithmSuite) {
@@ -150,11 +188,11 @@ public final class DecryptionMaterials {
         }
 
         private Builder(DecryptionMaterials result) {
-            this.algorithmSuite = result.getAlgorithmSuite();
-            this.plaintextDataKey = result.getPlaintextDataKey();
-            this.verificationKey = result.getVerificationKey();
-            this.encryptionContext = result.getEncryptionContext();
-            this.keyringTrace = result.getKeyringTrace();
+            this.algorithmSuite = result.algorithmSuite;
+            this.plaintextDataKey = result.plaintextDataKey;
+            this.verificationKey = result.verificationKey;
+            this.encryptionContext = result.encryptionContext;
+            this.keyringTrace = result.keyringTrace;
         }
 
         public Builder setAlgorithmSuite(CryptoAlgorithm algorithmSuite) {

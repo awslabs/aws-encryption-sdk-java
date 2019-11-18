@@ -136,4 +136,13 @@ class DecryptionMaterialsTest {
         assertThrows(IllegalStateException.class, () -> materials.setPlaintextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
     }
 
+    @Test
+    void testGetOptionalProperties() {
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
+                .build();
+
+        assertThrows(IllegalStateException.class, materials::getPlaintextDataKey);
+        assertThrows(IllegalStateException.class, materials::getVerificationKey);
+    }
+
 }

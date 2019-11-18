@@ -35,8 +35,8 @@ import java.util.Map;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -149,7 +149,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(INVALID_DATA_KEY));
 
-        assertNull(decryptionMaterials.getPlaintextDataKey());
+        assertFalse(decryptionMaterials.hasPlaintextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
@@ -162,7 +162,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
-        assertNull(decryptionMaterials.getPlaintextDataKey());
+        assertFalse(decryptionMaterials.hasPlaintextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 

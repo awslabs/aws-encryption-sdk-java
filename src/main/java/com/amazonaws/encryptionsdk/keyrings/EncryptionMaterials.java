@@ -42,6 +42,7 @@ public final class EncryptionMaterials {
     private EncryptionMaterials(Builder b) {
         notNull(b.algorithmSuite, "algorithmSuite is required");
         notNull(b.keyringTrace, "keyringTrace is required");
+        notNull(b.encryptionContext, "encryptionContext is required");
         validatePlaintextDataKey(b.algorithmSuite, b.plaintextDataKey);
         validateSigningKey(b.algorithmSuite, b.signingKey);
         this.algorithmSuite = b.algorithmSuite;
@@ -95,9 +96,24 @@ public final class EncryptionMaterials {
     }
 
     /**
-     * A data key to be used as input for encryption.
+     * Returns true if a plaintext data key has been populated.
+     *
+     * @return True if plaintext data key is populated, false otherwise.
      */
-    public SecretKey getPlaintextDataKey() {
+    public boolean hasPlaintextDataKey() {
+        return this.plaintextDataKey != null;
+    }
+
+    /**
+     * A data key to be used as input for encryption.
+     *
+     * @return The plaintext data key.
+     * @throws IllegalStateException if plain text data key has not been populated.
+     */
+    public SecretKey getPlaintextDataKey() throws IllegalStateException {
+        if (!hasPlaintextDataKey()) {
+            throw new IllegalStateException("plaintextDataKey has not been populated");
+        }
         return plaintextDataKey;
     }
 
@@ -108,7 +124,7 @@ public final class EncryptionMaterials {
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setPlaintextDataKey(SecretKey plaintextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if (this.plaintextDataKey != null) {
+        if (hasPlaintextDataKey()) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
         notNull(plaintextDataKey, "plaintextDataKey is required");
@@ -119,9 +135,26 @@ public final class EncryptionMaterials {
     }
 
     /**
-     * The key to be used as the signing key for signature verification during encryption.
+     * Returns true if a signing key has been populated.
+     *
+     * @return True if signing key is populated, false otherwise.
      */
-    public PrivateKey getSigningKey() {
+    public boolean hasSigningKey() {
+        return this.signingKey != null;
+    }
+
+
+    /**
+     * The key to be used as the signing key for signature verification during encryption.
+     *
+     * @return The signing key.
+     * @throws IllegalStateException if signing key has not been populated.
+     */
+    public PrivateKey getSigningKey() throws IllegalStateException {
+        if (!hasSigningKey()) {
+            throw new IllegalStateException(String.format(
+                    "Signing is not supported by AlgorithmSuite %s", algorithmSuite.name()));
+        }
         return signingKey;
     }
 
@@ -154,10 +187,10 @@ public final class EncryptionMaterials {
     private void validateSigningKey(CryptoAlgorithm algorithmSuite, PrivateKey signingKey) throws IllegalArgumentException {
         if (algorithmSuite.getTrailingSignatureAlgo() == null && signingKey != null) {
             throw new IllegalArgumentException(
-                    String.format("Algorithm Suite %s does not support signature verification", algorithmSuite.name()));
+                    String.format("Algorithm Suite %s does not support signing", algorithmSuite.name()));
         } else if (algorithmSuite.getTrailingSignatureAlgo() != null && signingKey == null) {
             throw new IllegalArgumentException(
-                    String.format("Algorithm Suite %s requires a signing key for signature verification", algorithmSuite.name()));
+                    String.format("Algorithm Suite %s requires a signing key for signing", algorithmSuite.name()));
         }
     }
 
