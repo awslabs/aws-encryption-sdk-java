@@ -20,13 +20,12 @@ import com.amazonaws.encryptionsdk.internal.Utils;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static com.amazonaws.encryptionsdk.EncryptedDataKey.PROVIDER_ENCODING;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.notBlank;
-import static org.apache.commons.lang3.Validate.notNull;
 
 /**
  * A keyring supporting local encryption and decryption using either RSA or AES-GCM.
@@ -37,17 +36,16 @@ abstract class RawKeyring implements Keyring {
     final String keyName;
     final byte[] keyNameBytes;
     private final JceKeyCipher jceKeyCipher;
-    private static final Charset KEY_NAME_ENCODING = StandardCharsets.UTF_8;
     private static final Logger LOGGER = Logger.getLogger(RawKeyring.class.getName());
 
     RawKeyring(final String keyNamespace, final String keyName, JceKeyCipher jceKeyCipher) {
         notBlank(keyNamespace, "keyNamespace is required");
         notBlank(keyName, "keyName is required");
-        notNull(jceKeyCipher, "jceKeyCipher is required");
+        requireNonNull(jceKeyCipher, "jceKeyCipher is required");
 
         this.keyNamespace = keyNamespace;
         this.keyName = keyName;
-        this.keyNameBytes = keyName.getBytes(KEY_NAME_ENCODING);
+        this.keyNameBytes = keyName.getBytes(PROVIDER_ENCODING);
         this.jceKeyCipher = jceKeyCipher;
     }
 
@@ -75,7 +73,7 @@ abstract class RawKeyring implements Keyring {
 
     @Override
     public void onEncrypt(EncryptionMaterials encryptionMaterials) {
-        notNull(encryptionMaterials, "encryptionMaterials are required");
+        requireNonNull(encryptionMaterials, "encryptionMaterials are required");
 
         if (!encryptionMaterials.hasPlaintextDataKey()) {
             generateDataKey(encryptionMaterials);
@@ -89,8 +87,8 @@ abstract class RawKeyring implements Keyring {
 
     @Override
     public void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
-        notNull(decryptionMaterials, "decryptionMaterials are required");
-        notNull(encryptedDataKeys, "encryptedDataKeys are required");
+        requireNonNull(decryptionMaterials, "decryptionMaterials are required");
+        requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
         if (decryptionMaterials.hasPlaintextDataKey() || encryptedDataKeys.isEmpty()) {
             return;

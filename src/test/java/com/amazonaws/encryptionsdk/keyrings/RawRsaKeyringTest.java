@@ -62,9 +62,9 @@ class RawRsaKeyringTest {
     @Test
     void testEncryptDecryptExistingDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .setPlaintextDataKey(DATA_KEY)
-                .setKeyringTrace(new KeyringTrace())
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .plaintextDataKey(DATA_KEY)
+                .keyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         keyring.onEncrypt(encryptionMaterials);
@@ -82,8 +82,8 @@ class RawRsaKeyringTest {
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
@@ -98,8 +98,8 @@ class RawRsaKeyringTest {
     @Test
     void testEncryptDecryptGenerateDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .setKeyringTrace(new KeyringTrace())
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         keyring.onEncrypt(encryptionMaterials);
@@ -119,8 +119,8 @@ class RawRsaKeyringTest {
         assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());

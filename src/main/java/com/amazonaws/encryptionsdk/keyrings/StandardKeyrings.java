@@ -29,8 +29,8 @@ public class StandardKeyrings {
      * Constructs a {@code Keyring} which does local AES-GCM encryption
      * decryption of data keys using the provided wrapping key.
      *
-     * @param keyNamespace A UTF-8 encoded value that, together with the key name, identifies the wrapping key.
-     * @param keyName      A UTF-8 encoded value that, together with the key namespace, identifies the wrapping key.
+     * @param keyNamespace A value that, together with the key name, identifies the wrapping key.
+     * @param keyName      A value that, together with the key namespace, identifies the wrapping key.
      * @param wrappingKey  The AES key input to AES-GCM to encrypt plaintext data keys.
      * @return The {@link Keyring}
      */
@@ -43,8 +43,8 @@ public class StandardKeyrings {
      * provided public and private keys. If {@code privateKey} is {@code null} then the returned {@code Keyring}
      * can only be used for encryption.
      *
-     * @param keyNamespace      A UTF-8 encoded value that, together with the key name, identifies the wrapping key.
-     * @param keyName           A UTF-8 encoded value that, together with the key namespace, identifies the wrapping key.
+     * @param keyNamespace      A value that, together with the key name, identifies the wrapping key.
+     * @param keyName           A value that, together with the key namespace, identifies the wrapping key.
      * @param publicKey         The RSA public key used by this keyring to encrypt data keys.
      * @param privateKey        The RSA private key used by this keyring to decrypt data keys.
      * @param wrappingAlgorithm The RSA algorithm to use with this keyring.

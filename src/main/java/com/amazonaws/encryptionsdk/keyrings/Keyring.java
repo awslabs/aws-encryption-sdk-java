@@ -23,7 +23,7 @@ import java.util.List;
 public interface Keyring {
 
     /**
-     * Generate a data key if not present and encrypt it using any available wrapping key
+     * Attempt to encrypt either the given data key (if present) or one that may be generated
      *
      * @param encryptionMaterials Materials needed for encryption that the keyring may modify.
      */

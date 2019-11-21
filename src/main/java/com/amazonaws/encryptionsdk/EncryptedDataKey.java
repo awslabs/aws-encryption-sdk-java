@@ -16,9 +16,13 @@ package com.amazonaws.encryptionsdk;
 //@ model import java.util.Arrays;
 //@ model import java.nio.charset.StandardCharsets;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 //@ nullable_by_default
 public interface EncryptedDataKey {
+
+    Charset PROVIDER_ENCODING = StandardCharsets.UTF_8;
     
     //@// An EncryptedDataKey object abstractly contains 3 pieces of data.
     //@// These are represented by 3 byte arrays:

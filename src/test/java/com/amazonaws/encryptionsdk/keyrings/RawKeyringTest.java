@@ -82,9 +82,9 @@ class RawKeyringTest {
     @Test
     void testEncryptDecryptExistingDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .setPlaintextDataKey(DATA_KEY)
-                .setKeyringTrace(new KeyringTrace())
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .plaintextDataKey(DATA_KEY)
+                .keyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         keyring.onEncrypt(encryptionMaterials);
@@ -95,8 +95,8 @@ class RawKeyringTest {
         assertEquals(ENCRYPTED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
@@ -108,8 +108,8 @@ class RawKeyringTest {
     @Test
     void testEncryptNullDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .setKeyringTrace(new KeyringTrace())
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         ArgumentCaptor<byte[]> dataKeyCaptor = ArgumentCaptor.forClass(byte[].class);
@@ -129,9 +129,9 @@ class RawKeyringTest {
     @Test
     void testDecryptAlreadyDecryptedDataKey() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setPlaintextDataKey(DATA_KEY)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .plaintextDataKey(DATA_KEY)
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
@@ -143,8 +143,8 @@ class RawKeyringTest {
     @Test
     void testDecryptNoValidDataKey() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(INVALID_DATA_KEY));
@@ -156,8 +156,8 @@ class RawKeyringTest {
     @Test
     void testDecryptNoDataKey() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
@@ -170,8 +170,8 @@ class RawKeyringTest {
     @Test
     void testDecryptMultipleKeysOneInvalid() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         final List<EncryptedDataKey> edks = new ArrayList<>();
@@ -189,8 +189,8 @@ class RawKeyringTest {
         final EncryptedDataKey BAD_DATA_KEY = new KeyBlob("exceptionProvider", new byte[]{1, 2, 3}, new byte[]{4, 5, 6});
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .keyringTrace(new KeyringTrace())
                 .build();
 
         when(jceKeyCipher.decryptKey(BAD_DATA_KEY, KEYNAME, ENCRYPTION_CONTEXT))

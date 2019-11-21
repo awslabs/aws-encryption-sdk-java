@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.isTrue;
-import static org.apache.commons.lang3.Validate.notNull;
 
 /**
  * Contains the cryptographic materials needed for a decryption operation with Keyrings.
@@ -36,9 +36,9 @@ public final class DecryptionMaterials {
     private final KeyringTrace keyringTrace;
 
     private DecryptionMaterials(Builder b) {
-        notNull(b.algorithmSuite, "algorithmSuite is required");
-        notNull(b.keyringTrace, "keyringTrace is required");
-        notNull(b.encryptionContext, "encryptionContext is required");
+        requireNonNull(b.algorithmSuite, "algorithmSuite is required");
+        requireNonNull(b.keyringTrace, "keyringTrace is required");
+        requireNonNull(b.encryptionContext, "encryptionContext is required");
         validatePlaintextDataKey(b.algorithmSuite, b.plaintextDataKey);
         validateVerificationKey(b.algorithmSuite, b.verificationKey);
 
@@ -88,8 +88,8 @@ public final class DecryptionMaterials {
         if (hasPlaintextDataKey()) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
-        notNull(plaintextDataKey, "plaintextDataKey is required");
-        notNull(keyringTraceEntry, "keyringTraceEntry is required");
+        requireNonNull(plaintextDataKey, "plaintextDataKey is required");
+        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validatePlaintextDataKey(algorithmSuite, plaintextDataKey);
         this.plaintextDataKey = plaintextDataKey;
         keyringTrace.add(keyringTraceEntry);
@@ -195,27 +195,27 @@ public final class DecryptionMaterials {
             this.keyringTrace = result.keyringTrace;
         }
 
-        public Builder setAlgorithmSuite(CryptoAlgorithm algorithmSuite) {
+        public Builder algorithmSuite(CryptoAlgorithm algorithmSuite) {
             this.algorithmSuite = algorithmSuite;
             return this;
         }
 
-        public Builder setPlaintextDataKey(SecretKey plaintextDataKey) {
+        public Builder plaintextDataKey(SecretKey plaintextDataKey) {
             this.plaintextDataKey = plaintextDataKey;
             return this;
         }
 
-        public Builder setVerificationKey(PublicKey verificationKey) {
+        public Builder verificationKey(PublicKey verificationKey) {
             this.verificationKey = verificationKey;
             return this;
         }
 
-        public Builder setEncryptionContext(Map<String, String> encryptionContext) {
+        public Builder encryptionContext(Map<String, String> encryptionContext) {
             this.encryptionContext = Collections.unmodifiableMap(new HashMap<>(encryptionContext));
             return this;
         }
 
-        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
+        public Builder keyringTrace(KeyringTrace keyringTrace) {
             this.keyringTrace = keyringTrace;
             return this;
         }

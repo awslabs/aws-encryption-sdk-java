@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.isTrue;
-import static org.apache.commons.lang3.Validate.notNull;
 
 /**
  * Contains the cryptographic materials needed for an encryption operation with Keyrings.
@@ -40,9 +40,9 @@ public final class EncryptionMaterials {
     private final KeyringTrace keyringTrace;
 
     private EncryptionMaterials(Builder b) {
-        notNull(b.algorithmSuite, "algorithmSuite is required");
-        notNull(b.keyringTrace, "keyringTrace is required");
-        notNull(b.encryptionContext, "encryptionContext is required");
+        requireNonNull(b.algorithmSuite, "algorithmSuite is required");
+        requireNonNull(b.keyringTrace, "keyringTrace is required");
+        requireNonNull(b.encryptionContext, "encryptionContext is required");
         validatePlaintextDataKey(b.algorithmSuite, b.plaintextDataKey);
         validateSigningKey(b.algorithmSuite, b.signingKey);
         this.algorithmSuite = b.algorithmSuite;
@@ -89,8 +89,8 @@ public final class EncryptionMaterials {
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void addEncryptedDataKey(EncryptedDataKey encryptedDataKey, KeyringTraceEntry keyringTraceEntry) {
-        notNull(encryptedDataKey, "encryptedDataKey is required");
-        notNull(keyringTraceEntry, "keyringTraceEntry is required");
+        requireNonNull(encryptedDataKey, "encryptedDataKey is required");
+        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         encryptedDataKeys.add(encryptedDataKey);
         keyringTrace.add(keyringTraceEntry);
     }
@@ -127,8 +127,8 @@ public final class EncryptionMaterials {
         if (hasPlaintextDataKey()) {
             throw new IllegalStateException("plaintextDataKey was already populated");
         }
-        notNull(plaintextDataKey, "plaintextDataKey is required");
-        notNull(keyringTraceEntry, "keyringTraceEntry is required");
+        requireNonNull(plaintextDataKey, "plaintextDataKey is required");
+        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validatePlaintextDataKey(algorithmSuite, plaintextDataKey);
         this.plaintextDataKey = plaintextDataKey;
         keyringTrace.add(keyringTraceEntry);
@@ -237,32 +237,32 @@ public final class EncryptionMaterials {
             return new EncryptionMaterials(this);
         }
 
-        public Builder setAlgorithmSuite(CryptoAlgorithm algorithmSuite) {
+        public Builder algorithmSuite(CryptoAlgorithm algorithmSuite) {
             this.algorithmSuite = algorithmSuite;
             return this;
         }
 
-        public Builder setEncryptionContext(Map<String, String> encryptionContext) {
+        public Builder encryptionContext(Map<String, String> encryptionContext) {
             this.encryptionContext = Collections.unmodifiableMap(new HashMap<>(encryptionContext));
             return this;
         }
 
-        public Builder setEncryptedDataKeys(List<EncryptedDataKey> encryptedDataKeys) {
+        public Builder encryptedDataKeys(List<EncryptedDataKey> encryptedDataKeys) {
             this.encryptedDataKeys = new ArrayList<>(encryptedDataKeys);
             return this;
         }
 
-        public Builder setPlaintextDataKey(SecretKey plaintextDataKey) {
+        public Builder plaintextDataKey(SecretKey plaintextDataKey) {
             this.plaintextDataKey = plaintextDataKey;
             return this;
         }
 
-        public Builder setSigningKey(PrivateKey signingKey) {
+        public Builder signingKey(PrivateKey signingKey) {
             this.signingKey = signingKey;
             return this;
         }
 
-        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
+        public Builder keyringTrace(KeyringTrace keyringTrace) {
             this.keyringTrace = keyringTrace;
             return this;
         }
