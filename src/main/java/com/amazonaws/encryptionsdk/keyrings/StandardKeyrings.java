@@ -13,9 +13,13 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
+import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
+import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
+
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.List;
 
 /**
  * Factory methods for instantiating the standard {@code Keyring}s provided by the AWS Encryption SDK.
@@ -52,5 +56,21 @@ public class StandardKeyrings {
      */
     public static Keyring rawRsa(String keyNamespace, String keyName, PublicKey publicKey, PrivateKey privateKey, String wrappingAlgorithm) {
         return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, wrappingAlgorithm);
+    }
+
+    /**
+     * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to create,
+     * encrypt, and decrypt data keys using KMS defined Customer Master Keys (CMKs).
+     *
+     * @param clientSupplier    A function that returns a KMS client that can make GenerateDataKey,
+     *                          Encrypt, and Decrypt calls in a particular AWS region.
+     * @param grantTokens       A list of string grant tokens to be included in all KMS calls.
+     * @param keyIds            A list of strings identifying KMS CMKs, in ARN, CMK Alias, or ARN Alias format.
+     * @param generator         A string that identifies a KMS CMK responsible for generating a data key,
+     *                          as well as encrypting and decrypting data keys in ARN, CMK Alias, or ARN Alias format.
+     * @return The {@code Keyring}
+     */
+    public static Keyring kms(KmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generator) {
+        return new KmsKeyring(DataKeyEncryptionDao.kms(clientSupplier, grantTokens), keyIds, generator);
     }
 }

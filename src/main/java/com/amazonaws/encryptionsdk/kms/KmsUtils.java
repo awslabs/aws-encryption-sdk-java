@@ -66,6 +66,6 @@ public class KmsUtils {
     }
 
     private static boolean isKeyAlias(String arn) {
-        return arn.startsWith(ALIAS_PREFIX) && !arn.contains(":");
+        return arn.startsWith(ALIAS_PREFIX);
     }
 }

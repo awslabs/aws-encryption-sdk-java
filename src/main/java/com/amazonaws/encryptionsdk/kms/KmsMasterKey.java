@@ -40,7 +40,7 @@ import static java.util.Collections.emptyList;
  * {@link AwsCrypto}.
  */
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
-    private final KmsDataKeyEncryptionDao dataKeyEncryptionDao;
+    private final KmsDataKeyEncryptionDao dataKeyEncryptionDao_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
 
@@ -64,11 +64,11 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
 
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
-        return new KmsMasterKey(kms, id, provider);
+        return new KmsMasterKey(new KmsDataKeyEncryptionDao(s -> kms.get(), emptyList()), id, provider);
     }
 
-    private KmsMasterKey(final Supplier<AWSKMS> kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
-        dataKeyEncryptionDao = new KmsDataKeyEncryptionDao(s -> kms.get(), emptyList());
+    KmsMasterKey(final KmsDataKeyEncryptionDao dataKeyEncryptionDao, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
+        dataKeyEncryptionDao_ = dataKeyEncryptionDao;
         id_ = id;
         sourceProvider_ = provider;
     }
@@ -86,7 +86,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     @Override
     public DataKey<KmsMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
-        final DataKeyEncryptionDao.GenerateDataKeyResult gdkResult = dataKeyEncryptionDao.generateDataKey(
+        final DataKeyEncryptionDao.GenerateDataKeyResult gdkResult = dataKeyEncryptionDao_.generateDataKey(
                 getKeyId(), algorithm, encryptionContext);
         return new DataKey<>(gdkResult.getPlaintextDataKey(),
                 gdkResult.getEncryptedDataKey().getEncryptedDataKey(),
@@ -96,17 +96,17 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
 
     @Override
     public void setGrantTokens(final List<String> grantTokens) {
-        dataKeyEncryptionDao.setGrantTokens(grantTokens);
+        dataKeyEncryptionDao_.setGrantTokens(grantTokens);
     }
 
     @Override
     public List<String> getGrantTokens() {
-        return dataKeyEncryptionDao.getGrantTokens();
+        return dataKeyEncryptionDao_.getGrantTokens();
     }
 
     @Override
     public void addGrantToken(final String grantToken) {
-        dataKeyEncryptionDao.addGrantToken(grantToken);
+        dataKeyEncryptionDao_.addGrantToken(grantToken);
     }
 
     @Override
@@ -114,7 +114,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
             final Map<String, String> encryptionContext,
             final DataKey<?> dataKey) {
         final SecretKey key = dataKey.getKey();
-        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao.encryptDataKey(id_, key, encryptionContext);
+        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao_.encryptDataKey(id_, key, encryptionContext);
 
         return new DataKey<>(dataKey.getKey(),
                 encryptedDataKey.getEncryptedDataKey(),
@@ -130,7 +130,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
-                final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(edk, algorithm, encryptionContext);
+                final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao_.decryptDataKey(edk, algorithm, encryptionContext);
                 return new DataKey<>(
                         result.getPlaintextDataKey(),
                         edk.getEncryptedDataKey(),
