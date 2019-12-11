@@ -19,6 +19,7 @@ import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.MismatchedDataKeyException;
+import com.amazonaws.encryptionsdk.exception.UnsupportedRegionException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
 import com.amazonaws.services.kms.AWSKMS;
@@ -168,6 +169,21 @@ class KmsDataKeyEncryptionDaoTest {
     }
 
     @Test
+    void testUnsupportedRegionException() {
+        AWSKMS client = spy(new MockKMSClient());
+        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+
+        String keyId = client.createKey().getKeyMetadata().getArn();
+        doThrow(new UnsupportedRegionException("fail")).when(client).generateDataKey(isA(GenerateDataKeyRequest.class));
+        doThrow(new UnsupportedRegionException("fail")).when(client).encrypt(isA(EncryptRequest.class));
+        doThrow(new UnsupportedRegionException("fail")).when(client).decrypt(isA(DecryptRequest.class));
+
+        assertThrows(AwsCryptoException.class, () -> dao.generateDataKey(keyId, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.encryptDataKey(keyId, DATA_KEY, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.decryptDataKey(ENCRYPTED_DATA_KEY, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
+    }
+
+    @Test
     void testDecryptBadKmsKeyId() {
         AWSKMS client = spy(new MockKMSClient());
         DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
@@ -198,4 +214,5 @@ class KmsDataKeyEncryptionDaoTest {
         assertTrue(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT)
                 .contains(VersionInfo.USER_AGENT));
     }
+
 }

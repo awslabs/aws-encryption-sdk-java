@@ -20,6 +20,7 @@ import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.exception.MismatchedDataKeyException;
+import com.amazonaws.encryptionsdk.exception.UnsupportedRegionException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
 import com.amazonaws.services.kms.model.DecryptRequest;
@@ -130,7 +131,7 @@ class KmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
                             .withCiphertextBlob(ByteBuffer.wrap(encryptedDataKey.getEncryptedDataKey()))
                             .withEncryptionContext(encryptionContext)
                             .withGrantTokens(grantTokens)));
-        } catch (final AmazonServiceException ex) {
+        } catch (final AmazonServiceException | UnsupportedRegionException ex) {
             throw new CannotUnwrapDataKeyException(ex);
         }
 
