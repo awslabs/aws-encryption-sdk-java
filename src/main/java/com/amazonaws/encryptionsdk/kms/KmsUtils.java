@@ -20,6 +20,7 @@ import com.amazonaws.services.kms.AWSKMS;
 public class KmsUtils {
 
     private static final String ALIAS_PREFIX = "alias/";
+    private static final String ARN_PREFIX = "arn:";
     /**
      * The provider ID used for the KmsKeyring
      */
@@ -39,15 +40,21 @@ public class KmsUtils {
             return clientSupplier.getClient(null);
         }
 
-        try {
-            return clientSupplier.getClient(Arn.fromString(arn).getRegion());
-        } catch (IllegalArgumentException e) {
-            throw new MalformedArnException(e);
+        if(isArn(arn)) {
+            try {
+                return clientSupplier.getClient(Arn.fromString(arn).getRegion());
+            } catch (IllegalArgumentException e) {
+                throw new MalformedArnException(e);
+            }
         }
+
+        // Not an alias or an ARN, must be a raw Key ID
+        return clientSupplier.getClient(null);
     }
 
     /**
-     * Returns true if the given arn is a well formed Amazon Resource Name or Key Alias
+     * Returns true if the given arn is a well formed Amazon Resource Name or Key Alias. Does
+     * not return true for raw key IDs.
      *
      * @param arn The Amazon Resource Name or Key Alias
      * @return True if well formed, false otherwise
@@ -67,5 +74,9 @@ public class KmsUtils {
 
     private static boolean isKeyAlias(String arn) {
         return arn.startsWith(ALIAS_PREFIX);
+    }
+
+    private static boolean isArn(String arn) {
+        return arn.startsWith(ARN_PREFIX);
     }
 }

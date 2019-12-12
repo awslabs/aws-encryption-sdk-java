@@ -141,6 +141,31 @@ class KmsDataKeyEncryptionDaoTest {
     }
 
     @Test
+    void testEncryptWithRawKeyId() {
+        AWSKMS client = spy(new MockKMSClient());
+        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+
+        String keyId = client.createKey().getKeyMetadata().getArn();
+        String rawKeyId = keyId.split("/")[1];
+        EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(rawKeyId, DATA_KEY, ENCRYPTION_CONTEXT);
+
+        ArgumentCaptor<EncryptRequest> er = ArgumentCaptor.forClass(EncryptRequest.class);
+        verify(client, times(1)).encrypt(er.capture());
+
+        EncryptRequest actualRequest = er.getValue();
+
+        assertEquals(rawKeyId, actualRequest.getKeyId());
+        assertEquals(GRANT_TOKENS, actualRequest.getGrantTokens());
+        assertEquals(ENCRYPTION_CONTEXT, actualRequest.getEncryptionContext());
+        assertArrayEquals(DATA_KEY.getEncoded(), actualRequest.getPlaintext().array());
+        assertUserAgent(actualRequest);
+
+        assertEquals(KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
+        assertArrayEquals(keyId.getBytes(EncryptedDataKey.PROVIDER_ENCODING), encryptedDataKeyResult.getProviderInformation());
+        assertNotNull(encryptedDataKeyResult.getEncryptedDataKey());
+    }
+
+    @Test
     void testEncryptWrongKeyFormat() {
         SecretKey key = mock(SecretKey.class);
         when(key.getFormat()).thenReturn("BadFormat");
