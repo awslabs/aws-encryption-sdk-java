@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
  * A keyring which interacts with AWS Key Management Service (KMS) to create,
  * encrypt, and decrypt data keys using KMS defined Customer Master Keys (CMKs).
  */
-public class KmsKeyring implements Keyring {
+class KmsKeyring implements Keyring {
 
     private final DataKeyEncryptionDao dataKeyEncryptionDao;
     private final List<String> keyIds;
