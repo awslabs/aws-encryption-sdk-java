@@ -23,7 +23,9 @@ import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao.GenerateDataKeyResul
 import com.amazonaws.encryptionsdk.kms.KmsUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.amazonaws.encryptionsdk.EncryptedDataKey.PROVIDER_ENCODING;
 import static com.amazonaws.encryptionsdk.kms.KmsUtils.KMS_PROVIDER_ID;
@@ -132,8 +134,14 @@ class KmsKeyring implements Keyring {
             throw new MalformedArnException("encryptedDataKeys contains a malformed ARN");
         }
 
+        final Set<String> configuredKeyIds = new HashSet<>(keyIds);
+
+        if(generatorKeyId != null) {
+            configuredKeyIds.add(generatorKeyId);
+        }
+
         for (EncryptedDataKey encryptedDataKey : encryptedDataKeys) {
-            if (okToDecrypt(encryptedDataKey)) {
+            if (okToDecrypt(encryptedDataKey, configuredKeyIds)) {
                 try {
                     final DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(encryptedDataKey,
                             decryptionMaterials.getAlgorithmSuite(), decryptionMaterials.getEncryptionContext());
@@ -149,7 +157,7 @@ class KmsKeyring implements Keyring {
         }
     }
 
-    private boolean okToDecrypt(EncryptedDataKey encryptedDataKey) {
+    private boolean okToDecrypt(EncryptedDataKey encryptedDataKey, Set<String> configuredKeyIds) {
         // Only attempt to decrypt keys provided by KMS
         if (!encryptedDataKey.getProviderId().equals(KMS_PROVIDER_ID)) {
             return false;
@@ -161,11 +169,9 @@ class KmsKeyring implements Keyring {
             return true;
         }
 
-        final String providerInfo = new String(encryptedDataKey.getProviderInformation(), PROVIDER_ENCODING);
-
         // OnDecrypt MUST attempt to decrypt each input encrypted data key in the input
         // encrypted data key list where the key provider info has a value equal to one
         // of the ARNs in this keyring's key IDs or the generator
-        return providerInfo.equals(generatorKeyId) || keyIds.stream().anyMatch(providerInfo::equals);
+        return configuredKeyIds.contains(new String(encryptedDataKey.getProviderInformation(), PROVIDER_ENCODING));
     }
 }
