@@ -188,6 +188,27 @@ class KmsKeyringTest {
     }
 
     @Test
+    void testEncryptNullGenerator() {
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM_SUITE)
+                .keyringTrace(new KeyringTrace())
+                .plaintextDataKey(PLAINTEXT_DATA_KEY)
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        Keyring keyring = new KmsKeyring(dataKeyEncryptionDao, Collections.singletonList(KEY_ID_1), null);
+
+        keyring.onEncrypt(encryptionMaterials);
+
+        assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
+        assertTrue(encryptionMaterials.getEncryptedDataKeys().contains(ENCRYPTED_KEY_1));
+
+        assertEquals(PLAINTEXT_DATA_KEY, encryptionMaterials.getPlaintextDataKey());
+
+        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
+        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().contains(ENCRYPTED_KEY_1_TRACE));
+    }
+
+    @Test
     void testDiscoveryEncrypt() {
         keyring = new KmsKeyring(dataKeyEncryptionDao, null, null);
 

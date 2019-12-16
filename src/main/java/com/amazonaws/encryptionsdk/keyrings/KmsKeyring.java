@@ -85,7 +85,7 @@ class KmsKeyring implements Keyring {
         // MUST attempt to generate a new plaintext data key and encrypt that data key by calling KMS GenerateDataKey.
         if (!encryptionMaterials.hasPlaintextDataKey()) {
             generateDataKey(encryptionMaterials);
-        } else {
+        } else if (generatorKeyId != null) {
             // If this keyring's generator is defined and was not used to generate a data key, OnEncrypt
             // MUST also attempt to encrypt the plaintext data key using the CMK specified by the generator.
             keyIdsToEncrypt.add(generatorKeyId);
