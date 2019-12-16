@@ -36,7 +36,7 @@ class MultiKeyring implements Keyring {
 
     MultiKeyring(Keyring generatorKeyring, List<Keyring> childrenKeyrings) {
         this.generatorKeyring = generatorKeyring;
-        this.childrenKeyrings = childrenKeyrings == null ? emptyList() : unmodifiableList(childrenKeyrings);
+        this.childrenKeyrings = childrenKeyrings == null ? emptyList() : unmodifiableList(new ArrayList<>(childrenKeyrings));
 
         isTrue(this.generatorKeyring != null || !this.childrenKeyrings.isEmpty(),
                 "At least a generator keyring or children keyrings must be defined");
