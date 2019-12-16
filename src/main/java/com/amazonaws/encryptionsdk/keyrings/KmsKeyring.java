@@ -48,7 +48,7 @@ class KmsKeyring implements Keyring {
     KmsKeyring(DataKeyEncryptionDao dataKeyEncryptionDao, List<String> keyIds, String generatorKeyId) {
         requireNonNull(dataKeyEncryptionDao, "dataKeyEncryptionDao is required");
         this.dataKeyEncryptionDao = dataKeyEncryptionDao;
-        this.keyIds = keyIds == null ? emptyList() : unmodifiableList(keyIds);
+        this.keyIds = keyIds == null ? emptyList() : unmodifiableList(new ArrayList<>(keyIds));
         this.generatorKeyId = generatorKeyId;
         this.isDiscovery = this.generatorKeyId == null && this.keyIds.isEmpty();
 
