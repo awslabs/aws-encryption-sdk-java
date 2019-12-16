@@ -29,7 +29,6 @@ import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
-import com.amazonaws.encryptionsdk.exception.MismatchedDataKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.services.kms.AWSKMS;
 
@@ -135,10 +134,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
                         result.getPlaintextDataKey(),
                         edk.getEncryptedDataKey(),
                         edk.getProviderInformation(), this);
-            } catch (final AwsCryptoException | MismatchedDataKeyException ex) {
-                // Earlier versions of KmsMasterKey compare the returned keyId to the encryptedDataKey
-                // provider information and skip that key if it doesn't match. KmsDataKeyEncryptionDao
-                // throws MismatchedDataKeyException in this case, so this maintains the existing behavior.
+            } catch (final AwsCryptoException ex) {
                 exceptions.add(ex);
             }
         }

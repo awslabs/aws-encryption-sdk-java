@@ -18,6 +18,7 @@ import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.exception.MalformedArnException;
+import com.amazonaws.encryptionsdk.exception.MismatchedDataKeyException;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao.DecryptDataKeyResult;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -249,6 +250,17 @@ class KmsKeyringTest {
 
         KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(KMS_PROVIDER_ID, KEY_ID_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
         assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+    }
+
+    @Test
+    void testDecryptMismatchedDataKeyException() {
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_KEY_1, ALGORITHM_SUITE, ENCRYPTION_CONTEXT)).thenThrow(new MismatchedDataKeyException());
+
+        assertThrows(MismatchedDataKeyException.class, () -> keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_KEY_1)));
     }
 
     @Test

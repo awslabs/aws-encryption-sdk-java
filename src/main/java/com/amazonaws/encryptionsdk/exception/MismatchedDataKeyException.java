@@ -17,7 +17,7 @@ package com.amazonaws.encryptionsdk.exception;
  * This exception is thrown when the key used by KMS to decrypt a data key does not
  * match the provider information contained within the encrypted data key.
  */
-public class MismatchedDataKeyException extends IllegalStateException {
+public class MismatchedDataKeyException extends AwsCryptoException {
 
     private static final long serialVersionUID = -1L;
 
