@@ -66,16 +66,6 @@ class RawKeyringTest {
             boolean validToDecrypt(EncryptedDataKey encryptedDataKey) {
                 return !encryptedDataKey.getProviderId().equals(INVALID_DATA_KEY.getProviderId());
             }
-
-            @Override
-            KeyringTraceEntry traceOnEncrypt() {
-                return ENCRYPTED_DATA_KEY_TRACE;
-            }
-
-            @Override
-            KeyringTraceEntry traceOnDecrypt() {
-                return DECRYPTED_DATA_KEY_TRACE;
-            }
         };
     }
 

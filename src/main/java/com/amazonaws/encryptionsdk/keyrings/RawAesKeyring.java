@@ -48,18 +48,4 @@ class RawAesKeyring extends RawKeyring {
 
         return true;
     }
-
-    @Override
-    KeyringTraceEntry traceOnEncrypt() {
-        return new KeyringTraceEntry(keyNamespace, keyName,
-                KeyringTraceFlag.ENCRYPTED_DATA_KEY,
-                KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT);
-    }
-
-    @Override
-    KeyringTraceEntry traceOnDecrypt() {
-        return new KeyringTraceEntry(keyNamespace, keyName,
-                KeyringTraceFlag.DECRYPTED_DATA_KEY,
-                KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-    }
 }

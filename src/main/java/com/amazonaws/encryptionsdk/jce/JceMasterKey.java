@@ -104,6 +104,16 @@ public class JceMasterKey extends MasterKey<JceMasterKey> {
         return keyId_;
     }
 
+    /**
+     * Returns true if the underlying key cipher supports signing and
+     * verification of the encryption context.
+     *
+     * @return True if encryption context signing/verification is supported.
+     */
+    public boolean isEncryptionContextSigned() {
+        return jceKeyCipher_.isEncryptionContextSigned();
+    }
+
     @Override
     public DataKey<JceMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {

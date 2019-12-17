@@ -49,14 +49,4 @@ class RawRsaKeyring extends RawKeyring {
 
         return true;
     }
-
-    @Override
-    KeyringTraceEntry traceOnEncrypt() {
-        return new KeyringTraceEntry(keyNamespace, keyName, KeyringTraceFlag.ENCRYPTED_DATA_KEY);
-    }
-
-    @Override
-    KeyringTraceEntry traceOnDecrypt() {
-        return new KeyringTraceEntry(keyNamespace, keyName, KeyringTraceFlag.DECRYPTED_DATA_KEY);
-    }
 }

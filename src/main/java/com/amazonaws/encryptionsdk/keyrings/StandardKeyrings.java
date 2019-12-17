@@ -13,6 +13,9 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
+import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.MasterKeyProvider;
+
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -52,5 +55,15 @@ public class StandardKeyrings {
      */
     public static Keyring rawRsa(String keyNamespace, String keyName, PublicKey publicKey, PrivateKey privateKey, String wrappingAlgorithm) {
         return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, wrappingAlgorithm);
+    }
+
+    /**
+     * Constructs a {@code Keyring} which wraps a {@code MasterKeyProvider} to facilitate transitioning to keyrings.
+     *
+     * @param masterKeyProvider The master key provider.
+     * @return The {@link Keyring}
+     */
+    public static Keyring masterKeyProvider(MasterKeyProvider<? extends MasterKey> masterKeyProvider) {
+        return new MasterKeyProviderKeyring<>(masterKeyProvider);
     }
 }
