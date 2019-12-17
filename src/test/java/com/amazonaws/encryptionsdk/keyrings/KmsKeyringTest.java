@@ -104,7 +104,10 @@ class KmsKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(new KeyBlob(KMS_PROVIDER_ID, "badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
-        assertThrows(MalformedArnException.class, () -> keyring.onDecrypt(decryptionMaterials, encryptedDataKeys));
+        encryptedDataKeys.add(ENCRYPTED_KEY_1);
+
+        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getPlaintextDataKey());
 
         // Malformed Arn for a non KMS provider shouldn't fail
         encryptedDataKeys.clear();

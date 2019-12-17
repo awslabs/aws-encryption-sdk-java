@@ -127,16 +127,9 @@ class KmsKeyring implements Keyring {
             return;
         }
 
-        if (!encryptedDataKeys.stream()
-                .filter(edk -> edk.getProviderId().equals(KMS_PROVIDER_ID))
-                .map(edk -> new String(edk.getProviderInformation(), PROVIDER_ENCODING))
-                .allMatch(KmsUtils::isArnWellFormed)) {
-            throw new MalformedArnException("encryptedDataKeys contains a malformed ARN");
-        }
-
         final Set<String> configuredKeyIds = new HashSet<>(keyIds);
 
-        if(generatorKeyId != null) {
+        if (generatorKeyId != null) {
             configuredKeyIds.add(generatorKeyId);
         }
 
@@ -160,6 +153,12 @@ class KmsKeyring implements Keyring {
     private boolean okToDecrypt(EncryptedDataKey encryptedDataKey, Set<String> configuredKeyIds) {
         // Only attempt to decrypt keys provided by KMS
         if (!encryptedDataKey.getProviderId().equals(KMS_PROVIDER_ID)) {
+            return false;
+        }
+
+        // If the key ARN cannot be parsed, skip it
+        if(!isArnWellFormed(new String(encryptedDataKey.getProviderInformation(), PROVIDER_ENCODING)))
+        {
             return false;
         }
 
