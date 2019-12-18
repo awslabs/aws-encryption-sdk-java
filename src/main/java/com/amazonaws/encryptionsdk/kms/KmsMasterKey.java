@@ -14,17 +14,12 @@
 package com.amazonaws.encryptionsdk.kms;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.AwsCrypto;
@@ -35,30 +30,18 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
-import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.model.DecryptRequest;
-import com.amazonaws.services.kms.model.DecryptResult;
-import com.amazonaws.services.kms.model.EncryptRequest;
-import com.amazonaws.services.kms.model.EncryptResult;
-import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
-import com.amazonaws.services.kms.model.GenerateDataKeyResult;
+
+import static java.util.Collections.emptyList;
 
 /**
  * Represents a single Customer Master Key (CMK) and is used to encrypt/decrypt data with
  * {@link AwsCrypto}.
  */
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
-    private final Supplier<AWSKMS> kms_;
+    private final KmsDataKeyEncryptionDao dataKeyEncryptionDao_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
-    private final List<String> grantTokens_ = new ArrayList<>();
-
-    private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
-        request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
-
-        return request;
-    }
 
     /**
      *
@@ -80,11 +63,11 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
 
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
-        return new KmsMasterKey(kms, id, provider);
+        return new KmsMasterKey(new KmsDataKeyEncryptionDao(s -> kms.get(), emptyList()), id, provider);
     }
 
-    private KmsMasterKey(final Supplier<AWSKMS> kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
-        kms_ = kms;
+    KmsMasterKey(final KmsDataKeyEncryptionDao dataKeyEncryptionDao, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
+        dataKeyEncryptionDao_ = dataKeyEncryptionDao;
         id_ = id;
         sourceProvider_ = provider;
     }
@@ -102,39 +85,27 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     @Override
     public DataKey<KmsMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
-        final GenerateDataKeyResult gdkResult = kms_.get().generateDataKey(updateUserAgent(
-                new GenerateDataKeyRequest()
-                        .withKeyId(getKeyId())
-                        .withNumberOfBytes(algorithm.getDataKeyLength())
-                        .withEncryptionContext(encryptionContext)
-                        .withGrantTokens(grantTokens_)
-        ));
-        final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
-        gdkResult.getPlaintext().get(rawKey);
-        if (gdkResult.getPlaintext().remaining() > 0) {
-            throw new IllegalStateException("Recieved an unexpected number of bytes from KMS");
-        }
-        final byte[] encryptedKey = new byte[gdkResult.getCiphertextBlob().remaining()];
-        gdkResult.getCiphertextBlob().get(encryptedKey);
-
-        final SecretKeySpec key = new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo());
-        return new DataKey<>(key, encryptedKey, gdkResult.getKeyId().getBytes(StandardCharsets.UTF_8), this);
+        final DataKeyEncryptionDao.GenerateDataKeyResult gdkResult = dataKeyEncryptionDao_.generateDataKey(
+                getKeyId(), algorithm, encryptionContext);
+        return new DataKey<>(gdkResult.getPlaintextDataKey(),
+                gdkResult.getEncryptedDataKey().getEncryptedDataKey(),
+                gdkResult.getEncryptedDataKey().getProviderInformation(),
+                this);
     }
 
     @Override
     public void setGrantTokens(final List<String> grantTokens) {
-        grantTokens_.clear();
-        grantTokens_.addAll(grantTokens);
+        dataKeyEncryptionDao_.setGrantTokens(grantTokens);
     }
 
     @Override
     public List<String> getGrantTokens() {
-        return grantTokens_;
+        return dataKeyEncryptionDao_.getGrantTokens();
     }
 
     @Override
     public void addGrantToken(final String grantToken) {
-        grantTokens_.add(grantToken);
+        dataKeyEncryptionDao_.addGrantToken(grantToken);
     }
 
     @Override
@@ -142,22 +113,12 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
             final Map<String, String> encryptionContext,
             final DataKey<?> dataKey) {
         final SecretKey key = dataKey.getKey();
-        if (!key.getFormat().equals("RAW")) {
-            throw new IllegalArgumentException("Only RAW encoded keys are supported");
-        }
-        try {
-            final EncryptResult encryptResult = kms_.get().encrypt(updateUserAgent(
-                    new EncryptRequest()
-                            .withKeyId(id_)
-                            .withPlaintext(ByteBuffer.wrap(key.getEncoded()))
-                            .withEncryptionContext(encryptionContext)
-                            .withGrantTokens(grantTokens_)));
-            final byte[] edk = new byte[encryptResult.getCiphertextBlob().remaining()];
-            encryptResult.getCiphertextBlob().get(edk);
-            return new DataKey<>(dataKey.getKey(), edk, encryptResult.getKeyId().getBytes(StandardCharsets.UTF_8), this);
-        } catch (final AmazonServiceException asex) {
-            throw new AwsCryptoException(asex);
-        }
+        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao_.encryptDataKey(id_, key, encryptionContext);
+
+        return new DataKey<>(dataKey.getKey(),
+                encryptedDataKey.getEncryptedDataKey(),
+                encryptedDataKey.getProviderInformation(),
+                this);
     }
 
     @Override
@@ -168,24 +129,13 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
-                final DecryptResult decryptResult = kms_.get().decrypt(updateUserAgent(
-                        new DecryptRequest()
-                                .withCiphertextBlob(ByteBuffer.wrap(edk.getEncryptedDataKey()))
-                                .withEncryptionContext(encryptionContext)
-                                .withGrantTokens(grantTokens_)));
-                if (decryptResult.getKeyId().equals(id_)) {
-                    final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
-                    decryptResult.getPlaintext().get(rawKey);
-                    if (decryptResult.getPlaintext().remaining() > 0) {
-                        throw new IllegalStateException("Received an unexpected number of bytes from KMS");
-                    }
-                    return new DataKey<>(
-                            new SecretKeySpec(rawKey, algorithm.getDataKeyAlgo()),
-                            edk.getEncryptedDataKey(),
-                            edk.getProviderInformation(), this);
-                }
-            } catch (final AmazonServiceException awsex) {
-                exceptions.add(awsex);
+                final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao_.decryptDataKey(edk, algorithm, encryptionContext);
+                return new DataKey<>(
+                        result.getPlaintextDataKey(),
+                        edk.getEncryptedDataKey(),
+                        edk.getProviderInformation(), this);
+            } catch (final AwsCryptoException ex) {
+                exceptions.add(ex);
             }
         }
 
