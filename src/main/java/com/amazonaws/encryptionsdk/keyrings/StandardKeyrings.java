@@ -19,6 +19,7 @@ import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -72,5 +73,31 @@ public class StandardKeyrings {
      */
     public static Keyring kms(KmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generator) {
         return new KmsKeyring(DataKeyEncryptionDao.kms(clientSupplier, grantTokens), keyIds, generator);
+    }
+
+    /**
+     * Constructs a {@code Keyring} which combines other keyrings, allowing one OnEncrypt or OnDecrypt call
+     * to modify the encryption or decryption materials using more than one keyring.
+     *
+     * @param generatorKeyring A keyring that can generate data keys. Required if childrenKeyrings is empty.
+     * @param childrenKeyrings A list of keyrings to be used to modify the encryption or decryption materials.
+     *                         At least one is required if generatorKeyring is null.
+     * @return The {@link Keyring}
+     */
+    public static Keyring multi(Keyring generatorKeyring, List<Keyring> childrenKeyrings) {
+        return new MultiKeyring(generatorKeyring, childrenKeyrings);
+    }
+
+    /**
+     * Constructs a {@code Keyring} which combines other keyrings, allowing one OnEncrypt or OnDecrypt call
+     * to modify the encryption or decryption materials using more than one keyring.
+     *
+     * @param generatorKeyring A keyring that can generate data keys. Required if childrenKeyrings is empty.
+     * @param childrenKeyrings Keyrings to be used to modify the encryption or decryption materials.
+     *                         At least one is required if generatorKeyring is null.
+     * @return The {@link Keyring}
+     */
+    public static Keyring multi(Keyring generatorKeyring, Keyring... childrenKeyrings) {
+        return new MultiKeyring(generatorKeyring, Arrays.asList(childrenKeyrings));
     }
 }
