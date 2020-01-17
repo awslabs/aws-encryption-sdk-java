@@ -34,6 +34,7 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextFooters;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
@@ -62,6 +63,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     private CryptoHandler contentCryptoHandler_;
 
     private DataKey<K> dataKey_;
+    private KeyringTrace keyringTrace_;
     private SecretKey decryptionKey_;
     private CryptoAlgorithm cryptoAlgo_;
     private Signature trailingSig_;
@@ -456,6 +458,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
         //noinspection unchecked
         dataKey_ = (DataKey<K>)result.getDataKey();
+        keyringTrace_ = result.getKeyringTrace();
         PublicKey trailingPublicKey = result.getTrailingSignatureKey();
 
         try {
@@ -536,7 +539,16 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     @Override
     public List<K> getMasterKeys() {
+        if(dataKey_.getMasterKey() == null) {
+            return Collections.emptyList();
+        }
+
         return Collections.singletonList(dataKey_.getMasterKey());
+    }
+
+    @Override
+    public KeyringTrace getKeyringTrace() {
+        return keyringTrace_;
     }
 
     @Override

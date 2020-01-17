@@ -30,6 +30,7 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.services.kms.AWSKMS;
 
 import static java.util.Collections.emptyList;
@@ -37,7 +38,10 @@ import static java.util.Collections.emptyList;
 /**
  * Represents a single Customer Master Key (CMK) and is used to encrypt/decrypt data with
  * {@link AwsCrypto}.
+ *
+ * @deprecated Replaced by {@code KmsKeyring}. See {@link StandardKeyrings}.
  */
+@Deprecated
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
     private final KmsDataKeyEncryptionDao dataKeyEncryptionDao_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;

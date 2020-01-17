@@ -43,6 +43,7 @@ import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.handlers.RequestHandler2;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -54,7 +55,10 @@ import com.amazonaws.services.kms.AWSKMSClientBuilder;
 /**
  * Provides {@link MasterKey}s backed by the AWS Key Management Service. This object is regional and
  * if you want to use keys from multiple regions, you'll need multiple copies of this object.
+ *
+ * @deprecated Replaced by {@code KmsKeyring}. See {@link StandardKeyrings}.
  */
+@Deprecated
 public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implements KmsMethods {
     private static final String PROVIDER_NAME = "aws-kms";
     private final List<String> keyIds_;

@@ -29,6 +29,7 @@ import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 
 /**
  * Constructs {@link MasterKeyProvider}s which are backed by any number of other
@@ -46,7 +47,10 @@ import com.amazonaws.encryptionsdk.internal.Utils;
  *
  * All methods in this factory return identical results and exist only for different degrees of
  * type-safety.
+ *
+ * @deprecated Replaced by {@code MultiKeyring}. See {@link StandardKeyrings}.
  */
+@Deprecated
 public class MultipleProviderFactory {
     private MultipleProviderFactory() {
         // Prevent instantiation

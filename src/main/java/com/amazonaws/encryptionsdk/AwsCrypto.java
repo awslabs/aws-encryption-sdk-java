@@ -27,20 +27,26 @@ import com.amazonaws.encryptionsdk.internal.LazyMessageCryptoHandler;
 import com.amazonaws.encryptionsdk.internal.MessageCryptoHandler;
 import com.amazonaws.encryptionsdk.internal.ProcessingSummary;
 import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
+
+import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.Validate.isTrue;
 
 /**
  * Provides the primary entry-point to the AWS Encryption SDK. All encryption and decryption
  * operations should start here. Most people will want to use either
- * {@link #encryptData(MasterKeyProvider, byte[], Map)} and
- * {@link #decryptData(MasterKeyProvider, byte[])} to encrypt/decrypt things.
+ * {@link #encryptData(AwsCryptoConfig, byte[])} and
+ * {@link #decryptData(AwsCryptoConfig, byte[])} to encrypt/decrypt things.
  * 
  * <P>
  * The core concepts (and classes) in this SDK are:
  * <ul>
  * <li>{@link AwsCrypto}
- * <li>{@link DataKey}
+ * <li>{@link AwsCryptoConfig}
+ * <li>{@link Keyring}
+ * <li>{@link EncryptedDataKey}
  * <li>{@link MasterKey}
  * <li>{@link MasterKeyProvider}
  * </ul>
@@ -48,10 +54,22 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
  * <p>
  * {@link AwsCrypto} provides the primary way to encrypt/decrypt data. It can operate on
  * byte-arrays, streams, or {@link java.lang.String Strings}. This data is encrypted using the
- * specifed {@link CryptoAlgorithm} and a {@link DataKey} which is unique to each encrypted message.
- * This {@code DataKey} is then encrypted using one (or more) {@link MasterKey MasterKeys}. The
- * process is reversed on decryption with the code selecting a copy of the {@code DataKey} protected
- * by a usable {@code MasterKey}, decrypting the {@code DataKey}, and then decrypted the message.
+ * specified {@link CryptoAlgorithm} and a {@code plaintextDataKey} which is unique to each encrypted message.
+ * This {@code plaintextDataKey} is then encrypted using one (or more) {@link MasterKey MasterKeys} or a {@link Keyring}.
+ * The process is reversed on decryption with the code selecting a copy of the {@code EncryptedDataKey} protected
+ * by a usable {@code MasterKey} or {@code Keyring}, decrypting the {@code EncryptedDataKey}, and
+ * then decrypting the message.
+ *
+ * <p>
+ * Note:
+ * {@link MasterKey}s and {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s. Keyrings
+ * provide a simplified architecture over {@link MasterKey}s and {@link MasterKeyProvider}s; The keyring combines the
+ * similar responsibilities of {@link MasterKey}s and {@link MasterKeyProvider}s into one concept, as well as removes
+ * all key management logic from {@link CryptoMaterialsManager}s.
+ *
+ * Due to this simplified architecture, {@link MasterKey}s and {@link MasterKeyProvider}s  are deprecated and will be
+ * removed in the future, and new implementations should use {@link Keyring}s. The below discussion on
+ * {@link MasterKeyProvider}s is provided for informational purposes as you transition to {@link Keyring}s.
  *
  * <p>
  * The main way to get a {@code MasterKey} is through the use of a {@link MasterKeyProvider}. This
@@ -150,7 +168,11 @@ public class AwsCrypto {
      *
      * This method is equivalent to calling {@link #estimateCiphertextSize(CryptoMaterialsManager, int, Map)} with a
      * {@link DefaultCryptoMaterialsManager} based on the given provider.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #estimateCiphertextSize(AwsCryptoConfig, int)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> long estimateCiphertextSize(
             final MasterKeyProvider<K> provider,
             final int plaintextSize,
@@ -162,34 +184,30 @@ public class AwsCrypto {
     /**
      * Returns the best estimate for the output length of encrypting a plaintext with the provided
      * {@code plaintextSize} and {@code encryptionContext}. The actual ciphertext may be shorter.
+     *
+     * @deprecated Replaced by {@link #estimateCiphertextSize(AwsCryptoConfig, int)}
      */
+    @Deprecated
     public long estimateCiphertextSize(
             CryptoMaterialsManager materialsManager,
             final int plaintextSize,
             final Map<String, String> encryptionContext
     ) {
-        EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
-                                                                       .setContext(encryptionContext)
-                                                                       .setRequestedAlgorithm(getEncryptionAlgorithm())
-        // We're not actually encrypting any data, so don't consume any bytes from the cache's limits. We do need to
-        // pass /something/ though, or the cache will be bypassed (as it'll assume this is a streaming encrypt of
-        // unknown size).
-                                                                       .setPlaintextSize(0)
-                                                                       .build();
-
-        final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
-                getEncryptionFrameSize(),
-                checkAlgorithm(materialsManager.getMaterialsForEncrypt(request))
-        );
-
-        return cryptoHandler.estimateOutputSize(plaintextSize);
+        return estimateCiphertextSize(AwsCryptoConfig.builder()
+                .cryptoMaterialsManager(materialsManager)
+                .encryptionContext(encryptionContext)
+                .build(), plaintextSize);
     }
 
     /**
      * Returns the equivalent to calling
      * {@link #estimateCiphertextSize(MasterKeyProvider, int, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #estimateCiphertextSize(AwsCryptoConfig, int)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> long estimateCiphertextSize(
             final MasterKeyProvider<K> provider,
             final int plaintextSize
@@ -201,7 +219,10 @@ public class AwsCrypto {
      * Returns the equivalent to calling
      * {@link #estimateCiphertextSize(CryptoMaterialsManager, int, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated Replaced by {@link #estimateCiphertextSize(AwsCryptoConfig, int)}
      */
+    @Deprecated
     public long estimateCiphertextSize(
             final CryptoMaterialsManager materialsManager,
             final int plaintextSize
@@ -210,13 +231,46 @@ public class AwsCrypto {
     }
 
     /**
-     * Returns an encrypted form of {@code plaintext} that has been protected with {@link DataKey
-     * DataKeys} that are in turn protected by {@link MasterKey MasterKeys} provided by
+     * Returns the best estimate for the output length of encrypting a plaintext with the provided
+     * {@code plaintextSize} and {@code config}. The actual ciphertext may be shorter.
+     *
+     * @param config The AwsCryptoConfig containing either a {@link CryptoMaterialsManager} or a {@link Keyring} and
+     *               optionally an EncryptionContext
+     * @param plaintextSize The size of the plaintext in bytes
+     * @return The estimated output length in bytes
+     */
+    public long estimateCiphertextSize(AwsCryptoConfig config, int plaintextSize) {
+        requireNonNull(config, "config is required");
+
+        final EncryptionMaterialsRequest encryptionMaterialsRequest = EncryptionMaterialsRequest.newBuilder()
+                .setContext(config.getEncryptionContext())
+                .setRequestedAlgorithm(getEncryptionAlgorithm())
+                // We're not actually encrypting any data, so don't consume any bytes from the cache's limits. We do need to
+                // pass /something/ though, or the cache will be bypassed (as it'll assume this is a streaming encrypt of
+                // unknown size).
+                .setPlaintextSize(0)
+                .build();
+
+        final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
+                getEncryptionFrameSize(),
+                checkAlgorithm(config.getCryptoMaterialsManager().getMaterialsForEncrypt(encryptionMaterialsRequest))
+        );
+
+        return cryptoHandler.estimateOutputSize(plaintextSize);
+    }
+
+    /**
+     * Returns an encrypted form of {@code plaintext} that has been protected with {@link DataKey}s
+     * that are in turn protected by {@link MasterKey MasterKeys} provided by
      * {@code provider}.
      *
      * This method is equivalent to calling {@link #encryptData(CryptoMaterialsManager, byte[], Map)} using a
      * {@link DefaultCryptoMaterialsManager} based on the given provider.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #encryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoResult<byte[], K> encryptData(
             final MasterKeyProvider<K> provider,
             final byte[] plaintext,
@@ -230,38 +284,28 @@ public class AwsCrypto {
     /**
      * Returns an encrypted form of {@code plaintext} that has been protected with {@link DataKey
      * DataKeys} that are in turn protected by the given CryptoMaterialsProvider.
+     *
+     * @deprecated Replaced by {@link #encryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public CryptoResult<byte[], ?> encryptData(
             CryptoMaterialsManager materialsManager,
             final byte[] plaintext,
             final Map<String, String> encryptionContext
     ) {
-        EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
-                                                                       .setContext(encryptionContext)
-                                                                       .setRequestedAlgorithm(getEncryptionAlgorithm())
-                                                                       .setPlaintext(plaintext)
-                                                                       .build();
-
-        final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
-                getEncryptionFrameSize(),
-                checkAlgorithm(materialsManager.getMaterialsForEncrypt(request))
-        );
-
-        final int outSizeEstimate = cryptoHandler.estimateOutputSize(plaintext.length);
-        final byte[] out = new byte[outSizeEstimate];
-        int outLen = cryptoHandler.processBytes(plaintext, 0, plaintext.length, out, 0).getBytesWritten();
-        outLen += cryptoHandler.doFinal(out, outLen);
-
-        final byte[] outBytes = Utils.truncate(out, outLen);
-
-        //noinspection unchecked
-        return new CryptoResult(outBytes, cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
+        return encryptData(AwsCryptoConfig.builder()
+                .cryptoMaterialsManager(materialsManager)
+                .encryptionContext(encryptionContext).build(), plaintext).toCryptoResult();
     }
 
     /**
      * Returns the equivalent to calling {@link #encryptData(MasterKeyProvider, byte[], Map)} with
      * an empty {@code encryptionContext}.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #encryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoResult<byte[], K> encryptData(final MasterKeyProvider<K> provider,
             final byte[] plaintext) {
         return encryptData(provider, plaintext, EMPTY_MAP);
@@ -270,12 +314,52 @@ public class AwsCrypto {
     /**
      * Returns the equivalent to calling {@link #encryptData(CryptoMaterialsManager, byte[], Map)} with
      * an empty {@code encryptionContext}.
+     *
+     * @deprecated Replaced by {@link #encryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public CryptoResult<byte[], ?> encryptData(
             final CryptoMaterialsManager materialsManager,
             final byte[] plaintext
     ) {
         return encryptData(materialsManager, plaintext, EMPTY_MAP);
+    }
+
+    /**
+     * Returns an encrypted form of {@code plaintext} that has been protected with either the {@link CryptoMaterialsManager}
+     * or the {@link Keyring} specified in the {@link AwsCryptoConfig}.
+     *
+     * @param config The AwsCryptoConfig containing either a {@link CryptoMaterialsManager} or a {@link Keyring} and
+     *               optionally an EncryptionContext
+     * @param plaintext The plaintext to encrypt
+     * @return An {@link AwsCryptoResult} containing the encrypted data
+     */
+    public AwsCryptoResult<byte[]> encryptData(final AwsCryptoConfig config,
+                                               final byte[] plaintext) {
+        requireNonNull(config, "config is required");
+        requireNonNull(config, "plaintext is required");
+
+        final EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
+                .setContext(config.getEncryptionContext())
+                .setRequestedAlgorithm(getEncryptionAlgorithm())
+                .setPlaintext(plaintext)
+                .build();
+
+        final EncryptionMaterials encryptionMaterials =
+                checkAlgorithm(config.getCryptoMaterialsManager().getMaterialsForEncrypt(request));
+
+        final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
+                getEncryptionFrameSize(), encryptionMaterials);
+
+        final int outSizeEstimate = cryptoHandler.estimateOutputSize(plaintext.length);
+        final byte[] out = new byte[outSizeEstimate];
+        int outLen = cryptoHandler.processBytes(plaintext, 0, plaintext.length, out, 0).getBytesWritten();
+        outLen += cryptoHandler.doFinal(out, outLen);
+
+        final byte[] outBytes = Utils.truncate(out, outLen);
+
+        return new AwsCryptoResult<>(outBytes, encryptionMaterials.getKeyringTrace(),
+                cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
     }
 
     /**
@@ -358,7 +442,11 @@ public class AwsCrypto {
      * Decrypts the provided {@code ciphertext} by requesting that the {@code provider} unwrap any
      * usable {@link DataKey} in the ciphertext and then decrypts the ciphertext using that
      * {@code DataKey}.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoResult<byte[], K> decryptData(final MasterKeyProvider<K> provider,
             final byte[] ciphertext) {
         return decryptData(Utils.assertNonNull(provider, "provider"), new
@@ -372,7 +460,10 @@ public class AwsCrypto {
      * @param materialsManager the {@link CryptoMaterialsManager} to use for decryption operations.
      * @param ciphertext the ciphertext to attempt to decrypt.
      * @return the {@link CryptoResult} with the decrypted data.
+     *
+     * @deprecated Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public CryptoResult<byte[], ?> decryptData(
             final CryptoMaterialsManager materialsManager,
             final byte[] ciphertext
@@ -383,8 +474,12 @@ public class AwsCrypto {
 
     /**
      * @see #decryptData(MasterKeyProvider, byte[])
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
      */
     @SuppressWarnings("unchecked")
+    @Deprecated
     public <K extends MasterKey<K>> CryptoResult<byte[], K> decryptData(
             final MasterKeyProvider<K> provider, final ParsedCiphertext ciphertext) {
         Utils.assertNonNull(provider, "provider");
@@ -393,22 +488,56 @@ public class AwsCrypto {
 
     /**
      * @see #decryptData(CryptoMaterialsManager, byte[])
+     *
+     * @deprecated Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
      */
+    @Deprecated
     public CryptoResult<byte[], ?> decryptData(
             final CryptoMaterialsManager materialsManager,
             final ParsedCiphertext ciphertext
     ) {
-        Utils.assertNonNull(materialsManager, "materialsManager");
+        return decryptData(AwsCryptoConfig.builder().cryptoMaterialsManager(materialsManager).build(),
+                ciphertext).toCryptoResult();
+    }
 
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager, ciphertext);
+    /**
+     * Decrypts the provided ciphertext using the {@link CryptoMaterialsManager} or the {@link Keyring} 
+     * specified in the {@link AwsCryptoConfig}.
+     *
+     * @param config The AwsCryptoConfig containing either a {@link CryptoMaterialsManager} or a {@link Keyring}
+     * @param ciphertext The ciphertext to decrypt
+     * @return An {@link AwsCryptoResult} containing the decrypted data
+     */
+    public AwsCryptoResult<byte[]> decryptData(
+            final AwsCryptoConfig config,
+            final byte[] ciphertext
+    ) {
+        return decryptData(config, new ParsedCiphertext(ciphertext));
+    }
+
+    /**
+     * Decrypts the provided ciphertext using the {@link CryptoMaterialsManager} or the {@link Keyring} 
+     * specified in the {@link AwsCryptoConfig}.
+     *
+     * @param config The AwsCryptoConfig containing either a {@link CryptoMaterialsManager} or a {@link Keyring}
+     * @param ciphertext The ciphertext to decrypt
+     * @return An {@link AwsCryptoResult} containing the decrypted data
+     */
+    private AwsCryptoResult<byte[]> decryptData(
+            final AwsCryptoConfig config,
+            final ParsedCiphertext ciphertext
+    ) {
+        requireNonNull(config, "config is required");
+        requireNonNull(ciphertext, "ciphertext is required");
+
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(config.getCryptoMaterialsManager(), ciphertext);
 
         final byte[] ciphertextBytes = ciphertext.getCiphertext();
         final int contentLen = ciphertextBytes.length - ciphertext.getOffset();
         final int outSizeEstimate = cryptoHandler.estimateOutputSize(contentLen);
         final byte[] out = new byte[outSizeEstimate];
         final ProcessingSummary processed = cryptoHandler.processBytes(ciphertextBytes, ciphertext.getOffset(),
-                                                                       contentLen, out,
-                                                                       0);
+                contentLen, out, 0);
         if (processed.getBytesProcessed() != contentLen) {
             throw new BadCiphertextException("Unable to process entire ciphertext. May have trailing data.");
         }
@@ -417,8 +546,8 @@ public class AwsCrypto {
 
         final byte[] outBytes = Utils.truncate(out, outLen);
 
-        //noinspection unchecked
-        return new CryptoResult(outBytes, cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
+        return new AwsCryptoResult<>(outBytes, cryptoHandler.getKeyringTrace(),
+                cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
     }
 
     /**
@@ -475,7 +604,11 @@ public class AwsCrypto {
      *
      * @see #encryptData(MasterKeyProvider, byte[], Map)
      * @see javax.crypto.CipherOutputStream
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createEncryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoOutputStream<K> createEncryptingStream(
             final MasterKeyProvider<K> provider,
             final OutputStream os,
@@ -492,20 +625,30 @@ public class AwsCrypto {
      * 
      * @see #encryptData(MasterKeyProvider, byte[], Map)
      * @see javax.crypto.CipherOutputStream
+     * 
+     * @deprecated Replaced by {@link #createEncryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public CryptoOutputStream<?> createEncryptingStream(
             final CryptoMaterialsManager materialsManager,
             final OutputStream os,
             final Map<String, String> encryptionContext
     ) {
-        return new CryptoOutputStream<>(os, getEncryptingStreamHandler(materialsManager, encryptionContext));
+        return createEncryptingStream(AwsCryptoConfig.builder()
+                .cryptoMaterialsManager(materialsManager)
+                .encryptionContext(encryptionContext)
+        .build(), os).toCryptoOutputStream();
     }
 
     /**
      * Returns the equivalent to calling
      * {@link #createEncryptingStream(MasterKeyProvider, OutputStream, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createEncryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoOutputStream<K> createEncryptingStream(
             final MasterKeyProvider<K> provider,
             final OutputStream os) {
@@ -516,7 +659,10 @@ public class AwsCrypto {
      * Returns the equivalent to calling
      * {@link #createEncryptingStream(CryptoMaterialsManager, OutputStream, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated Replaced by {@link #createEncryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public CryptoOutputStream<?> createEncryptingStream(
             final CryptoMaterialsManager materialsManager,
             final OutputStream os
@@ -525,12 +671,31 @@ public class AwsCrypto {
     }
 
     /**
+     * Returns a {@link AwsCryptoOutputStream} which encrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}.
+     *
+     * @see #encryptData(AwsCryptoConfig, byte[])
+     * @see javax.crypto.CipherOutputStream
+     */
+    public AwsCryptoOutputStream createEncryptingStream(
+            final AwsCryptoConfig config,
+            final OutputStream os
+    ) {
+        return new AwsCryptoOutputStream(os, getEncryptingStreamHandler(
+                config.getCryptoMaterialsManager(), config.encryptionContext));
+    }
+
+    /**
      * Returns a {@link CryptoInputStream} which encrypts the data after reading it from the
      * underlying {@link InputStream}.
      *
      * @see #encryptData(MasterKeyProvider, byte[], Map)
      * @see javax.crypto.CipherInputStream
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createEncryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoInputStream<K> createEncryptingStream(
             final MasterKeyProvider<K> provider,
             final InputStream is,
@@ -547,22 +712,30 @@ public class AwsCrypto {
      *
      * @see #encryptData(MasterKeyProvider, byte[], Map)
      * @see javax.crypto.CipherInputStream
+     *
+     * @deprecated Replaced by {@link #createEncryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public CryptoInputStream<?> createEncryptingStream(
             CryptoMaterialsManager materialsManager,
             final InputStream is,
             final Map<String, String> encryptionContext
     ) {
-        final MessageCryptoHandler cryptoHandler = getEncryptingStreamHandler(materialsManager, encryptionContext);
-
-        return new CryptoInputStream<>(is, cryptoHandler);
+        return createEncryptingStream(AwsCryptoConfig.builder()
+                .cryptoMaterialsManager(materialsManager)
+                .encryptionContext(encryptionContext).build(), is)
+                .toCryptoInputStream();
     }
 
     /**
      * Returns the equivalent to calling
      * {@link #createEncryptingStream(MasterKeyProvider, InputStream, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createEncryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoInputStream<K> createEncryptingStream(
             final MasterKeyProvider<K> provider,
             final InputStream is
@@ -574,12 +747,34 @@ public class AwsCrypto {
      * Returns the equivalent to calling
      * {@link #createEncryptingStream(CryptoMaterialsManager, InputStream, Map)} with an empty
      * {@code encryptionContext}.
+     *
+     * @deprecated Replaced by {@link #createEncryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public CryptoInputStream<?> createEncryptingStream(
             final CryptoMaterialsManager materialsManager,
             final InputStream is
     ) {
-        return createEncryptingStream(materialsManager, is, EMPTY_MAP);
+        return createEncryptingStream(AwsCryptoConfig.builder()
+                .cryptoMaterialsManager(materialsManager).build(), is).toCryptoInputStream();
+    }
+
+    /**
+     * Returns a {@link AwsCryptoInputStream} which encrypts the data after reading it from the
+     * underlying {@link InputStream}.
+     *
+     * @see #encryptData(AwsCryptoConfig, byte[])
+     * @see javax.crypto.CipherInputStream
+     */
+    public AwsCryptoInputStream createEncryptingStream(
+            final AwsCryptoConfig config,
+            final InputStream is
+    ) {
+        requireNonNull(config, "config is required");
+        final MessageCryptoHandler cryptoHandler = getEncryptingStreamHandler(
+                config.getCryptoMaterialsManager(), config.getEncryptionContext());
+
+        return new AwsCryptoInputStream(is, cryptoHandler);
     }
 
     /**
@@ -588,7 +783,11 @@ public class AwsCrypto {
      *
      * @see #decryptData(MasterKeyProvider, byte[])
      * @see javax.crypto.CipherOutputStream
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createDecryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoOutputStream<K> createDecryptingStream(
             final MasterKeyProvider<K> provider, final OutputStream os) {
         final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider);
@@ -601,7 +800,11 @@ public class AwsCrypto {
      *
      * @see #decryptData(MasterKeyProvider, byte[])
      * @see javax.crypto.CipherInputStream
+     *
+     * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+     *              Replaced by {@link #createDecryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public <K extends MasterKey<K>> CryptoInputStream<K> createDecryptingStream(
             final MasterKeyProvider<K> provider, final InputStream is) {
         final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider);
@@ -614,12 +817,29 @@ public class AwsCrypto {
      *
      * @see #decryptData(CryptoMaterialsManager, byte[])
      * @see javax.crypto.CipherOutputStream
+     *
+     * @deprecated Replaced by {@link #createDecryptingStream(AwsCryptoConfig, OutputStream)}
      */
+    @Deprecated
     public CryptoOutputStream<?> createDecryptingStream(
             final CryptoMaterialsManager materialsManager, final OutputStream os
     ) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager);
-        return new CryptoOutputStream(os, cryptoHandler);
+        return createDecryptingStream(AwsCryptoConfig.builder().cryptoMaterialsManager(materialsManager).build(),
+                os).toCryptoOutputStream();
+    }
+
+    /**
+     * Returns a {@link AwsCryptoOutputStream} which decrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}.
+     *
+     * @see #decryptData(AwsCryptoConfig, byte[])
+     * @see javax.crypto.CipherOutputStream
+     */
+    public AwsCryptoOutputStream createDecryptingStream(
+            final AwsCryptoConfig config, final OutputStream os
+    ) {
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(config.getCryptoMaterialsManager());
+        return new AwsCryptoOutputStream(os, cryptoHandler);
     }
 
     /**
@@ -628,12 +848,30 @@ public class AwsCrypto {
      *
      * @see #encryptData(CryptoMaterialsManager, byte[], Map)
      * @see javax.crypto.CipherInputStream
+     *
+     * @deprecated Replaced by {@link #createDecryptingStream(AwsCryptoConfig, InputStream)}
      */
+    @Deprecated
     public CryptoInputStream<?> createDecryptingStream(
             final CryptoMaterialsManager materialsManager, final InputStream is
     ) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager);
-        return new CryptoInputStream(is, cryptoHandler);
+        return createDecryptingStream(AwsCryptoConfig.builder().cryptoMaterialsManager(materialsManager).build(),
+                is).toCryptoInputStream();
+    }
+
+    /**
+     * Returns a {@link AwsCryptoInputStream} which decrypts the data after reading it from the
+     * underlying {@link InputStream}.
+     *
+     * @see #encryptData(AwsCryptoConfig, byte[])
+     * @see javax.crypto.CipherInputStream
+     */
+    public AwsCryptoInputStream createDecryptingStream(final AwsCryptoConfig config, final InputStream is
+    ) {
+        requireNonNull(config, "config is required");
+
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(config.getCryptoMaterialsManager());
+        return new AwsCryptoInputStream(is, cryptoHandler);
     }
 
     private MessageCryptoHandler getEncryptingStreamHandler(
@@ -668,5 +906,111 @@ public class AwsCrypto {
         }
 
         return result;
+    }
+
+    /**
+     * Configuration class for managing inputs to the encryption and decryption methods in AwsCrypto.
+     * Either a {@link CryptoMaterialsManager} or a {@link Keyring} is required, and a {@code Map<String, String}
+     * Encryption Context is optional.
+     *
+     * Use {@code AwsCryptoConfig.builder()} to construct an instance.
+     */
+    public static class AwsCryptoConfig {
+
+        private final CryptoMaterialsManager cryptoMaterialsManager;
+        private final Map<String, String> encryptionContext;
+
+        /**
+         * Gets the CryptoMaterialsManager.
+         *
+         * @return The CryptoMaterialsManager
+         */
+        public CryptoMaterialsManager getCryptoMaterialsManager() {
+            return cryptoMaterialsManager;
+        }
+
+        /**
+         * Gets the encryption context.
+         *
+         * @return The encryption context
+         */
+        public Map<String, String> getEncryptionContext() {
+            return encryptionContext;
+        }
+
+        /**
+         * Instantiates a new Builder for constructing AwsCryptoConfig instances.
+         *
+         * @return The Builder
+         */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        private AwsCryptoConfig(Builder builder) {
+            isTrue(builder.cryptoMaterialsManager != null || builder.keyring != null,
+                    "Either cryptoMaterialsManager or keyring is required");
+            isTrue(builder.cryptoMaterialsManager == null || builder.keyring == null,
+                    "Only one of cryptoMaterialsManager or keyring may be specified");
+            requireNonNull(builder.encryptionContext, "encryptionContext is required");
+
+            this.cryptoMaterialsManager = builder.cryptoMaterialsManager == null ?
+                    new DefaultCryptoMaterialsManager(builder.keyring) : builder.cryptoMaterialsManager;
+            this.encryptionContext = builder.encryptionContext;
+        }
+
+        public static class Builder {
+
+            private CryptoMaterialsManager cryptoMaterialsManager;
+            private Keyring keyring;
+            private Map<String, String> encryptionContext = EMPTY_MAP;
+
+            /**
+             * Sets the {@link CryptoMaterialsManager}. Either a {@link CryptoMaterialsManager} or a
+             * {@link Keyring} is required.
+             *
+             * @param cryptoMaterialsManager The {@link CryptoMaterialsManager}
+             * @return The Builder, for method chaining
+             */
+            public Builder cryptoMaterialsManager(CryptoMaterialsManager cryptoMaterialsManager) {
+                requireNonNull(cryptoMaterialsManager, "cryptoMaterialsManager is required");
+                this.cryptoMaterialsManager = cryptoMaterialsManager;
+                return this;
+            }
+
+            /**
+             * Sets the {@link Keyring}. Either a {@link CryptoMaterialsManager} or a
+             * {@link Keyring} is required.
+             *
+             * @param keyring The {@link Keyring}
+             * @return The Builder, for method chaining
+             */
+            public Builder keyring(Keyring keyring) {
+                requireNonNull(keyring, "keyring is required");
+                this.keyring = keyring;
+                return this;
+            }
+
+            /**
+             * Sets the (optional) encryption context map.
+             *
+             * @param encryptionContext The encryption context
+             * @return The Builder, for method chaining
+             */
+            public Builder encryptionContext(Map<String, String> encryptionContext) {
+                requireNonNull(encryptionContext, "encryptionContext is required");
+                this.encryptionContext = encryptionContext;
+                return this;
+            }
+
+            /**
+             * Constructs the AwsCryptoConfig instance.
+             *
+             * @return The AwCryptoConfig instance
+             */
+            public AwsCryptoConfig build() {
+                return new AwsCryptoConfig(this);
+            }
+        }
     }
 }
