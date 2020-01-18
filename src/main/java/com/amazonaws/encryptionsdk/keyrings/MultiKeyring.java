@@ -16,6 +16,8 @@ package com.amazonaws.encryptionsdk.keyrings;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +52,9 @@ class MultiKeyring implements Keyring {
             generatorKeyring.onEncrypt(encryptionMaterials);
         }
 
-        if (!encryptionMaterials.hasPlaintextDataKey()) {
-            throw new AwsCryptoException("Either a generator keyring must be supplied that produces a plaintext " +
-                    "data key or a plaintext data key must already be present in the encryption materials.");
+        if (encryptionMaterials.getCleartextDataKey() == null) {
+            throw new AwsCryptoException("Either a generator keyring must be supplied that produces a cleartext " +
+                    "data key or a cleartext data key must already be present in the encryption materials.");
         }
 
         for (Keyring keyring : childrenKeyrings) {
@@ -65,7 +67,7 @@ class MultiKeyring implements Keyring {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.hasPlaintextDataKey()) {
+        if (decryptionMaterials.getCleartextDataKey() != null) {
             return;
         }
 
@@ -83,7 +85,7 @@ class MultiKeyring implements Keyring {
             try {
                 keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-                if (decryptionMaterials.hasPlaintextDataKey()) {
+                if (decryptionMaterials.getCleartextDataKey() != null) {
                     // Decryption succeeded, return immediately
                     return;
                 }

@@ -16,6 +16,8 @@ package com.amazonaws.encryptionsdk.keyrings;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,8 +37,8 @@ import java.util.Map;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -71,10 +73,11 @@ class RawKeyringTest {
 
     @Test
     void testEncryptDecryptExistingDataKey() {
-        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .plaintextDataKey(DATA_KEY)
-                .keyringTrace(new KeyringTrace())
-                .encryptionContext(ENCRYPTION_CONTEXT)
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setKeyringTrace(new KeyringTrace())
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         keyring.onEncrypt(encryptionMaterials);
@@ -84,32 +87,34 @@ class RawKeyringTest {
         assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
         assertEquals(ENCRYPTED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
 
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
 
-        assertEquals(DATA_KEY, decryptionMaterials.getPlaintextDataKey());
+        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 
     @Test
     void testEncryptNullDataKey() {
-        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder(ALGORITHM)
-                .keyringTrace(new KeyringTrace())
-                .encryptionContext(ENCRYPTION_CONTEXT)
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setKeyringTrace(new KeyringTrace())
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         ArgumentCaptor<byte[]> dataKeyCaptor = ArgumentCaptor.forClass(byte[].class);
         when(jceKeyCipher.encryptKey(dataKeyCaptor.capture(), eq(KEYNAME), eq(KEYNAMESPACE), eq(ENCRYPTION_CONTEXT))).thenReturn(ENCRYPTED_DATA_KEY);
         keyring.onEncrypt(encryptionMaterials);
 
-        assertEquals(encryptionMaterials.getPlaintextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
-        assertArrayEquals(encryptionMaterials.getPlaintextDataKey().getEncoded(), dataKeyCaptor.getValue());
+        assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
+        assertArrayEquals(encryptionMaterials.getCleartextDataKey().getEncoded(), dataKeyCaptor.getValue());
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
-        assertNotNull(encryptionMaterials.getPlaintextDataKey());
+        assertNotNull(encryptionMaterials.getCleartextDataKey());
         assertEncryptedDataKeyEquals(ENCRYPTED_DATA_KEY, encryptionMaterials.getEncryptedDataKeys().get(0));
         assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
         assertEquals(GENERATED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
@@ -118,50 +123,54 @@ class RawKeyringTest {
 
     @Test
     void testDecryptAlreadyDecryptedDataKey() {
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .plaintextDataKey(DATA_KEY)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
 
-        assertEquals(DATA_KEY, decryptionMaterials.getPlaintextDataKey());
+        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
     void testDecryptNoValidDataKey() {
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(INVALID_DATA_KEY));
 
-        assertFalse(decryptionMaterials.hasPlaintextDataKey());
+        assertNull(decryptionMaterials.getCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
     void testDecryptNoDataKey() {
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
-        assertFalse(decryptionMaterials.hasPlaintextDataKey());
+        assertNull(decryptionMaterials.getCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
 
     @Test
     void testDecryptMultipleKeysOneInvalid() {
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         final List<EncryptedDataKey> edks = new ArrayList<>();
@@ -170,7 +179,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, edks);
 
-        assertEquals(DATA_KEY, decryptionMaterials.getPlaintextDataKey());
+        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 
@@ -178,9 +187,10 @@ class RawKeyringTest {
     void testDecryptMultipleKeysOneException() throws GeneralSecurityException {
         final EncryptedDataKey BAD_DATA_KEY = new KeyBlob("exceptionProvider", new byte[]{1, 2, 3}, new byte[]{4, 5, 6});
 
-        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder(ALGORITHM)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(new KeyringTrace())
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         when(jceKeyCipher.decryptKey(BAD_DATA_KEY, KEYNAME, ENCRYPTION_CONTEXT))
@@ -192,7 +202,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, edks);
 
-        assertEquals(DATA_KEY, decryptionMaterials.getPlaintextDataKey());
+        assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 

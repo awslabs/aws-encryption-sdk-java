@@ -14,6 +14,8 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 import java.util.List;
 

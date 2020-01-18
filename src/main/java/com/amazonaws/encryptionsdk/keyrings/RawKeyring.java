@@ -16,10 +16,12 @@ package com.amazonaws.encryptionsdk.keyrings;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
 import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.model.KeyBlob;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -66,14 +68,14 @@ abstract class RawKeyring implements Keyring {
     public void onEncrypt(EncryptionMaterials encryptionMaterials) {
         requireNonNull(encryptionMaterials, "encryptionMaterials are required");
 
-        if (!encryptionMaterials.hasPlaintextDataKey()) {
+        if (encryptionMaterials.getCleartextDataKey() == null) {
             generateDataKey(encryptionMaterials);
         }
 
         final EncryptedDataKey encryptedDataKey = jceKeyCipher.encryptKey(
-                encryptionMaterials.getPlaintextDataKey().getEncoded(),
+                encryptionMaterials.getCleartextDataKey().getEncoded(),
                 keyName, keyNamespace, encryptionMaterials.getEncryptionContext());
-        encryptionMaterials.addEncryptedDataKey(encryptedDataKey,
+        encryptionMaterials.addEncryptedDataKey(new KeyBlob(encryptedDataKey),
                 new KeyringTraceEntry(keyNamespace, keyName, encryptTraceFlags()));
     }
 
@@ -82,7 +84,7 @@ abstract class RawKeyring implements Keyring {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.hasPlaintextDataKey() || encryptedDataKeys.isEmpty()) {
+        if (decryptionMaterials.getCleartextDataKey() != null || encryptedDataKeys.isEmpty()) {
             return;
         }
 
@@ -91,8 +93,8 @@ abstract class RawKeyring implements Keyring {
                 try {
                     final byte[] decryptedKey = jceKeyCipher.decryptKey(
                             encryptedDataKey, keyName, decryptionMaterials.getEncryptionContext());
-                    decryptionMaterials.setPlaintextDataKey(
-                            new SecretKeySpec(decryptedKey, decryptionMaterials.getAlgorithmSuite().getDataKeyAlgo()),
+                    decryptionMaterials.setCleartextDataKey(
+                            new SecretKeySpec(decryptedKey, decryptionMaterials.getAlgorithm().getDataKeyAlgo()),
                             new KeyringTraceEntry(keyNamespace, keyName, decryptTraceFlags()));
                     return;
                 } catch (Exception e) {
@@ -105,11 +107,11 @@ abstract class RawKeyring implements Keyring {
     }
 
     private void generateDataKey(EncryptionMaterials encryptionMaterials) {
-        final byte[] rawKey = new byte[encryptionMaterials.getAlgorithmSuite().getDataKeyLength()];
+        final byte[] rawKey = new byte[encryptionMaterials.getAlgorithm().getDataKeyLength()];
         Utils.getSecureRandom().nextBytes(rawKey);
-        final SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithmSuite().getDataKeyAlgo());
+        final SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithm().getDataKeyAlgo());
 
-        encryptionMaterials.setPlaintextDataKey(key, new KeyringTraceEntry(keyNamespace, keyName, GENERATED_DATA_KEY));
+        encryptionMaterials.setCleartextDataKey(key, new KeyringTraceEntry(keyNamespace, keyName, GENERATED_DATA_KEY));
     }
 
     private KeyringTraceFlag[] encryptTraceFlags() {

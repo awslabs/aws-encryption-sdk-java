@@ -21,6 +21,9 @@ import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao.DecryptDataKeyResult;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao.GenerateDataKeyResult;
 import com.amazonaws.encryptionsdk.kms.KmsUtils;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.model.KeyBlob;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -77,7 +80,7 @@ class KmsKeyring implements Keyring {
 
         // If the input encryption materials do not contain a plaintext data key and this keyring does not
         // have a generator defined, OnEncrypt MUST not modify the encryption materials and MUST fail.
-        if (!encryptionMaterials.hasPlaintextDataKey() && generatorKeyId == null) {
+        if (encryptionMaterials.getCleartextDataKey() == null && generatorKeyId == null) {
             throw new AwsCryptoException("Encryption materials must contain either a plaintext data key or a generator");
         }
 
@@ -85,7 +88,7 @@ class KmsKeyring implements Keyring {
 
         // If the input encryption materials do not contain a plaintext data key and a generator is defined onEncrypt
         // MUST attempt to generate a new plaintext data key and encrypt that data key by calling KMS GenerateDataKey.
-        if (!encryptionMaterials.hasPlaintextDataKey()) {
+        if (encryptionMaterials.getCleartextDataKey() == null) {
             generateDataKey(encryptionMaterials);
         } else if (generatorKeyId != null) {
             // If this keyring's generator is defined and was not used to generate a data key, OnEncrypt
@@ -102,19 +105,19 @@ class KmsKeyring implements Keyring {
 
     private void generateDataKey(final EncryptionMaterials encryptionMaterials) {
         final GenerateDataKeyResult result = dataKeyEncryptionDao.generateDataKey(generatorKeyId,
-                encryptionMaterials.getAlgorithmSuite(), encryptionMaterials.getEncryptionContext());
+                encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
 
-        encryptionMaterials.setPlaintextDataKey(result.getPlaintextDataKey(),
+        encryptionMaterials.setCleartextDataKey(result.getPlaintextDataKey(),
                 new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.GENERATED_DATA_KEY));
-        encryptionMaterials.addEncryptedDataKey(result.getEncryptedDataKey(),
+        encryptionMaterials.addEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()),
                 new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
 
     private void encryptDataKey(final String keyId, final EncryptionMaterials encryptionMaterials) {
         final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao.encryptDataKey(keyId,
-                encryptionMaterials.getPlaintextDataKey(), encryptionMaterials.getEncryptionContext());
+                encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
 
-        encryptionMaterials.addEncryptedDataKey(encryptedDataKey,
+        encryptionMaterials.addEncryptedDataKey(new KeyBlob(encryptedDataKey),
                 new KeyringTraceEntry(KMS_PROVIDER_ID, keyId, KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
 
@@ -123,7 +126,7 @@ class KmsKeyring implements Keyring {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.hasPlaintextDataKey() || encryptedDataKeys.isEmpty()) {
+        if (decryptionMaterials.getCleartextDataKey() != null || encryptedDataKeys.isEmpty()) {
             return;
         }
 
@@ -137,9 +140,9 @@ class KmsKeyring implements Keyring {
             if (okToDecrypt(encryptedDataKey, configuredKeyIds)) {
                 try {
                     final DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(encryptedDataKey,
-                            decryptionMaterials.getAlgorithmSuite(), decryptionMaterials.getEncryptionContext());
+                            decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
-                    decryptionMaterials.setPlaintextDataKey(result.getPlaintextDataKey(),
+                    decryptionMaterials.setCleartextDataKey(result.getPlaintextDataKey(),
                             new KeyringTraceEntry(KMS_PROVIDER_ID, result.getKeyArn(),
                                     KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
                     return;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
@@ -11,10 +11,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.encryptionsdk.keyrings;
+package com.amazonaws.encryptionsdk.model;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.internal.TrailingSignatureAlgorithm;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTraceEntry;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTraceFlag;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +32,9 @@ import java.util.Map;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DecryptionMaterialsTest {
 
@@ -50,67 +55,46 @@ class DecryptionMaterialsTest {
     }
 
     @Test
-    void testBuilderNullCryptoAlgorithm() {
-        assertThrows(NullPointerException.class, () -> DecryptionMaterials.newBuilder(null).build());
-    }
-
-    @Test
     void testBuilder() {
-        DecryptionMaterials result = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(KEYRING_TRACE)
-                .plaintextDataKey(PLAINTEXT_DATA_KEY)
-                .verificationKey(VERIFICATION_KEY)
+        DecryptionMaterials result = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM_SUITE)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(KEYRING_TRACE)
+                .setCleartextDataKey(PLAINTEXT_DATA_KEY)
+                .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
-        assertEquals(ALGORITHM_SUITE, result.getAlgorithmSuite());
+        assertEquals(ALGORITHM_SUITE, result.getAlgorithm());
         assertEquals(ENCRYPTION_CONTEXT, result.getEncryptionContext());
         assertEquals(KEYRING_TRACE, result.getKeyringTrace());
-        assertEquals(PLAINTEXT_DATA_KEY, result.getPlaintextDataKey());
-        assertEquals(VERIFICATION_KEY, result.getVerificationKey());
+        assertEquals(PLAINTEXT_DATA_KEY, result.getCleartextDataKey());
+        assertEquals(VERIFICATION_KEY, result.getTrailingSignatureKey());
     }
 
     @Test
     void testInvalidPlaintextDataKey() {
         SecretKey wrongLength = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength() + 1), ALGORITHM_SUITE.getDataKeyAlgo());
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .plaintextDataKey(wrongLength)
-                .verificationKey(VERIFICATION_KEY)
-                .build());
-
         SecretKey wrongAlgorithm = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), "InvalidAlgorithm");
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .plaintextDataKey(wrongAlgorithm)
-                .verificationKey(VERIFICATION_KEY)
-                .build());
 
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .verificationKey(VERIFICATION_KEY)
+
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM_SUITE)
+                .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> materials
-                .setPlaintextDataKey(wrongAlgorithm, KEYRING_TRACE_ENTRY));
+                .setCleartextDataKey(wrongAlgorithm, KEYRING_TRACE_ENTRY));
         assertThrows(IllegalArgumentException.class, () -> materials
-                .setPlaintextDataKey(wrongLength, KEYRING_TRACE_ENTRY));
-    }
-
-    @Test
-    void testInvalidVerificationKey() {
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .verificationKey(null)
-                .build());
-        assertThrows(IllegalArgumentException.class, () -> DecryptionMaterials.newBuilder(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
-                .verificationKey(VERIFICATION_KEY)
-                .build());
-
+                .setCleartextDataKey(wrongLength, KEYRING_TRACE_ENTRY));
     }
 
     @Test
     void testToBuilder() {
-        DecryptionMaterials expected = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .keyringTrace(KEYRING_TRACE)
-                .plaintextDataKey(PLAINTEXT_DATA_KEY)
-                .verificationKey(VERIFICATION_KEY)
+        DecryptionMaterials expected = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM_SUITE)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .setKeyringTrace(KEYRING_TRACE)
+                .setCleartextDataKey(PLAINTEXT_DATA_KEY)
+                .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
         DecryptionMaterials actual = expected.toBuilder().build();
@@ -121,28 +105,33 @@ class DecryptionMaterialsTest {
 
     @Test
     void testSetPlaintextDataKey() {
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder(ALGORITHM_SUITE)
-                .verificationKey(VERIFICATION_KEY)
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM_SUITE)
+                .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
-        assertThrows(NullPointerException.class, () -> materials.setPlaintextDataKey(null, KEYRING_TRACE_ENTRY));
-        assertThrows(NullPointerException.class, () -> materials.setPlaintextDataKey(PLAINTEXT_DATA_KEY, null));
+        assertThrows(NullPointerException.class, () -> materials.setCleartextDataKey(null, KEYRING_TRACE_ENTRY));
+        assertThrows(NullPointerException.class, () -> materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, null));
 
-        materials.setPlaintextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY);
-        assertEquals(PLAINTEXT_DATA_KEY, materials.getPlaintextDataKey());
+        materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY);
+        assertEquals(PLAINTEXT_DATA_KEY, materials.getCleartextDataKey());
+        assertEquals(PLAINTEXT_DATA_KEY, materials.getDataKey().getKey());
         assertEquals(1, materials.getKeyringTrace().getEntries().size());
         assertEquals(KEYRING_TRACE_ENTRY, materials.getKeyringTrace().getEntries().get(0));
 
-        assertThrows(IllegalStateException.class, () -> materials.setPlaintextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
+        assertThrows(IllegalStateException.class, () -> materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
     }
 
     @Test
     void testGetOptionalProperties() {
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
-                .build();
+        DecryptionMaterials materials = DecryptionMaterials.newBuilder()
+            .build();
 
-        assertThrows(IllegalStateException.class, materials::getPlaintextDataKey);
-        assertThrows(IllegalStateException.class, materials::getVerificationKey);
+        assertNull(materials.getAlgorithm());
+        assertNull(materials.getCleartextDataKey());
+        assertNull(materials.getTrailingSignatureKey());
+        assertTrue(materials.getEncryptionContext().isEmpty());
+        assertTrue(materials.getKeyringTrace().getEntries().isEmpty());
     }
 
 }
