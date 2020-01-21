@@ -1,11 +1,11 @@
 /*
  * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
- * 
+ *
  * http://aws.amazon.com/apache2.0
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -13,21 +13,24 @@
 
 package com.amazonaws.crypto.examples;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.Map;
+import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.AwsCryptoInputStream;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
+import com.amazonaws.util.IOUtils;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
-import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.CryptoInputStream;
-import com.amazonaws.encryptionsdk.MasterKey;
-import com.amazonaws.encryptionsdk.jce.JceMasterKey;
-import com.amazonaws.util.IOUtils;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>
@@ -40,55 +43,83 @@ import com.amazonaws.util.IOUtils;
  * </ol>
  *
  * <p>
- * This program demonstrates using a standard Java {@link SecretKey} object as a {@link MasterKey} to
+ * This program demonstrates using a standard Java {@link SecretKey} object in a {@link Keyring} to
  * encrypt and decrypt streaming data.
  */
 public class FileStreamingExample {
-    private static String srcFile;
 
     public static void main(String[] args) throws IOException {
-        srcFile = args[0];
+        final String srcFile = args[0];
 
-        // In this example, we generate a random key. In practice, 
-        // you would get a key from an existing store
-        SecretKey cryptoKey = retrieveEncryptionKey();
+        encryptAndDecrypt(srcFile);
 
-        // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm
-        JceMasterKey masterKey = JceMasterKey.getInstance(cryptoKey, "Example", "RandomKey", "AES/GCM/NoPadding");
+    }
 
-        // Instantiate the SDK
-        AwsCrypto crypto = new AwsCrypto();
+    static void encryptAndDecrypt(final String srcFile) throws IOException {
+        // 1. Instantiate the SDK
+        final AwsCrypto crypto = new AwsCrypto();
 
-        // Create an encryption context to identify this ciphertext
-        Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");
+        // 2. Retrieve an encryption key. In this example, we generate a random key.
+        //    In practice, you would get a key from an existing store
+        final SecretKey cryptoKey = retrieveEncryptionKey();
 
-        // Because the file might be to large to load into memory, we stream the data, instead of 
-        //loading it all at once.
-        FileInputStream in = new FileInputStream(srcFile);
-        CryptoInputStream<JceMasterKey> encryptingStream = crypto.createEncryptingStream(masterKey, in, context);
+        // 3. Instantiate a RawAesKeyring using the random key
+        final Keyring keyring = StandardKeyrings.rawAes("Example", "RandomKey", cryptoKey);
 
-        FileOutputStream out = new FileOutputStream(srcFile + ".encrypted");
-        IOUtils.copy(encryptingStream, out);
-        encryptingStream.close();
-        out.close();
+        // 4. Create an encryption context
+        //
+        //    Most encrypted data should have an associated encryption context
+        //    to protect integrity. This sample uses placeholder values.
+        //
+        //    For more information see:
+        //    blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
+        final Map<String, String> encryptionContext = Collections.singletonMap("Example", "FileStreaming");
 
-        // Decrypt the file. Verify the encryption context before returning the plaintext.
-        in = new FileInputStream(srcFile + ".encrypted");
-        CryptoInputStream<JceMasterKey> decryptingStream = crypto.createDecryptingStream(masterKey, in);
-        // Does it contain the expected encryption context?
-        if (!"FileStreaming".equals(decryptingStream.getCryptoResult().getEncryptionContext().get("Example"))) {
+        // 5. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring and encryption context
+        final AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
+                .keyring(keyring)
+                .encryptionContext(encryptionContext)
+                .build();
+
+        // 6. Create the encrypting stream. Because the file might be too large to load into memory,
+        //    we stream the data, instead of loading it all at once.
+        final AwsCryptoInputStream encryptingStream =
+                crypto.createEncryptingStream(config, new FileInputStream(srcFile));
+
+        // 7. Copy the encrypted data into a file.
+        final File encryptedFile = new File(srcFile + ".encrypted");
+        try (FileOutputStream out = new FileOutputStream(encryptedFile)) {
+            IOUtils.copy(encryptingStream, out);
+            encryptingStream.close();
+        }
+
+        // 8. Create the decrypting stream.
+        final AwsCryptoInputStream decryptingStream =
+                crypto.createDecryptingStream(config, new FileInputStream(encryptedFile));
+
+        // 9. Verify that the encryption context in the result contains the
+        //    encryption context supplied to the createEncryptingStream method.
+        if (!"FileStreaming".equals(decryptingStream.getAwsCryptoResult().getEncryptionContext().get("Example"))) {
             throw new IllegalStateException("Bad encryption context");
         }
 
-        // Return the plaintext data
-        out = new FileOutputStream(srcFile + ".decrypted");
-        IOUtils.copy(decryptingStream, out);
-        decryptingStream.close();
-        out.close();
+        // 10. Copy the plaintext data to a file
+        final File decryptedFile = new File(srcFile + ".decrypted");
+        try (FileOutputStream out = new FileOutputStream(decryptedFile)) {
+            IOUtils.copy(decryptingStream, out);
+            decryptingStream.close();
+        }
+
+        // 11. Compare the decrypted file to the original
+        compareFiles(decryptedFile, new File(srcFile));
+
+        // 12. Clean up the encrypted and decrypted files
+        encryptedFile.delete();
+        decryptedFile.delete();
     }
 
     /**
-     * In practice, this key would be saved in a secure location. 
+     * In practice, this key would be saved in a secure location.
      * For this demo, we generate a new random key for each operation.
      */
     private static SecretKey retrieveEncryptionKey() {
@@ -97,4 +128,21 @@ public class FileStreamingExample {
         rnd.nextBytes(rawKey);
         return new SecretKeySpec(rawKey, "AES");
     }
+
+    private static void compareFiles(File file1, File file2) throws IOException {
+        assert file1.length() == file2.length();
+
+        try (BufferedReader file1Reader = Files.newBufferedReader(file1.toPath());
+             BufferedReader file2Reader = Files.newBufferedReader(file2.toPath())) {
+            String file1Line;
+            String file2Line;
+
+            while ((file1Line = file1Reader.readLine()) != null &&
+                    (file2Line = file2Reader.readLine()) != null) {
+                assert Objects.equals(file1Line, file2Line);
+            }
+
+        }
+    }
+
 }

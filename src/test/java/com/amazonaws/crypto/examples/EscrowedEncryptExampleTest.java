@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
@@ -16,10 +16,12 @@ package com.amazonaws.crypto.examples;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import org.junit.jupiter.api.Test;
 
-class BasicEncryptionExampleTest {
+import java.security.GeneralSecurityException;
+
+class EscrowedEncryptExampleTest {
 
     @Test
-    void testEncryptAndDecrypt() {
-        BasicEncryptionExample.encryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
+    void testEncryptAndDecrypt() throws GeneralSecurityException {
+        EscrowedEncryptExample.escrowEncryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
     }
 }
