@@ -80,7 +80,7 @@ class KmsKeyring implements Keyring {
 
         // If the input encryption materials do not contain a plaintext data key and this keyring does not
         // have a generator defined, OnEncrypt MUST not modify the encryption materials and MUST fail.
-        if (encryptionMaterials.getCleartextDataKey() == null && generatorKeyId == null) {
+        if (!encryptionMaterials.hasCleartextDataKey() && generatorKeyId == null) {
             throw new AwsCryptoException("Encryption materials must contain either a plaintext data key or a generator");
         }
 
@@ -88,7 +88,7 @@ class KmsKeyring implements Keyring {
 
         // If the input encryption materials do not contain a plaintext data key and a generator is defined onEncrypt
         // MUST attempt to generate a new plaintext data key and encrypt that data key by calling KMS GenerateDataKey.
-        if (encryptionMaterials.getCleartextDataKey() == null) {
+        if (!encryptionMaterials.hasCleartextDataKey()) {
             generateDataKey(encryptionMaterials);
         } else if (generatorKeyId != null) {
             // If this keyring's generator is defined and was not used to generate a data key, OnEncrypt
@@ -126,7 +126,7 @@ class KmsKeyring implements Keyring {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.getCleartextDataKey() != null || encryptedDataKeys.isEmpty()) {
+        if (decryptionMaterials.hasCleartextDataKey() || encryptedDataKeys.isEmpty()) {
             return;
         }
 

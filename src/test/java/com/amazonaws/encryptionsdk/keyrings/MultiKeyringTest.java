@@ -67,7 +67,7 @@ class MultiKeyringTest {
     @Test
     void testOnEncryptWithGenerator() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
-        when(encryptionMaterials.getCleartextDataKey()).thenReturn(cleartextDataKey);
+        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
 
         keyring.onEncrypt(encryptionMaterials);
 
@@ -79,7 +79,7 @@ class MultiKeyringTest {
     @Test
     void testOnEncryptWithoutGenerator() {
         MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
-        when(encryptionMaterials.getCleartextDataKey()).thenReturn(cleartextDataKey);
+        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
 
         keyring.onEncrypt(encryptionMaterials);
 
@@ -91,7 +91,7 @@ class MultiKeyringTest {
     @Test
     void testOnEncryptNoPlaintextDataKey() {
         MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
-        when(encryptionMaterials.getCleartextDataKey()).thenReturn(null);
+        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(false);
 
         assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
     }
@@ -100,7 +100,7 @@ class MultiKeyringTest {
     void testOnDecryptWithPlaintextDataKey() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(cleartextDataKey);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(true);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         verifyNoInteractions(generatorKeyring, keyring1, keyring2);
@@ -110,7 +110,7 @@ class MultiKeyringTest {
     void testOnDecryptWithGenerator() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(null).thenReturn(null).thenReturn(cleartextDataKey);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(generatorKeyring, keyring1);
@@ -123,7 +123,7 @@ class MultiKeyringTest {
     void testOnDecryptWithoutGenerator() {
         MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(null).thenReturn(null).thenReturn(cleartextDataKey);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(keyring1, keyring2);
@@ -136,7 +136,7 @@ class MultiKeyringTest {
     void testOnDecryptFailureThenSuccess() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(null).thenReturn(cleartextDataKey);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(true);
         doThrow(new IllegalStateException()).when(generatorKeyring).onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
@@ -151,7 +151,7 @@ class MultiKeyringTest {
     void testOnDecryptFailure() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(null);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false);
         doThrow(new AwsCryptoException()).when(generatorKeyring).onDecrypt(decryptionMaterials, encryptedDataKeys);
         doThrow(new IllegalStateException()).when(keyring1).onDecrypt(decryptionMaterials, encryptedDataKeys);
         doThrow(new IllegalArgumentException()).when(keyring2).onDecrypt(decryptionMaterials, encryptedDataKeys);
@@ -176,7 +176,7 @@ class MultiKeyringTest {
     void testOnDecryptNoFailuresNoPlaintextDataKeys() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
-        when(decryptionMaterials.getCleartextDataKey()).thenReturn(null, null, null, null);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false, false, false, false);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(generatorKeyring, keyring1, keyring2);

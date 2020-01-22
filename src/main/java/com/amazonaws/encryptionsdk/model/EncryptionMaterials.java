@@ -101,7 +101,7 @@ public final class EncryptionMaterials {
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if (this.cleartextDataKey != null) {
+        if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
@@ -109,6 +109,15 @@ public final class EncryptionMaterials {
         validateCleartextDataKey(algorithm, cleartextDataKey);
         this.cleartextDataKey = cleartextDataKey;
         keyringTrace.add(keyringTraceEntry);
+    }
+
+    /**
+     * Returns true if a cleartext data key has been populated.
+     *
+     * @return True is a cleartext data key has been populated, false otherwise.
+     */
+    public boolean hasCleartextDataKey() {
+        return this.cleartextDataKey != null;
     }
 
     /**

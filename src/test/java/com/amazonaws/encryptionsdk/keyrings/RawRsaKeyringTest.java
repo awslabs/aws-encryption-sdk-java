@@ -33,7 +33,6 @@ import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAMESPACE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RawRsaKeyringTest {
@@ -109,7 +108,7 @@ class RawRsaKeyringTest {
 
         keyring.onEncrypt(encryptionMaterials);
 
-        assertNotNull(encryptionMaterials.getCleartextDataKey());
+        assertTrue(encryptionMaterials.hasCleartextDataKey());
         assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
 

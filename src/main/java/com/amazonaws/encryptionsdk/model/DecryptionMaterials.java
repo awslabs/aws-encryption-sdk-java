@@ -60,7 +60,7 @@ public final class DecryptionMaterials {
      * @param keyringTraceEntry The keyring trace entry recording this action.
      */
     public void setCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
-        if (this.dataKey != null) {
+        if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
@@ -72,6 +72,15 @@ public final class DecryptionMaterials {
 
     public SecretKey getCleartextDataKey() {
         return dataKey == null ? null : dataKey.getKey();
+    }
+
+    /**
+     * Returns true if a cleartext data key has been populated.
+     *
+     * @return True if cleartext data key is populated, false otherwise.
+     */
+    public boolean hasCleartextDataKey() {
+        return this.dataKey != null;
     }
 
     public PublicKey getTrailingSignatureKey() {

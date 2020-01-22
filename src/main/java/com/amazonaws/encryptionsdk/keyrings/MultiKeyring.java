@@ -52,7 +52,7 @@ class MultiKeyring implements Keyring {
             generatorKeyring.onEncrypt(encryptionMaterials);
         }
 
-        if (encryptionMaterials.getCleartextDataKey() == null) {
+        if (!encryptionMaterials.hasCleartextDataKey()) {
             throw new AwsCryptoException("Either a generator keyring must be supplied that produces a cleartext " +
                     "data key or a cleartext data key must already be present in the encryption materials.");
         }
@@ -67,7 +67,7 @@ class MultiKeyring implements Keyring {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
-        if (decryptionMaterials.getCleartextDataKey() != null) {
+        if (decryptionMaterials.hasCleartextDataKey()) {
             return;
         }
 
@@ -85,7 +85,7 @@ class MultiKeyring implements Keyring {
             try {
                 keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-                if (decryptionMaterials.getCleartextDataKey() != null) {
+                if (decryptionMaterials.hasCleartextDataKey()) {
                     // Decryption succeeded, return immediately
                     return;
                 }

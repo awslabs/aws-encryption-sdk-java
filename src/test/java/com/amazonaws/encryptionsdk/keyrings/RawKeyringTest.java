@@ -37,8 +37,8 @@ import java.util.Map;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -114,7 +114,7 @@ class RawKeyringTest {
         assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
         assertArrayEquals(encryptionMaterials.getCleartextDataKey().getEncoded(), dataKeyCaptor.getValue());
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
-        assertNotNull(encryptionMaterials.getCleartextDataKey());
+        assertTrue(encryptionMaterials.hasCleartextDataKey());
         assertEncryptedDataKeyEquals(ENCRYPTED_DATA_KEY, encryptionMaterials.getEncryptedDataKeys().get(0));
         assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
         assertEquals(GENERATED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
@@ -146,7 +146,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(INVALID_DATA_KEY));
 
-        assertNull(decryptionMaterials.getCleartextDataKey());
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
@@ -160,7 +160,7 @@ class RawKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
-        assertNull(decryptionMaterials.getCleartextDataKey());
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 

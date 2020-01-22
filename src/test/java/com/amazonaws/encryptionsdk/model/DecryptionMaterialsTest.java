@@ -31,6 +31,7 @@ import java.util.Map;
 
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -129,6 +130,7 @@ class DecryptionMaterialsTest {
 
         assertNull(materials.getAlgorithm());
         assertNull(materials.getCleartextDataKey());
+        assertFalse(materials.hasCleartextDataKey());
         assertNull(materials.getTrailingSignatureKey());
         assertTrue(materials.getEncryptionContext().isEmpty());
         assertTrue(materials.getKeyringTrace().getEntries().isEmpty());

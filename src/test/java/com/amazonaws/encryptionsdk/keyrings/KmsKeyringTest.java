@@ -45,7 +45,7 @@ import static com.amazonaws.encryptionsdk.keyrings.KeyringTraceFlag.SIGNED_ENCRY
 import static com.amazonaws.encryptionsdk.kms.KmsUtils.KMS_PROVIDER_ID;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -231,7 +231,7 @@ class KmsKeyringTest {
                 .build();
         keyring.onEncrypt(encryptionMaterials);
 
-        assertNull(encryptionMaterials.getCleartextDataKey());
+        assertFalse(encryptionMaterials.hasCleartextDataKey());
         assertEquals(0, encryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
@@ -344,7 +344,7 @@ class KmsKeyringTest {
 
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
-        assertNull(decryptionMaterials.getCleartextDataKey());
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
