@@ -476,7 +476,7 @@ public class AwsCrypto {
      * @see #decryptData(MasterKeyProvider, byte[])
      *
      * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
-     *              Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
+     *              Replaced by {@link #decryptData(AwsCryptoConfig, ParsedCiphertext)}
      */
     @SuppressWarnings("unchecked")
     @Deprecated
@@ -489,7 +489,7 @@ public class AwsCrypto {
     /**
      * @see #decryptData(CryptoMaterialsManager, byte[])
      *
-     * @deprecated Replaced by {@link #decryptData(AwsCryptoConfig, byte[])}
+     * @deprecated Replaced by {@link #decryptData(AwsCryptoConfig, ParsedCiphertext)}
      */
     @Deprecated
     public CryptoResult<byte[], ?> decryptData(
@@ -516,14 +516,14 @@ public class AwsCrypto {
     }
 
     /**
-     * Decrypts the provided ciphertext using the {@link CryptoMaterialsManager} or the {@link Keyring} 
+     * Decrypts the provided {@link ParsedCiphertext} using the {@link CryptoMaterialsManager} or the {@link Keyring}
      * specified in the {@link AwsCryptoConfig}.
      *
      * @param config The AwsCryptoConfig containing either a {@link CryptoMaterialsManager} or a {@link Keyring}
-     * @param ciphertext The ciphertext to decrypt
+     * @param ciphertext The {@link ParsedCiphertext} to decrypt
      * @return An {@link AwsCryptoResult} containing the decrypted data
      */
-    private AwsCryptoResult<byte[]> decryptData(
+    public AwsCryptoResult<byte[]> decryptData(
             final AwsCryptoConfig config,
             final ParsedCiphertext ciphertext
     ) {
