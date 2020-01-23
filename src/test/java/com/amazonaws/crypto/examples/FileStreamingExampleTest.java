@@ -26,7 +26,11 @@ class FileStreamingExampleTest {
     @Test
     void testEncryptAndDecrypt() throws IOException {
         final File tempFile = File.createTempFile("FileStreamingExampleTest-TempTestData", ".tmp");
+        final File encryptedFile = new File(tempFile.getPath()  + ".encrypted");
+        final File decryptedFile = new File(tempFile.getPath() + ".decrypted");
         tempFile.deleteOnExit();
+        encryptedFile.deleteOnExit();
+        decryptedFile.deleteOnExit();
 
         try(BufferedWriter writer = Files.newBufferedWriter(tempFile.toPath())) {
             for(int i = 0; i < 1000 ; i++) {
@@ -35,6 +39,6 @@ class FileStreamingExampleTest {
             }
         }
 
-        FileStreamingExample.encryptAndDecrypt(tempFile.getPath());
+        FileStreamingExample.encryptAndDecrypt(tempFile, encryptedFile, decryptedFile);
     }
 }

@@ -14,6 +14,7 @@
 package com.amazonaws.crypto.examples;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.AwsCrypto.AwsCryptoConfig;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
@@ -107,7 +108,7 @@ public class EscrowedEncryptExample {
         // 6. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
+        final AwsCryptoConfig config = AwsCryptoConfig.builder()
                 .keyring(keyring)
                 .build();
 
@@ -133,7 +134,7 @@ public class EscrowedEncryptExample {
         // 4. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
+        final AwsCryptoConfig config = AwsCryptoConfig.builder()
                 .keyring(kmsKeyring)
                 .build();
 
@@ -155,7 +156,7 @@ public class EscrowedEncryptExample {
         // 3. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
+        final AwsCryptoConfig config = AwsCryptoConfig.builder()
                 .keyring(rsaKeyring)
                 .build();
 
