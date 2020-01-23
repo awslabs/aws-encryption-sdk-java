@@ -24,7 +24,6 @@ import com.amazonaws.encryptionsdk.model.KeyBlob;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +31,6 @@ import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -56,11 +54,6 @@ public class StaticKeyring implements Keyring {
     private static final String PROVIDER_ID = "static_provider";
 
     /**
-     * Generates random strings that can be used to create data keys.
-     */
-    private static final SecureRandom SRAND = new SecureRandom();
-
-    /**
      * Encryption algorithm for the key-pair
      */
     private static final String ENCRYPTION_ALGORITHM = "RSA/ECB/PKCS1Padding";
@@ -71,14 +64,9 @@ public class StaticKeyring implements Keyring {
     private static final String KEY_FACTORY_ALGORITHM = "RSA";
 
     /**
-     * Encryption algorithm for the randomly generated data key
-     */
-    private static final String DATA_KEY_ENCRYPTION_ALGORITHM = "AES";
-
-    /**
      * The ID of the key
      */
-    private String keyId_;
+    private final String keyId_;
 
     /**
      * The {@link Cipher} object created with the public part of
@@ -91,11 +79,6 @@ public class StaticKeyring implements Keyring {
      * the key. It's used to decrypt encrypted data keys.
      */
     private final Cipher keyDecryptionCipher_;
-
-    /**
-     * Generates random data keys.
-     */
-    private KeyGenerator keyGenerator_;
 
     /**
      * Creates a new object that encrypts the data key with a key
@@ -162,9 +145,9 @@ public class StaticKeyring implements Keyring {
 
     private void generateDataKey(EncryptionMaterials encryptionMaterials) {
         try {
-            this.keyGenerator_ = KeyGenerator.getInstance(DATA_KEY_ENCRYPTION_ALGORITHM);
-            this.keyGenerator_.init(encryptionMaterials.getAlgorithm().getDataKeyLength() * 8, SRAND);
-            SecretKey key = new SecretKeySpec(keyGenerator_.generateKey().getEncoded(), encryptionMaterials.getAlgorithm().getDataKeyAlgo());
+            final byte[] rawKey = new byte[encryptionMaterials.getAlgorithm().getDataKeyLength()];
+            Utils.getSecureRandom().nextBytes(rawKey);
+            SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithm().getDataKeyAlgo());
             byte[] encryptedKey = keyEncryptionCipher_.doFinal(key.getEncoded());
 
             encryptionMaterials.setCleartextDataKey(key,

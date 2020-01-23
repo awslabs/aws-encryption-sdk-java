@@ -45,31 +45,35 @@ public class DefaultCryptoMaterialsManagerTest {
     private static final MasterKey<?> mk1 = new StaticMasterKey("mk1");
     private static final MasterKey<?> mk2 = new StaticMasterKey("mk2");
     private static final Keyring keyring1 = new StaticKeyring("keyring1");
-    private static final Keyring keyring2 = new StaticKeyring("keyring2");
 
     @Test
-    public void encrypt_testBasicFunctionality() {
+    public void encrypt_testBasicFunctionalityWithMkp() {
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
-        EncryptionMaterials resultMkp = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
-        EncryptionMaterials resultKeyring = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+        EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
-        assertNotNull(resultMkp.getAlgorithm());
-        assertNotNull(resultMkp.getCleartextDataKey());
-        assertNotNull(resultMkp.getEncryptionContext());
-        assertEquals(1, resultMkp.getEncryptedDataKeys().size());
-        assertEquals(1, resultMkp.getMasterKeys().size());
-        assertEquals(mk1, resultMkp.getMasterKeys().get(0));
-
-        assertNotNull(resultKeyring.getAlgorithm());
-        assertNotNull(resultKeyring.getCleartextDataKey());
-        assertNotNull(resultKeyring.getEncryptionContext());
-        assertNotNull(resultKeyring.getKeyringTrace());
-        assertEquals(1, resultKeyring.getEncryptedDataKeys().size());
-        assertEquals(0, resultKeyring.getMasterKeys().size());
+        assertNotNull(result.getAlgorithm());
+        assertNotNull(result.getCleartextDataKey());
+        assertNotNull(result.getEncryptionContext());
+        assertEquals(1, result.getEncryptedDataKeys().size());
+        assertEquals(1, result.getMasterKeys().size());
+        assertEquals(mk1, result.getMasterKeys().get(0));
     }
 
     @Test
-    public void encrypt_noSignatureKeyOnUnsignedAlgo() throws Exception {
+    public void encrypt_testBasicFunctionalityWithKeyring() {
+        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
+        EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+        assertNotNull(result.getAlgorithm());
+        assertNotNull(result.getCleartextDataKey());
+        assertNotNull(result.getEncryptionContext());
+        assertNotNull(result.getKeyringTrace());
+        assertEquals(1, result.getEncryptedDataKeys().size());
+        assertEquals(0, result.getMasterKeys().size());
+    }
+
+    @Test
+    public void encrypt_noSignatureKeyOnUnsignedAlgoWithMkp() throws Exception {
         CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256,
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF,
@@ -82,21 +86,38 @@ public class DefaultCryptoMaterialsManagerTest {
         for (CryptoAlgorithm algo : algorithms) {
             EncryptionMaterialsRequest req
                     = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
-            EncryptionMaterials mkpResult = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
-            EncryptionMaterials keyringResult = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
-            assertNull(mkpResult.getTrailingSignatureKey());
-            assertEquals(0, mkpResult.getEncryptionContext().size());
-            assertEquals(algo, mkpResult.getAlgorithm());
-
-            assertNull(keyringResult.getTrailingSignatureKey());
-            assertEquals(0, keyringResult.getEncryptionContext().size());
-            assertEquals(algo, keyringResult.getAlgorithm());
+            assertNull(result.getTrailingSignatureKey());
+            assertEquals(0, result.getEncryptionContext().size());
+            assertEquals(algo, result.getAlgorithm());
         }
     }
 
     @Test
-    public void encrypt_hasSignatureKeyForSignedAlgo() throws Exception {
+    public void encrypt_noSignatureKeyOnUnsignedAlgoWithKeyring() throws Exception {
+        CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_NO_KDF
+        };
+
+        for (CryptoAlgorithm algo : algorithms) {
+            EncryptionMaterialsRequest req
+                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+            assertNull(result.getTrailingSignatureKey());
+            assertEquals(0, result.getEncryptionContext().size());
+            assertEquals(algo, result.getAlgorithm());
+        }
+    }
+
+    @Test
+    public void encrypt_hasSignatureKeyForSignedAlgoWithMkp() throws Exception {
         CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
                 CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
@@ -107,19 +128,34 @@ public class DefaultCryptoMaterialsManagerTest {
 
             EncryptionMaterialsRequest req
                     = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
-            EncryptionMaterials mkpResult = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
-            EncryptionMaterials keyringResult = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
 
-            assertNotNull(mkpResult.getTrailingSignatureKey());
-            assertEquals(1, mkpResult.getEncryptionContext().size());
-            assertNotNull(mkpResult.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
-            assertEquals(algo, mkpResult.getAlgorithm());
+            assertNotNull(result.getTrailingSignatureKey());
+            assertEquals(1, result.getEncryptionContext().size());
+            assertNotNull(result.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
+            assertEquals(algo, result.getAlgorithm());
+        }
+    }
 
-            assertNotNull(keyringResult.getTrailingSignatureKey());
-            assertEquals(1, keyringResult.getEncryptionContext().size());
-            assertNotNull(keyringResult.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
-            assertEquals(algo, keyringResult.getAlgorithm());
+    @Test
+    public void encrypt_hasSignatureKeyForSignedAlgoWithKeyring() throws Exception {
+        CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
+        };
+
+        for (CryptoAlgorithm algo : algorithms) {
+
+            EncryptionMaterialsRequest req
+                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+            assertNotNull(result.getTrailingSignatureKey());
+            assertEquals(1, result.getEncryptionContext().size());
+            assertNotNull(result.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
+            assertEquals(algo, result.getAlgorithm());
         }
     }
 

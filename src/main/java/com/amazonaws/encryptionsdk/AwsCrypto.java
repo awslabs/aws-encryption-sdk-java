@@ -1006,7 +1006,7 @@ public class AwsCrypto {
             /**
              * Constructs the AwsCryptoConfig instance.
              *
-             * @return The AwCryptoConfig instance
+             * @return The AwsCryptoConfig instance
              */
             public AwsCryptoConfig build() {
                 return new AwsCryptoConfig(this);
