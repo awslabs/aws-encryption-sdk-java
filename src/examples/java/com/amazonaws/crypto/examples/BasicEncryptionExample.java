@@ -56,9 +56,10 @@ public class BasicEncryptionExample {
         //    also configure the credentials provider, client configuration and other settings as necessary
         final KmsClientSupplier clientSupplier = KmsClientSupplier.builder().build();
 
-        // 3. Instantiate a KMS Keyring, supplying the keyArn as the generator for generating a data key.
-        //    For this example, empty lists are provided for grant tokens and additional keys to encrypt the data
-        //    key with, but those can be supplied as necessary.
+        // 3. Instantiate a KMS Keyring, supplying the key ARN as the generator for generating a data key. While using
+        //    a key ARN is a best practice, for encryption operations it is also acceptable to use a CMK alias or an
+        //    alias ARN. For this example, empty lists are provided for grant tokens and additional keys to encrypt
+        //    the data key with, but those can be supplied as necessary.
         final Keyring keyring = StandardKeyrings.kms(clientSupplier, emptyList(), emptyList(), keyArn);
 
         // 4. Create an encryption context
@@ -80,11 +81,12 @@ public class BasicEncryptionExample {
         final AwsCryptoResult<byte[]> encryptResult = crypto.encryptData(config, EXAMPLE_DATA);
         final byte[] ciphertext = encryptResult.getResult();
 
-        // 7. Decrypt the data
+        // 7. Decrypt the data. The same keyring may be used to encrypt and decrypt, but for decryption
+        //    the key IDs must be in the key ARN format.
         final AwsCryptoResult<byte[]> decryptResult = crypto.decryptData(config, ciphertext);
 
-        // 8. Before verifying the plaintext, verify that the key that was used in the encryption
-        //    operation was the one used during the decryption operation.
+        // 8. Before verifying the plaintext, inspect the Keyring Trace to verify that the CMK used
+        //    to decrypt the encrypted data key was the CMK in the encryption keyring.
         if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn)) {
             throw new IllegalStateException("Wrong key ID!");
         }
