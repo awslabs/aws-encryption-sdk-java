@@ -1,0 +1,123 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
+ * in compliance with the License. A copy of the License is located at
+ *
+ * http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package com.amazonaws.encryptionsdk.keyrings;
+
+import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.AwsCryptoResult;
+import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
+import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
+import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
+import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.Collections;
+import java.util.Map;
+
+import static java.util.Collections.emptyList;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
+class MasterKeyProviderCompatibilityTest {
+
+    private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("myKey", "myValue");
+    private static final String KEY_NAMESPACE = "TestKeyNamespace";
+    private static final String KEY_NAME = "TestKeyName";
+    private static final byte[] PLAINTEXT = RandomBytesGenerator.generate(1000);
+    private final AwsCrypto awsCrypto = new AwsCrypto();
+
+    @Test
+    void testKmsKeyringCompatibility() {
+        MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
+                .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
+        Keyring keyring = StandardKeyrings.kms(KmsClientSupplier.builder().build(), emptyList(), emptyList(),
+                KMSTestFixtures.TEST_KEY_IDS[0]);
+
+        testCompatibility(keyring, mkp);
+    }
+
+    @Test
+    void testRawAesKeyringCompatibility() {
+        SecretKey key = generateRandomKey();
+
+        JceMasterKey mkp = JceMasterKey.getInstance(key, KEY_NAMESPACE, KEY_NAME, "AES/GCM/NoPadding");
+        Keyring keyring = StandardKeyrings.rawAes(KEY_NAMESPACE, KEY_NAME, key);
+
+        testCompatibility(keyring, mkp);
+    }
+
+    @Test
+    void testRawRsaKeyringCompatibility() throws Exception {
+        final String wrappingAlgorithm = "RSA/ECB/OAEPWithSHA-512AndMGF1Padding";
+        final KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");
+        kg.initialize(4096);
+        KeyPair keyPair = kg.generateKeyPair();
+
+        JceMasterKey mkp = JceMasterKey.getInstance(keyPair.getPublic(), keyPair.getPrivate(), KEY_NAMESPACE, KEY_NAME,
+                wrappingAlgorithm);
+        Keyring keyring = StandardKeyrings.rawRsa(KEY_NAMESPACE, KEY_NAME,
+                keyPair.getPublic(), keyPair.getPrivate(), wrappingAlgorithm);
+
+        testCompatibility(keyring, mkp);
+    }
+
+    @Test
+    void testMultiKeyringCompatibility() {
+        SecretKey key = generateRandomKey();
+        MasterKeyProvider<KmsMasterKey> mkp1 = KmsMasterKeyProvider.builder()
+                .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
+        JceMasterKey mkp2 = JceMasterKey.getInstance(key, KEY_NAMESPACE, KEY_NAME, "AES/GCM/NoPadding");
+
+        MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
+
+        Keyring keyring1 = StandardKeyrings.kms(KmsClientSupplier.builder().build(), emptyList(), emptyList(),
+                KMSTestFixtures.TEST_KEY_IDS[0]);
+        Keyring keyring2 = StandardKeyrings.rawAes(KEY_NAMESPACE, KEY_NAME, key);
+
+        Keyring keyring = StandardKeyrings.multi(keyring1, keyring2);
+
+        testCompatibility(keyring, mkp);
+    }
+
+    private void testCompatibility(Keyring keyring, MasterKeyProvider<?> masterKeyProvider) {
+        AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
+                .keyring(keyring)
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        CryptoResult<byte[], ?> mkpResult = awsCrypto.encryptData(masterKeyProvider, PLAINTEXT, ENCRYPTION_CONTEXT);
+        AwsCryptoResult<byte[]> keyringResult = awsCrypto.decryptData(config, mkpResult.getResult());
+
+        assertArrayEquals(PLAINTEXT, keyringResult.getResult());
+
+        keyringResult = awsCrypto.encryptData(config, PLAINTEXT);
+        mkpResult = awsCrypto.decryptData(masterKeyProvider, keyringResult.getResult());
+
+        assertArrayEquals(PLAINTEXT, mkpResult.getResult());
+    }
+
+    private static SecretKey generateRandomKey() {
+        byte[] rawKey = new byte[16]; // 128 bits
+        Utils.getSecureRandom().nextBytes(rawKey);
+        return new SecretKeySpec(rawKey, "AES");
+    }
+}
