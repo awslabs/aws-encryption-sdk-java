@@ -16,6 +16,8 @@ package com.amazonaws.encryptionsdk.keyrings;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.AwsCryptoResult;
 import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.DecryptRequest;
+import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.Utils;
@@ -99,17 +101,17 @@ class MasterKeyProviderCompatibilityTest {
     }
 
     private void testCompatibility(Keyring keyring, MasterKeyProvider<?> masterKeyProvider) {
-        AwsCrypto.AwsCryptoConfig config = AwsCrypto.AwsCryptoConfig.builder()
-                .keyring(keyring)
-                .encryptionContext(ENCRYPTION_CONTEXT)
-                .build();
-
         CryptoResult<byte[], ?> mkpResult = awsCrypto.encryptData(masterKeyProvider, PLAINTEXT, ENCRYPTION_CONTEXT);
-        AwsCryptoResult<byte[]> keyringResult = awsCrypto.decryptData(config, mkpResult.getResult());
+        AwsCryptoResult<byte[]> keyringResult = awsCrypto.decrypt(DecryptRequest.builder()
+                        .keyring(keyring)
+                        .ciphertext(mkpResult.getResult()).build());
 
         assertArrayEquals(PLAINTEXT, keyringResult.getResult());
 
-        keyringResult = awsCrypto.encryptData(config, PLAINTEXT);
+        keyringResult = awsCrypto.encrypt(EncryptRequest.builder()
+                .keyring(keyring)
+                .encryptionContext(ENCRYPTION_CONTEXT)
+                .plaintext(PLAINTEXT).build());
         mkpResult = awsCrypto.decryptData(masterKeyProvider, keyringResult.getResult());
 
         assertArrayEquals(PLAINTEXT, mkpResult.getResult());

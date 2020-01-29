@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.encryptionsdk.AwsCrypto.AwsCryptoConfig;
 import com.amazonaws.encryptionsdk.internal.StaticKeyring;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.Before;
@@ -102,12 +101,13 @@ public class AwsCryptoTest {
         encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
         encryptionClient_.setEncryptionFrameSize(frameSize);
 
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        final byte[] cipherText = encryptionClient_.encrypt(EncryptRequest.builder()
                 .keyring(keyring)
-                .encryptionContext(encryptionContext).build();
-
-        final byte[] cipherText = encryptionClient_.encryptData(config, plaintextBytes).getResult();
-        final byte[] decryptedText = encryptionClient_.decryptData(config, cipherText).getResult();
+                .encryptionContext(encryptionContext)
+                .plaintext(plaintextBytes).build()).getResult();
+        final byte[] decryptedText = encryptionClient_.decrypt(DecryptRequest.builder()
+                .keyring(keyring)
+                .ciphertext(cipherText).build()).getResult();
 
         assertArrayEquals("Bad encrypt/decrypt for " + cryptoAlg, plaintextBytes, decryptedText);
     }
@@ -146,16 +146,14 @@ public class AwsCryptoTest {
         encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
         encryptionClient_.setEncryptionFrameSize(frameSize);
 
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        final byte[] cipherText = encryptionClient_.encrypt(EncryptRequest.builder()
                 .keyring(keyring)
-                .encryptionContext(encryptionContext).build();
-
-        final byte[] cipherText = encryptionClient_.encryptData(
-                config, plaintextBytes).getResult();
+                .plaintext(plaintextBytes).build()).getResult();
         cipherText[cipherText.length - 2] ^= (byte) 0xff;
         try {
-            encryptionClient_.decryptData(config, cipherText
-            ).getResult();
+            encryptionClient_.decrypt(DecryptRequest.builder()
+                    .keyring(keyring)
+                    .ciphertext(cipherText).build());
             fail("Expected BadCiphertextException");
         } catch (final BadCiphertextException ex) {
             // Expected exception
@@ -329,14 +327,16 @@ public class AwsCryptoTest {
         };
 
         byte[] plaintext = new byte[100];
-        final AwsCryptoConfig config =
-                AwsCryptoConfig.builder().cryptoMaterialsManager(manager).build();
 
-        AwsCryptoResult<byte[]> ciphertext = encryptionClient_.encryptData(config, plaintext);
+        AwsCryptoResult<byte[]> ciphertext = encryptionClient_.encrypt(EncryptRequest.builder()
+                .cryptoMaterialsManager(manager)
+                .plaintext(plaintext).build());
         assertEquals("bar", ciphertext.getEncryptionContext().get("foo"));
 
         assertFalse(didDecrypt[0]);
-        AwsCryptoResult<byte[]>  plaintextResult = encryptionClient_.decryptData(config, ciphertext.getResult());
+        AwsCryptoResult<byte[]>  plaintextResult = encryptionClient_.decrypt(DecryptRequest.builder()
+                .cryptoMaterialsManager(manager)
+                .ciphertext(ciphertext.getResult()).build());
         assertArrayEquals(plaintext, plaintextResult.getResult());
         assertTrue(didDecrypt[0]);
     }
@@ -392,13 +392,15 @@ public class AwsCryptoTest {
 
     @Test
     public void whenDecrypting_invokesOnDecryptOnce() throws Exception {
-        AwsCryptoConfig config = AwsCryptoConfig.builder().keyring(keyring).build();
-
-        byte[] data = encryptionClient_.encryptData(config, new byte[1]).getResult();
+        byte[] data = encryptionClient_.encrypt(EncryptRequest.builder()
+                .keyring(keyring)
+                .plaintext(new byte[1]).build()).getResult();
 
         reset(keyring);
 
-        encryptionClient_.decryptData(config, data);
+        encryptionClient_.decrypt(DecryptRequest.builder()
+                .keyring(keyring)
+                .ciphertext(data).build());
 
         verify(keyring, times(1)).onDecrypt(any(), any());
     }
@@ -435,15 +437,15 @@ public class AwsCryptoTest {
         encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
         encryptionClient_.setEncryptionFrameSize(frameSize);
 
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        final long estimatedCiphertextSize = encryptionClient_.estimateCiphertextSize(EstimateCiphertextSizeRequest.builder()
+                        .keyring(keyring)
+                        .encryptionContext(encryptionContext)
+                        .plaintextSize(inLen)
+                        .build());
+        final byte[] cipherText = encryptionClient_.encrypt(EncryptRequest.builder()
                 .keyring(keyring)
                 .encryptionContext(encryptionContext)
-                .build();
-
-        final long estimatedCiphertextSize = encryptionClient_.estimateCiphertextSize(
-                config,
-                inLen);
-        final byte[] cipherText = encryptionClient_.encryptData(config, plaintext).getResult();
+                .plaintext(plaintext).build()).getResult();
 
         // The estimate should be close (within 16 bytes) and never less than reality
         final String errMsg = "Bad estimation for " + cryptoAlg + " expected: <" + estimatedCiphertextSize
@@ -626,7 +628,6 @@ public class AwsCryptoTest {
         HashMap<String, String> context = new HashMap<>();
         MasterKeyProvider provider = masterKeyProvider;
         CryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
-        AwsCryptoConfig config = AwsCryptoConfig.builder().cryptoMaterialsManager(cmm).build();
         InputStream is = new ByteArrayInputStream(new byte[0]);
         OutputStream os = new ByteArrayOutputStream();
 
@@ -652,8 +653,9 @@ public class AwsCryptoTest {
                                    Integer.TYPE, 42
         );
         assertNullChecks(encryptionClient_, "estimateCiphertextSize",
-                AwsCryptoConfig.class, config,
-                Integer.TYPE, 42
+                EstimateCiphertextSizeRequest.class, EstimateCiphertextSizeRequest.builder()
+                .cryptoMaterialsManager(cmm)
+                .plaintextSize(42).build()
         );
 
         assertNullChecks(encryptionClient_, "encryptData",
@@ -674,9 +676,10 @@ public class AwsCryptoTest {
                                    CryptoMaterialsManager.class, cmm,
                                    byte[].class, buf
         );
-        assertNullChecks(encryptionClient_, "encryptData",
-                AwsCryptoConfig.class, config,
-                byte[].class, buf
+        assertNullChecks(encryptionClient_, "encrypt",
+                EncryptRequest.class, EncryptRequest.builder()
+                .cryptoMaterialsManager(cmm)
+                .plaintext(buf).build()
         );
         assertNullChecks(encryptionClient_, "encryptString",
                                    MasterKeyProvider.class, provider,
@@ -713,9 +716,10 @@ public class AwsCryptoTest {
                                    CryptoMaterialsManager.class, cmm,
                                    ParsedCiphertext.class, new ParsedCiphertext(ciphertext)
         );
-        assertNullChecks(encryptionClient_, "decryptData",
-                AwsCryptoConfig.class, config,
-                byte[].class, ciphertext
+        assertNullChecks(encryptionClient_, "decrypt",
+                DecryptRequest.class, DecryptRequest.builder()
+                .cryptoMaterialsManager(cmm)
+                .ciphertext(ciphertext).build()
         );
         assertNullChecks(encryptionClient_, "decryptString",
                                    MasterKeyProvider.class, provider,
@@ -745,11 +749,11 @@ public class AwsCryptoTest {
                                    CryptoMaterialsManager.class, cmm,
                                    OutputStream.class, os
         );
-        assertNullChecks(encryptionClient_, "createEncryptingStream",
-                AwsCryptoConfig.class, config,
-                OutputStream.class, os
+        assertNullChecks(encryptionClient_, "createEncryptingOutputStream",
+                CreateEncryptingOutputStreamRequest.class, CreateEncryptingOutputStreamRequest.builder()
+                .cryptoMaterialsManager(cmm)
+                .outputStream(os).build()
         );
-
         assertNullChecks(encryptionClient_, "createEncryptingStream",
                                    MasterKeyProvider.class, provider,
                                    InputStream.class, is,
@@ -769,9 +773,10 @@ public class AwsCryptoTest {
                                    CryptoMaterialsManager.class, cmm,
                                    InputStream.class, is
         );
-        assertNullChecks(encryptionClient_, "createEncryptingStream",
-                AwsCryptoConfig.class, config,
-                InputStream.class, is
+        assertNullChecks(encryptionClient_, "createEncryptingInputStream",
+                CreateEncryptingInputStreamRequest.class, CreateEncryptingInputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .inputStream(is).build()
         );
 
         assertNullChecks(encryptionClient_, "createDecryptingStream",
@@ -791,9 +796,15 @@ public class AwsCryptoTest {
                                    CryptoMaterialsManager.class, cmm,
                                    InputStream.class, is
         );
-        assertNullChecks(encryptionClient_, "createDecryptingStream",
-                AwsCryptoConfig.class, config,
-                InputStream.class, is
+        assertNullChecks(encryptionClient_, "createDecryptingInputStream",
+                CreateDecryptingInputStreamRequest.class, CreateDecryptingInputStreamRequest.builder()
+                .cryptoMaterialsManager(cmm)
+                .inputStream(is).build()
+        );
+        assertNullChecks(encryptionClient_, "createDecryptingOutputStream",
+                CreateDecryptingOutputStreamRequest.class, CreateDecryptingOutputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .outputStream(os).build()
         );
     }
 
@@ -828,34 +839,6 @@ public class AwsCryptoTest {
         final CryptoAlgorithm getCryptoAlgorithm = encryptionClient_.getEncryptionAlgorithm();
 
         assertEquals(setCryptoAlgorithm, getCryptoAlgorithm);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAwsCryptoConfigBothCmmAndKeyring() {
-
-        AwsCryptoConfig.builder()
-                .cryptoMaterialsManager(new DefaultCryptoMaterialsManager(keyring))
-                .keyring(keyring)
-                .build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAwsCryptoConfigNeitherCmmOrKeyring() {
-
-        AwsCryptoConfig.builder().build();
-    }
-
-    @Test
-    public void testAwsCryptoConfigKeyringUsesDefaultCmm() {
-
-        assertTrue(AwsCryptoConfig.builder().keyring(keyring).build().getCryptoMaterialsManager()
-                instanceof DefaultCryptoMaterialsManager);
-    }
-
-    @Test
-    public void testAwsCryptoConfigNoEncryptionContext() {
-
-        assertEquals(0, AwsCryptoConfig.builder().keyring(keyring).build().getEncryptionContext().size());
     }
 
 }

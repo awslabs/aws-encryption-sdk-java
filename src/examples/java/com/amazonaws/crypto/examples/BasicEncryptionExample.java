@@ -19,8 +19,9 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCrypto.AwsCryptoConfig;
 import com.amazonaws.encryptionsdk.AwsCryptoResult;
+import com.amazonaws.encryptionsdk.DecryptRequest;
+import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
@@ -71,36 +72,37 @@ public class BasicEncryptionExample {
         //    blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
         final Map<String, String> encryptionContext = Collections.singletonMap("ExampleContextKey", "ExampleContextValue");
 
-        // 5. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring and encryption context
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
-                .keyring(keyring)
-                .encryptionContext(encryptionContext)
-                .build();
-
-        // 6. Encrypt the data
-        final AwsCryptoResult<byte[]> encryptResult = crypto.encryptData(config, EXAMPLE_DATA);
+        // 5. Encrypt the data with the keyring and encryption context
+        final AwsCryptoResult<byte[]> encryptResult = crypto.encrypt(
+                EncryptRequest.builder()
+                    .keyring(keyring)
+                    .encryptionContext(encryptionContext)
+                    .plaintext(EXAMPLE_DATA).build());
         final byte[] ciphertext = encryptResult.getResult();
 
-        // 7. Decrypt the data. The same keyring may be used to encrypt and decrypt, but for decryption
+        // 6. Decrypt the data. The same keyring may be used to encrypt and decrypt, but for decryption
         //    the key IDs must be in the key ARN format.
-        final AwsCryptoResult<byte[]> decryptResult = crypto.decryptData(config, ciphertext);
+        final AwsCryptoResult<byte[]> decryptResult = crypto.decrypt(
+                DecryptRequest.builder()
+                        .keyring(keyring)
+                        .ciphertext(ciphertext).build());
 
-        // 8. Before verifying the plaintext, inspect the Keyring Trace to verify that the CMK used
+        // 7. Before verifying the plaintext, inspect the Keyring Trace to verify that the CMK used
         //    to decrypt the encrypted data key was the CMK in the encryption keyring.
         if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn)) {
             throw new IllegalStateException("Wrong key ID!");
         }
 
-        // 9. Also, verify that the encryption context in the result contains the
-        // encryption context supplied to the encryptData method. Because the
-        // SDK can add values to the encryption context, don't require that
-        // the entire context matches.
+        // 8. Also, verify that the encryption context in the result contains the
+        //    encryption context supplied to the encryptData method. Because the
+        //    SDK can add values to the encryption context, don't require that
+        //    the entire context matches.
         if (!encryptionContext.entrySet().stream()
                 .allMatch(e -> e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey())))) {
             throw new IllegalStateException("Wrong Encryption Context!");
         }
 
-        // 10. Verify that the decrypted plaintext matches the original plaintext
+        // 9. Verify that the decrypted plaintext matches the original plaintext
         assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
     }
 }

@@ -14,7 +14,8 @@
 package com.amazonaws.crypto.examples;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCrypto.AwsCryptoConfig;
+import com.amazonaws.encryptionsdk.DecryptRequest;
+import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
@@ -48,7 +49,7 @@ import static java.util.Collections.emptyList;
  * so that either key alone can decrypt it. You might commonly use the KMS CMK for decryption. However,
  * at any time, you can use the private RSA key to decrypt the ciphertext independent of KMS.
  *
- * This sample uses an RawRsaKeyring to generate a RSA public-private key pair
+ * This sample uses a RawRsaKeyring to generate a RSA public-private key pair
  * and saves the key pair in memory. In practice, you would store the private key in a secure offline
  * location, such as an offline HSM, and distribute the public key to your development team.
  *
@@ -105,15 +106,13 @@ public class EscrowedEncryptExample {
         // 5. Combine the providers into a single MultiKeyring
         final Keyring keyring = StandardKeyrings.multi(kmsKeyring, rsaKeyring);
 
-        // 6. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
+        // 6. Encrypt the data with the keyring.
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        return crypto.encrypt(EncryptRequest.builder()
                 .keyring(keyring)
-                .build();
-
-        // 7. Encrypt the data
-        return crypto.encryptData(config, EXAMPLE_DATA).getResult();
+                .plaintext(EXAMPLE_DATA).build())
+                .getResult();
     }
 
     private static byte[] standardDecrypt(final String kmsArn, final byte[] cipherText) {
@@ -131,15 +130,12 @@ public class EscrowedEncryptExample {
         //    key with, but those can be supplied as necessary.
         final Keyring kmsKeyring = StandardKeyrings.kms(clientSupplier, emptyList(), emptyList(), kmsArn);
 
-        // 4. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
+        // 4. Decrypt the data with the keyring.
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        return crypto.decrypt(DecryptRequest.builder()
                 .keyring(kmsKeyring)
-                .build();
-
-        // 5. Decrypt the data
-        return crypto.decryptData(config, cipherText).getResult();
+                .ciphertext(cipherText).build()).getResult();
     }
 
     private static byte[] escrowDecrypt(final byte[] cipherText, final PublicKey publicEscrowKey, final PrivateKey privateEscrowKey) {
@@ -153,15 +149,12 @@ public class EscrowedEncryptExample {
         final Keyring rsaKeyring = StandardKeyrings.rawRsa("Escrow", "Escrow",
                 publicEscrowKey, privateEscrowKey, "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 3. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring
+        // 3. Decrypt the data with the keyring
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
+        return crypto.decrypt(DecryptRequest.builder()
                 .keyring(rsaKeyring)
-                .build();
-
-        // 4. Decrypt the data
-        return crypto.decryptData(config, cipherText).getResult();
+                .ciphertext(cipherText).build()).getResult();
     }
 
     private static KeyPair generateEscrowKeyPair() throws GeneralSecurityException {

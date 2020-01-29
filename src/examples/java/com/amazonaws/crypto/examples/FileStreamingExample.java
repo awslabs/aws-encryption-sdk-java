@@ -14,8 +14,9 @@
 package com.amazonaws.crypto.examples;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCrypto.AwsCryptoConfig;
 import com.amazonaws.encryptionsdk.AwsCryptoInputStream;
+import com.amazonaws.encryptionsdk.CreateDecryptingInputStreamRequest;
+import com.amazonaws.encryptionsdk.CreateEncryptingInputStreamRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.util.IOUtils;
@@ -78,40 +79,40 @@ public class FileStreamingExample {
         //    blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
         final Map<String, String> encryptionContext = Collections.singletonMap("Example", "FileStreaming");
 
-        // 5. Instantiate the AwsCryptoConfig input to AwsCrypto with the keyring and encryption context
-        final AwsCryptoConfig config = AwsCryptoConfig.builder()
-                .keyring(keyring)
-                .encryptionContext(encryptionContext)
-                .build();
-
-        // 6. Create the encrypting stream. Because the file might be too large to load into memory,
+        // 5. Create the encrypting input stream with the keyring and encryption context.
+        //    Because the file might be too large to load into memory,
         //    we stream the data, instead of loading it all at once.
-        try (final AwsCryptoInputStream encryptingStream =
-                crypto.createEncryptingStream(config, new FileInputStream(srcFile))) {
+        try (final AwsCryptoInputStream encryptingStream = crypto.createEncryptingInputStream(
+                CreateEncryptingInputStreamRequest.builder()
+                        .keyring(keyring)
+                        .encryptionContext(encryptionContext)
+                        .inputStream(new FileInputStream(srcFile)).build())) {
 
-            // 7. Copy the encrypted data into the encrypted file.
+            // 6. Copy the encrypted data into the encrypted file.
             try (FileOutputStream out = new FileOutputStream(encryptedFile)) {
                 IOUtils.copy(encryptingStream, out);
             }
         }
 
-        // 8. Create the decrypting stream.
-        try(final AwsCryptoInputStream decryptingStream =
-                crypto.createDecryptingStream(config, new FileInputStream(encryptedFile))) {
+        // 7. Create the decrypting input stream with the keyring.
+        try(final AwsCryptoInputStream decryptingStream = crypto.createDecryptingInputStream(
+                CreateDecryptingInputStreamRequest.builder()
+                        .keyring(keyring)
+                        .inputStream(new FileInputStream(encryptedFile)).build())) {
 
-            // 9. Verify that the encryption context in the result contains the
+            // 8. Verify that the encryption context in the result contains the
             //    encryption context supplied to the createEncryptingStream method.
             if (!"FileStreaming".equals(decryptingStream.getAwsCryptoResult().getEncryptionContext().get("Example"))) {
                 throw new IllegalStateException("Bad encryption context");
             }
 
-            // 10. Copy the plaintext data to a file
+            // 9. Copy the plaintext data to a file
             try (FileOutputStream out = new FileOutputStream(decryptedFile)) {
                 IOUtils.copy(decryptingStream, out);
             }
         }
 
-        // 11. Compare the decrypted file to the original
+        // 10. Compare the decrypted file to the original
         compareFiles(decryptedFile, srcFile);
     }
 
