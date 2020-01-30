@@ -22,7 +22,6 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
-import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
@@ -36,7 +35,6 @@ import java.security.KeyPairGenerator;
 import java.util.Collections;
 import java.util.Map;
 
-import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 class MasterKeyProviderCompatibilityTest {
@@ -51,8 +49,7 @@ class MasterKeyProviderCompatibilityTest {
     void testAwsKmsKeyringCompatibility() {
         MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
-        Keyring keyring = StandardKeyrings.awsKms(AwsKmsClientSupplier.builder().build(), emptyList(), emptyList(),
-                KMSTestFixtures.TEST_KEY_IDS[0]);
+        Keyring keyring = StandardKeyrings.awsKms(KMSTestFixtures.TEST_KEY_IDS[0]);
 
         testCompatibility(keyring, mkp);
     }
@@ -62,7 +59,11 @@ class MasterKeyProviderCompatibilityTest {
         SecretKey key = generateRandomKey();
 
         JceMasterKey mkp = JceMasterKey.getInstance(key, KEY_NAMESPACE, KEY_NAME, "AES/GCM/NoPadding");
-        Keyring keyring = StandardKeyrings.rawAes(KEY_NAMESPACE, KEY_NAME, key);
+        Keyring keyring = StandardKeyrings.rawAes()
+                .keyNamespace(KEY_NAMESPACE)
+                .keyName(KEY_NAME)
+                .wrappingKey(key)
+                .build();
 
         testCompatibility(keyring, mkp);
     }
@@ -76,8 +77,13 @@ class MasterKeyProviderCompatibilityTest {
 
         JceMasterKey mkp = JceMasterKey.getInstance(keyPair.getPublic(), keyPair.getPrivate(), KEY_NAMESPACE, KEY_NAME,
                 wrappingAlgorithm);
-        Keyring keyring = StandardKeyrings.rawRsa(KEY_NAMESPACE, KEY_NAME,
-                keyPair.getPublic(), keyPair.getPrivate(), wrappingAlgorithm);
+        Keyring keyring = StandardKeyrings.rawRsa()
+                .keyNamespace(KEY_NAMESPACE)
+                .keyName(KEY_NAME)
+                .publicKey(keyPair.getPublic())
+                .privateKey(keyPair.getPrivate())
+                .wrappingAlgorithm(wrappingAlgorithm)
+                .build();
 
         testCompatibility(keyring, mkp);
     }
@@ -91,9 +97,12 @@ class MasterKeyProviderCompatibilityTest {
 
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
 
-        Keyring keyring1 = StandardKeyrings.awsKms(AwsKmsClientSupplier.builder().build(), emptyList(), emptyList(),
-                KMSTestFixtures.TEST_KEY_IDS[0]);
-        Keyring keyring2 = StandardKeyrings.rawAes(KEY_NAMESPACE, KEY_NAME, key);
+        Keyring keyring1 = StandardKeyrings.awsKms(KMSTestFixtures.TEST_KEY_IDS[0]);
+        Keyring keyring2 = StandardKeyrings.rawAes()
+                .keyNamespace(KEY_NAMESPACE)
+                .keyName(KEY_NAME)
+                .wrappingKey(key)
+                .build();
 
         Keyring keyring = StandardKeyrings.multi(keyring1, keyring2);
 

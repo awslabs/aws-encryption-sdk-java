@@ -18,7 +18,6 @@ import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -27,8 +26,6 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
-
-import static java.util.Collections.emptyList;
 
 /**
  * <p>
@@ -75,7 +72,7 @@ public class EscrowedEncryptExample {
         byte[] standardDecryptedData = standardDecrypt(kmsArn, encryptedData);
 
         // Decrypt the data using the escrowed RSA Key
-        byte[] escrowedDecryptedData = escrowDecrypt(encryptedData, escrowKeyPair.getPublic(), escrowKeyPair.getPrivate());
+        byte[] escrowedDecryptedData = escrowDecrypt(encryptedData, escrowKeyPair.getPrivate());
 
         // Verify both decrypted data instances are the same as the original plaintext
         assert Arrays.equals(standardDecryptedData, EXAMPLE_DATA);
@@ -88,25 +85,23 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Client Supplier. This example uses the default client supplier but you can
-        //    also configure the credentials provider, client configuration and other settings as necessary
-        final AwsKmsClientSupplier clientSupplier = AwsKmsClientSupplier.builder().build();
+        // 2. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        final Keyring kmsKeyring = StandardKeyrings.awsKms(kmsArn);
 
-        // 3. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
-        //    For this example, empty lists are provided for grant tokens and additional keys to encrypt the data
-        //    key with, but those can be supplied as necessary.
-        final Keyring kmsKeyring = StandardKeyrings.awsKms(clientSupplier, emptyList(), emptyList(), kmsArn);
-
-        // 4. Instantiate a RawRsaKeyring
+        // 3. Instantiate a RawRsaKeyring
         //    Because the user does not have access to the private escrow key,
         //    they pass in "null" for the private key parameter.
-        final Keyring rsaKeyring = StandardKeyrings.rawRsa("Escrow", "Escrow",
-                publicEscrowKey, null, "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+        final Keyring rsaKeyring = StandardKeyrings.rawRsa()
+                .keyNamespace("Escrow")
+                .keyName("Escrow")
+                .publicKey(publicEscrowKey)
+                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .build();
 
-        // 5. Combine the providers into a single MultiKeyring
+        // 4. Combine the providers into a single MultiKeyring
         final Keyring keyring = StandardKeyrings.multi(kmsKeyring, rsaKeyring);
 
-        // 6. Encrypt the data with the keyring.
+        // 5. Encrypt the data with the keyring.
         //    To simplify the code, we omit the encryption context. Production code should always
         //    use an encryption context. For an example, see the other SDK samples.
         return crypto.encrypt(EncryptRequest.builder()
@@ -121,14 +116,8 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Client Supplier. This example uses the default client supplier but you can
-        //    also configure the credentials provider, client configuration and other settings as necessary
-        final AwsKmsClientSupplier clientSupplier = AwsKmsClientSupplier.builder().build();
-
-        // 3. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
-        //    For this example, empty lists are provided for grant tokens and additional keys to encrypt the data
-        //    key with, but those can be supplied as necessary.
-        final Keyring kmsKeyring = StandardKeyrings.awsKms(clientSupplier, emptyList(), emptyList(), kmsArn);
+        // 2. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        final Keyring kmsKeyring = StandardKeyrings.awsKms(kmsArn);
 
         // 4. Decrypt the data with the keyring.
         //    To simplify the code, we omit the encryption context. Production code should always
@@ -138,7 +127,7 @@ public class EscrowedEncryptExample {
                 .ciphertext(cipherText).build()).getResult();
     }
 
-    private static byte[] escrowDecrypt(final byte[] cipherText, final PublicKey publicEscrowKey, final PrivateKey privateEscrowKey) {
+    private static byte[] escrowDecrypt(final byte[] cipherText, final PrivateKey privateEscrowKey) {
         // You can decrypt the stream using only the private key.
         // This method does not call KMS.
 
@@ -146,8 +135,12 @@ public class EscrowedEncryptExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a RawRsaKeyring using the escrowed private key
-        final Keyring rsaKeyring = StandardKeyrings.rawRsa("Escrow", "Escrow",
-                publicEscrowKey, privateEscrowKey, "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+        final Keyring rsaKeyring = StandardKeyrings.rawRsa()
+                .keyNamespace("Escrow")
+                .keyName("Escrow")
+                .privateKey(privateEscrowKey)
+                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .build();
 
         // 3. Decrypt the data with the keyring
         //    To simplify the code, we omit the encryption context. Production code should always
