@@ -38,7 +38,7 @@ import static org.apache.commons.lang3.Validate.notEmpty;
  * function should be able to handle when the region is null.
  */
 @FunctionalInterface
-public interface KmsClientSupplier {
+public interface AwsKmsClientSupplier {
 
     /**
      * Gets an {@code AWSKMS} client for the given regionId.
@@ -51,7 +51,7 @@ public interface KmsClientSupplier {
     AWSKMS getClient(@Nullable String regionId) throws UnsupportedRegionException;
 
     /**
-     * Gets a Builder for constructing a KmsClientSupplier
+     * Gets a Builder for constructing an AwsKmsClientSupplier
      *
      * @return The builder
      */
@@ -60,7 +60,7 @@ public interface KmsClientSupplier {
     }
 
     /**
-     * Builder to construct a KmsClientSupplier given various
+     * Builder to construct an AwsKmsClientSupplier given various
      * optional settings.
      */
     class Builder {
@@ -71,20 +71,20 @@ public interface KmsClientSupplier {
         private Set<String> excludedRegions = Collections.emptySet();
         private boolean clientCachingEnabled = false;
         private final Map<String, AWSKMS> clientsCache = new HashMap<>();
-        private static final Set<String> KMS_METHODS = new HashSet<>();
-        private AWSKMSClientBuilder kmsClientBuilder;
+        private static final Set<String> AWSKMS_METHODS = new HashSet<>();
+        private AWSKMSClientBuilder awsKmsClientBuilder;
 
         static {
-            KMS_METHODS.add("generateDataKey");
-            KMS_METHODS.add("encrypt");
-            KMS_METHODS.add("decrypt");
+            AWSKMS_METHODS.add("generateDataKey");
+            AWSKMS_METHODS.add("encrypt");
+            AWSKMS_METHODS.add("decrypt");
         }
 
-        Builder(AWSKMSClientBuilder kmsClientBuilder) {
-            this.kmsClientBuilder = kmsClientBuilder;
+        Builder(AWSKMSClientBuilder awsKmsClientBuilder) {
+            this.awsKmsClientBuilder = awsKmsClientBuilder;
         }
 
-        public KmsClientSupplier build() {
+        public AwsKmsClientSupplier build() {
             isTrue(allowedRegions.isEmpty() || excludedRegions.isEmpty(),
                     "Either allowed regions or excluded regions may be set, not both.");
 
@@ -104,18 +104,18 @@ public interface KmsClientSupplier {
                 }
 
                 if (credentialsProvider != null) {
-                    kmsClientBuilder = kmsClientBuilder.withCredentials(credentialsProvider);
+                    awsKmsClientBuilder = awsKmsClientBuilder.withCredentials(credentialsProvider);
                 }
 
                 if (clientConfiguration != null) {
-                    kmsClientBuilder = kmsClientBuilder.withClientConfiguration(clientConfiguration);
+                    awsKmsClientBuilder = awsKmsClientBuilder.withClientConfiguration(clientConfiguration);
                 }
 
                 if (regionId != null) {
-                    kmsClientBuilder = kmsClientBuilder.withRegion(regionId);
+                    awsKmsClientBuilder = awsKmsClientBuilder.withRegion(regionId);
                 }
 
-                AWSKMS client = kmsClientBuilder.build();
+                AWSKMS client = awsKmsClientBuilder.build();
 
                 if (clientCachingEnabled) {
                     client = newCachingProxy(client, regionId);
@@ -179,7 +179,7 @@ public interface KmsClientSupplier {
 
         /**
          * Creates a proxy for the AWSKMS client that will populate the client into the client cache
-         * after a KMS method successfully completes or a KMS exception occurs. This is to prevent a
+         * after an AWS KMS method successfully completes or an AWS KMS exception occurs. This is to prevent a
          * a malicious user from causing a local resource DOS by sending ciphertext with a large number
          * of spurious regions, thereby filling the cache with regions and exhausting resources.
          *
@@ -194,13 +194,13 @@ public interface KmsClientSupplier {
                     (proxy, method, methodArgs) -> {
                         try {
                             final Object result = method.invoke(client, methodArgs);
-                            if (KMS_METHODS.contains(method.getName())) {
+                            if (AWSKMS_METHODS.contains(method.getName())) {
                                 clientsCache.put(regionId, client);
                             }
                             return result;
                         } catch (InvocationTargetException e) {
                             if (e.getTargetException() instanceof AWSKMSException &&
-                                    KMS_METHODS.contains(method.getName())) {
+                                    AWSKMS_METHODS.contains(method.getName())) {
                                 clientsCache.put(regionId, client);
                             }
 

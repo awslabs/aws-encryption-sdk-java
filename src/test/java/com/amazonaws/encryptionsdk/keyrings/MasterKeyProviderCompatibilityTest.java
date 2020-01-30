@@ -22,8 +22,8 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
-import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
@@ -48,10 +48,10 @@ class MasterKeyProviderCompatibilityTest {
     private final AwsCrypto awsCrypto = new AwsCrypto();
 
     @Test
-    void testKmsKeyringCompatibility() {
+    void testAwsKmsKeyringCompatibility() {
         MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
-        Keyring keyring = StandardKeyrings.kms(KmsClientSupplier.builder().build(), emptyList(), emptyList(),
+        Keyring keyring = StandardKeyrings.awsKms(AwsKmsClientSupplier.builder().build(), emptyList(), emptyList(),
                 KMSTestFixtures.TEST_KEY_IDS[0]);
 
         testCompatibility(keyring, mkp);
@@ -91,7 +91,7 @@ class MasterKeyProviderCompatibilityTest {
 
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
 
-        Keyring keyring1 = StandardKeyrings.kms(KmsClientSupplier.builder().build(), emptyList(), emptyList(),
+        Keyring keyring1 = StandardKeyrings.awsKms(AwsKmsClientSupplier.builder().build(), emptyList(), emptyList(),
                 KMSTestFixtures.TEST_KEY_IDS[0]);
         Keyring keyring2 = StandardKeyrings.rawAes(KEY_NAMESPACE, KEY_NAME, key);
 

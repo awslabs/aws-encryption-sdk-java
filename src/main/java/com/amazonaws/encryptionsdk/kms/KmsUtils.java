@@ -35,7 +35,7 @@ public class KmsUtils {
      * @return AWSKMS The client
      * @throws MalformedArnException if the arn is malformed
      */
-    public static AWSKMS getClientByArn(String arn, KmsClientSupplier clientSupplier) throws MalformedArnException {
+    public static AWSKMS getClientByArn(String arn, AwsKmsClientSupplier clientSupplier) throws MalformedArnException {
         if (isKeyAlias(arn)) {
             return clientSupplier.getClient(null);
         }

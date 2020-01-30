@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class KmsKeyringTest {
+class AwsKmsKeyringTest {
 
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
     private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
@@ -92,13 +92,13 @@ class KmsKeyringTest {
         List<String> keyIds = new ArrayList<>();
         keyIds.add(KEY_ID_1);
         keyIds.add(KEY_ID_2);
-        keyring = new KmsKeyring(dataKeyEncryptionDao, keyIds, GENERATOR_KEY_ID);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, keyIds, GENERATOR_KEY_ID);
     }
 
     @Test
     void testMalformedArns() {
-        assertThrows(MalformedArnException.class, () -> new KmsKeyring(dataKeyEncryptionDao, null, "badArn"));
-        assertThrows(MalformedArnException.class, () -> new KmsKeyring(dataKeyEncryptionDao, Collections.singletonList("badArn"), GENERATOR_KEY_ID));
+        assertThrows(MalformedArnException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao, null, "badArn"));
+        assertThrows(MalformedArnException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao, Collections.singletonList("badArn"), GENERATOR_KEY_ID));
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
@@ -120,7 +120,7 @@ class KmsKeyringTest {
 
     @Test
     void testGeneratorKeyInKeyIds() {
-        assertThrows(IllegalArgumentException.class, () -> new KmsKeyring(dataKeyEncryptionDao, Collections.singletonList(GENERATOR_KEY_ID), GENERATOR_KEY_ID));
+        assertThrows(IllegalArgumentException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao, Collections.singletonList(GENERATOR_KEY_ID), GENERATOR_KEY_ID));
     }
 
     @Test
@@ -203,7 +203,7 @@ class KmsKeyringTest {
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
-        Keyring keyring = new KmsKeyring(dataKeyEncryptionDao, Collections.singletonList(KEY_ID_1), null);
+        Keyring keyring = new AwsKmsKeyring(dataKeyEncryptionDao, Collections.singletonList(KEY_ID_1), null);
 
         encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
@@ -218,7 +218,7 @@ class KmsKeyringTest {
 
     @Test
     void testDiscoveryEncrypt() {
-        keyring = new KmsKeyring(dataKeyEncryptionDao, null, null);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null);
 
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
@@ -234,7 +234,7 @@ class KmsKeyringTest {
     void testEncryptNoGeneratorOrCleartextDataKey() {
         List<String> keyIds = new ArrayList<>();
         keyIds.add(KEY_ID_1);
-        keyring = new KmsKeyring(dataKeyEncryptionDao, keyIds, null);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, keyIds, null);
 
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder().setAlgorithm(ALGORITHM_SUITE).build();
         assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
@@ -294,7 +294,7 @@ class KmsKeyringTest {
 
     @Test
     void testDiscoveryDecrypt() {
-        keyring = new KmsKeyring(dataKeyEncryptionDao, null, null);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null);
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)

@@ -61,8 +61,8 @@ public interface DataKeyEncryptionDao {
      * @param grantTokens A list of grant tokens to supply to KMS
      * @return The DataKeyEncryptionDao
      */
-    static DataKeyEncryptionDao kms(KmsClientSupplier clientSupplier, List<String> grantTokens) {
-        return new KmsDataKeyEncryptionDao(clientSupplier, grantTokens);
+    static DataKeyEncryptionDao awsKms(AwsKmsClientSupplier clientSupplier, List<String> grantTokens) {
+        return new AwsKmsDataKeyEncryptionDao(clientSupplier, grantTokens);
     }
 
     class GenerateDataKeyResult {

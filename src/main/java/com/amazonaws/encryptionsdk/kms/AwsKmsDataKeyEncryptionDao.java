@@ -46,12 +46,12 @@ import static org.apache.commons.lang3.Validate.isTrue;
  * generation, encryption, and decryption of data keys. The KmsMethods interface is implemented
  * to allow usage in KmsMasterKey.
  */
-class KmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
+class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
 
-    private final KmsClientSupplier clientSupplier;
+    private final AwsKmsClientSupplier clientSupplier;
     private List<String> grantTokens;
 
-    KmsDataKeyEncryptionDao(KmsClientSupplier clientSupplier, List<String> grantTokens) {
+    AwsKmsDataKeyEncryptionDao(AwsKmsClientSupplier clientSupplier, List<String> grantTokens) {
         requireNonNull(clientSupplier, "clientSupplier is required");
 
         this.clientSupplier = clientSupplier;

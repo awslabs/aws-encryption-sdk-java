@@ -14,7 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
-import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
@@ -61,19 +61,19 @@ public class StandardKeyrings {
       
     /**  
      * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to create,
-     * encrypt, and decrypt data keys using KMS defined Customer Master Keys (CMKs).
+     * encrypt, and decrypt data keys using AWS KMS defined Customer Master Keys (CMKs).
      *
-     * @param clientSupplier    A function that returns a KMS client that can make GenerateDataKey,
+     * @param clientSupplier    A function that returns an AWS KMS client that can make GenerateDataKey,
      *                          Encrypt, and Decrypt calls in a particular AWS region.
      * @param grantTokens       A list of string grant tokens to be included in all KMS calls.
-     * @param keyIds            A list of strings identifying KMS CMKs used for encrypting and decrypting data keys in
-     *                          ARN, CMK Alias, or ARN Alias format.
-     * @param generatorKeyId    A string that identifies a KMS CMK responsible for generating a data key,
+     * @param keyIds            A list of strings identifying AWS KMS CMKs used for encrypting and decrypting data keys
+     *                          in ARN, CMK Alias, or ARN Alias format.
+     * @param generatorKeyId    A string that identifies a AWS KMS CMK responsible for generating a data key,
      *                          as well as encrypting and decrypting data keys in ARN, CMK Alias, or ARN Alias format.
      * @return The {@code Keyring}
      */
-    public static Keyring kms(KmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generatorKeyId) {
-        return new KmsKeyring(DataKeyEncryptionDao.kms(clientSupplier, grantTokens), keyIds, generatorKeyId);
+    public static Keyring awsKms(AwsKmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generatorKeyId) {
+        return new AwsKmsKeyring(DataKeyEncryptionDao.awsKms(clientSupplier, grantTokens), keyIds, generatorKeyId);
     }
 
     /**

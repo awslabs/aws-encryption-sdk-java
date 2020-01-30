@@ -18,7 +18,7 @@ import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -88,16 +88,16 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS Client Supplier. This example uses the default client supplier but you can
+        // 2. Instantiate an AWS KMS Client Supplier. This example uses the default client supplier but you can
         //    also configure the credentials provider, client configuration and other settings as necessary
-        final KmsClientSupplier clientSupplier = KmsClientSupplier.builder().build();
+        final AwsKmsClientSupplier clientSupplier = AwsKmsClientSupplier.builder().build();
 
-        // 3. Instantiate a KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        // 3. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
         //    For this example, empty lists are provided for grant tokens and additional keys to encrypt the data
         //    key with, but those can be supplied as necessary.
-        final Keyring kmsKeyring = StandardKeyrings.kms(clientSupplier, emptyList(), emptyList(), kmsArn);
+        final Keyring kmsKeyring = StandardKeyrings.awsKms(clientSupplier, emptyList(), emptyList(), kmsArn);
 
-        // 4. Instantiate an RawRsaKeyring
+        // 4. Instantiate a RawRsaKeyring
         //    Because the user does not have access to the private escrow key,
         //    they pass in "null" for the private key parameter.
         final Keyring rsaKeyring = StandardKeyrings.rawRsa("Escrow", "Escrow",
@@ -121,14 +121,14 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS Client Supplier. This example uses the default client supplier but you can
+        // 2. Instantiate an AWS KMS Client Supplier. This example uses the default client supplier but you can
         //    also configure the credentials provider, client configuration and other settings as necessary
-        final KmsClientSupplier clientSupplier = KmsClientSupplier.builder().build();
+        final AwsKmsClientSupplier clientSupplier = AwsKmsClientSupplier.builder().build();
 
-        // 3. Instantiate a KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        // 3. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
         //    For this example, empty lists are provided for grant tokens and additional keys to encrypt the data
         //    key with, but those can be supplied as necessary.
-        final Keyring kmsKeyring = StandardKeyrings.kms(clientSupplier, emptyList(), emptyList(), kmsArn);
+        final Keyring kmsKeyring = StandardKeyrings.awsKms(clientSupplier, emptyList(), emptyList(), kmsArn);
 
         // 4. Decrypt the data with the keyring.
         //    To simplify the code, we omit the encryption context. Production code should always

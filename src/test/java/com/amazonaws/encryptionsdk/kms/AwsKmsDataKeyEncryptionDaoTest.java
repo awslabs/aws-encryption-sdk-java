@@ -54,7 +54,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class KmsDataKeyEncryptionDaoTest {
+class AwsKmsDataKeyEncryptionDaoTest {
 
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
     private static final SecretKey DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
@@ -66,7 +66,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testEncryptAndDecrypt() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(keyId, DATA_KEY, ENCRYPTION_CONTEXT);
@@ -104,7 +104,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testGenerateAndDecrypt() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         DataKeyEncryptionDao.GenerateDataKeyResult generateDataKeyResult = dao.generateDataKey(keyId, ALGORITHM_SUITE, ENCRYPTION_CONTEXT);
@@ -143,7 +143,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testEncryptWithRawKeyId() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         String rawKeyId = keyId.split("/")[1];
@@ -171,7 +171,7 @@ class KmsDataKeyEncryptionDaoTest {
         when(key.getFormat()).thenReturn("BadFormat");
 
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
 
@@ -181,7 +181,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testKmsFailure() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         doThrow(new KMSInvalidStateException("fail")).when(client).generateDataKey(isA(GenerateDataKeyRequest.class));
@@ -196,7 +196,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testUnsupportedRegionException() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         doThrow(new UnsupportedRegionException("fail")).when(client).generateDataKey(isA(GenerateDataKeyRequest.class));
@@ -211,7 +211,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testDecryptBadKmsKeyId() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         DecryptResult badResult = new DecryptResult();
         badResult.setKeyId("badKeyId");
@@ -224,7 +224,7 @@ class KmsDataKeyEncryptionDaoTest {
     @Test
     void testDecryptBadKmsKeyLength() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new KmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         DecryptResult badResult = new DecryptResult();
         badResult.setKeyId(new String(ENCRYPTED_DATA_KEY.getProviderInformation(), EncryptedDataKey.PROVIDER_ENCODING));

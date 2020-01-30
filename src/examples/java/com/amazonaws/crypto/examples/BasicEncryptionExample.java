@@ -24,7 +24,7 @@ import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.KmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 
 import static java.util.Collections.emptyList;
 
@@ -53,15 +53,15 @@ public class BasicEncryptionExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS Client Supplier. This example uses the default client supplier but you can
+        // 2. Instantiate an AWS KMS Client Supplier. This example uses the default client supplier but you can
         //    also configure the credentials provider, client configuration and other settings as necessary
-        final KmsClientSupplier clientSupplier = KmsClientSupplier.builder().build();
+        final AwsKmsClientSupplier clientSupplier = AwsKmsClientSupplier.builder().build();
 
-        // 3. Instantiate a KMS Keyring, supplying the key ARN as the generator for generating a data key. While using
-        //    a key ARN is a best practice, for encryption operations it is also acceptable to use a CMK alias or an
-        //    alias ARN. For this example, empty lists are provided for grant tokens and additional keys to encrypt
+        // 3. Instantiate an AWS KMS Keyring, supplying the key ARN as the generator for generating a data key. While
+        //    using a key ARN is a best practice, for encryption operations it is also acceptable to use a CMK alias or
+        //    an alias ARN. For this example, empty lists are provided for grant tokens and additional keys to encrypt
         //    the data key with, but those can be supplied as necessary.
-        final Keyring keyring = StandardKeyrings.kms(clientSupplier, emptyList(), emptyList(), keyArn);
+        final Keyring keyring = StandardKeyrings.awsKms(clientSupplier, emptyList(), emptyList(), keyArn);
 
         // 4. Create an encryption context
         //

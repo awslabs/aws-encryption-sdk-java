@@ -43,7 +43,7 @@ import static java.util.Collections.emptyList;
  */
 @Deprecated
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
-    private final KmsDataKeyEncryptionDao dataKeyEncryptionDao_;
+    private final AwsKmsDataKeyEncryptionDao dataKeyEncryptionDao_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
 
@@ -67,10 +67,10 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
 
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
-        return new KmsMasterKey(new KmsDataKeyEncryptionDao(s -> kms.get(), emptyList()), id, provider);
+        return new KmsMasterKey(new AwsKmsDataKeyEncryptionDao(s -> kms.get(), emptyList()), id, provider);
     }
 
-    KmsMasterKey(final KmsDataKeyEncryptionDao dataKeyEncryptionDao, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
+    KmsMasterKey(final AwsKmsDataKeyEncryptionDao dataKeyEncryptionDao, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
         dataKeyEncryptionDao_ = dataKeyEncryptionDao;
         id_ = id;
         sourceProvider_ = provider;

@@ -15,7 +15,7 @@ package com.amazonaws.encryptionsdk.exception;
 
 /**
  * This exception is thrown when a region that is not allowed to be used by
- * a given KmsClientSupplier is specified.
+ * a given AwsKmsClientSupplier is specified.
  */
 public class UnsupportedRegionException extends AwsCryptoException {
 

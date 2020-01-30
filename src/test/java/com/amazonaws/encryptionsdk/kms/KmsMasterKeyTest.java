@@ -43,7 +43,7 @@ class KmsMasterKeyTest {
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("test", "value");
     private static final String CMK_ARN = "arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210";
-    @Mock KmsDataKeyEncryptionDao dataKeyEncryptionDao;
+    @Mock AwsKmsDataKeyEncryptionDao dataKeyEncryptionDao;
 
     /**
      * Test that when decryption of an encrypted data key throws a MismatchedDataKeyException, this

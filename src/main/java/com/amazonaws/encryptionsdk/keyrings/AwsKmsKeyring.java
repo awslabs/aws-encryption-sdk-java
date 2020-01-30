@@ -39,16 +39,16 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * A keyring which interacts with AWS Key Management Service (KMS) to create,
- * encrypt, and decrypt data keys using KMS defined Customer Master Keys (CMKs).
+ * encrypt, and decrypt data keys using AWS KMS defined Customer Master Keys (CMKs).
  */
-class KmsKeyring implements Keyring {
+class AwsKmsKeyring implements Keyring {
 
     private final DataKeyEncryptionDao dataKeyEncryptionDao;
     private final List<String> keyIds;
     private final String generatorKeyId;
     private final boolean isDiscovery;
 
-    KmsKeyring(DataKeyEncryptionDao dataKeyEncryptionDao, List<String> keyIds, String generatorKeyId) {
+    AwsKmsKeyring(DataKeyEncryptionDao dataKeyEncryptionDao, List<String> keyIds, String generatorKeyId) {
         requireNonNull(dataKeyEncryptionDao, "dataKeyEncryptionDao is required");
         this.dataKeyEncryptionDao = dataKeyEncryptionDao;
         this.keyIds = keyIds == null ? emptyList() : unmodifiableList(new ArrayList<>(keyIds));
