@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.isTrue;
 
@@ -28,7 +29,7 @@ public final class EncryptionMaterials {
     private final CryptoAlgorithm algorithm;
     private final Map<String, String> encryptionContext;
     private final List<KeyBlob> encryptedDataKeys;
-    private SecretKey cleartextDataKey;
+    private final SecretKey cleartextDataKey;
     private final PrivateKey trailingSignatureKey;
     private final List<MasterKey> masterKeys;
     private final KeyringTrace keyringTrace;
@@ -70,20 +71,28 @@ public final class EncryptionMaterials {
      * The KeyBlobs to serialize (in cleartext) into the encrypted message.
      */
     public List<KeyBlob> getEncryptedDataKeys() {
-        return unmodifiableList(encryptedDataKeys);
+        return encryptedDataKeys;
     }
 
     /**
-     * Add an encrypted data key to the list of encrypted data keys.
+     * Creates a new {@code EncryptionMaterials} instance based on this instance with the addition of the
+     * provided encrypted data key and keyring trace entry.
      *
      * @param encryptedDataKey  The encrypted data key to add.
      * @param keyringTraceEntry The keyring trace entry recording this action.
+     * @return The new {@code EncryptionMaterials} instance.
      */
-    public void addEncryptedDataKey(KeyBlob encryptedDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public EncryptionMaterials withEncryptedDataKey(KeyBlob encryptedDataKey, KeyringTraceEntry keyringTraceEntry) {
         requireNonNull(encryptedDataKey, "encryptedDataKey is required");
         requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
+
+        final List<KeyBlob> encryptedDataKeys = new ArrayList<>(getEncryptedDataKeys());
         encryptedDataKeys.add(encryptedDataKey);
-        keyringTrace.add(keyringTraceEntry);
+
+        return toBuilder()
+                .setEncryptedDataKeys(encryptedDataKeys)
+                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
+                .build();
     }
 
     /**
@@ -95,20 +104,25 @@ public final class EncryptionMaterials {
     }
 
     /**
-     * Sets the cleartext data key. The cleartext data key must not already be populated.
+     * Creates a new {@code EncryptionMaterials} instance based on this instance with the addition of the
+     * provided cleartext data key and keyring trace entry. The cleartext data key must not already be populated.
      *
      * @param cleartextDataKey  The cleartext data key.
      * @param keyringTraceEntry The keyring trace entry recording this action.
+     * @return The new {@code EncryptionMaterials} instance.
      */
-    public void setCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public EncryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
         if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
         requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validateCleartextDataKey(algorithm, cleartextDataKey);
-        this.cleartextDataKey = cleartextDataKey;
-        keyringTrace.add(keyringTraceEntry);
+
+        return toBuilder()
+                .setCleartextDataKey(cleartextDataKey)
+                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
+                .build();
     }
 
     /**
@@ -185,11 +199,11 @@ public final class EncryptionMaterials {
     public static class Builder {
         private CryptoAlgorithm algorithm;
         private Map<String, String> encryptionContext = Collections.emptyMap();
-        private List<KeyBlob> encryptedDataKeys = new ArrayList<>();
+        private List<KeyBlob> encryptedDataKeys = Collections.emptyList();
         private SecretKey cleartextDataKey;
         private PrivateKey trailingSignatureKey;
         private List<MasterKey> masterKeys = Collections.emptyList();
-        private KeyringTrace keyringTrace = new KeyringTrace();
+        private KeyringTrace keyringTrace = KeyringTrace.EMPTY_TRACE;
 
         private Builder() {}
 
@@ -221,7 +235,7 @@ public final class EncryptionMaterials {
         }
 
         public Builder setEncryptionContext(Map<String, String> encryptionContext) {
-            this.encryptionContext = Collections.unmodifiableMap(new HashMap<>(encryptionContext));
+            this.encryptionContext = unmodifiableMap(new HashMap<>(encryptionContext));
             return this;
         }
 
@@ -230,7 +244,7 @@ public final class EncryptionMaterials {
         }
 
         public Builder setEncryptedDataKeys(List<KeyBlob> encryptedDataKeys) {
-            this.encryptedDataKeys = new ArrayList<>(encryptedDataKeys);
+            this.encryptedDataKeys = unmodifiableList(new ArrayList<>(encryptedDataKeys));
             return this;
         }
 

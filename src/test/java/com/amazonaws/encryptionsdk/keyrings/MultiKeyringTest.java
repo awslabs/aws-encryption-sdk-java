@@ -24,7 +24,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.crypto.SecretKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +46,6 @@ class MultiKeyringTest {
     @Mock EncryptionMaterials encryptionMaterials;
     @Mock DecryptionMaterials decryptionMaterials;
     @Mock List<EncryptedDataKey> encryptedDataKeys;
-    @Mock SecretKey cleartextDataKey;
     final List<Keyring> childrenKeyrings = new ArrayList<>();
 
     @BeforeEach
@@ -68,6 +66,9 @@ class MultiKeyringTest {
     void testOnEncryptWithGenerator() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
         when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
+        when(generatorKeyring.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
+        when(keyring1.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
+        when(keyring2.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
 
         keyring.onEncrypt(encryptionMaterials);
 
@@ -80,6 +81,8 @@ class MultiKeyringTest {
     void testOnEncryptWithoutGenerator() {
         MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
         when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
+        when(keyring1.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
+        when(keyring2.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
 
         keyring.onEncrypt(encryptionMaterials);
 
@@ -111,6 +114,8 @@ class MultiKeyringTest {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
+        when(generatorKeyring.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
+        when(keyring1.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(generatorKeyring, keyring1);
@@ -124,6 +129,8 @@ class MultiKeyringTest {
         MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
+        when(keyring1.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
+        when(keyring2.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(keyring1, keyring2);
@@ -138,6 +145,7 @@ class MultiKeyringTest {
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(true);
         doThrow(new IllegalStateException()).when(generatorKeyring).onDecrypt(decryptionMaterials, encryptedDataKeys);
+        when(keyring1.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
 
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
@@ -177,6 +185,9 @@ class MultiKeyringTest {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false, false, false, false);
+        when(generatorKeyring.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
+        when(keyring1.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
+        when(keyring2.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         InOrder inOrder = inOrder(generatorKeyring, keyring1, keyring2);

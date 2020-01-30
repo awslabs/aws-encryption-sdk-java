@@ -27,16 +27,18 @@ public interface Keyring {
     /**
      * Attempt to encrypt either the given data key (if present) or one that may be generated
      *
-     * @param encryptionMaterials Materials needed for encryption that the keyring may modify.
+     * @param encryptionMaterials Materials needed for encryption.
+     * @return Encryption materials with added information provided by this keyring.
      */
-    void onEncrypt(EncryptionMaterials encryptionMaterials);
+    EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials);
 
     /**
      * Attempt to decrypt the encrypted data keys
      *
-     * @param decryptionMaterials Materials needed for decryption that the keyring may modify.
+     * @param decryptionMaterials Materials needed for decryption.
      * @param encryptedDataKeys   List of encrypted data keys.
+     * @return Decryption materials with added information provided by this keyring.
      */
-    void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys);
+    DecryptionMaterials onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys);
 
 }

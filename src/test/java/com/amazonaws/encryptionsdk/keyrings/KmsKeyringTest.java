@@ -103,14 +103,13 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(new KeyBlob(KMS_PROVIDER_ID, "badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
 
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
         // Malformed Arn for a non KMS provider shouldn't fail
@@ -132,7 +131,7 @@ class KmsKeyringTest {
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertEquals(3, encryptionMaterials.getEncryptedDataKeys().size());
         assertEncryptedDataKeyEquals(ENCRYPTED_KEY_1, encryptionMaterials.getEncryptedDataKeys().get(0));
@@ -147,14 +146,13 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_GENERATOR_KEY);
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
@@ -166,12 +164,11 @@ class KmsKeyringTest {
     void testEncryptNullDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
-                .setKeyringTrace(new KeyringTrace())
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         when(dataKeyEncryptionDao.generateDataKey(GENERATOR_KEY_ID, ALGORITHM_SUITE, ENCRYPTION_CONTEXT)).thenReturn(new DataKeyEncryptionDao.GenerateDataKeyResult(PLAINTEXT_DATA_KEY, ENCRYPTED_GENERATOR_KEY));
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertEquals(PLAINTEXT_DATA_KEY, encryptionMaterials.getCleartextDataKey());
 
@@ -184,14 +181,13 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_GENERATOR_KEY);
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
@@ -203,14 +199,13 @@ class KmsKeyringTest {
     void testEncryptNullGenerator() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
-                .setKeyringTrace(new KeyringTrace())
                 .setCleartextDataKey(PLAINTEXT_DATA_KEY)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
         Keyring keyring = new KmsKeyring(dataKeyEncryptionDao, Collections.singletonList(KEY_ID_1), null);
 
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
         assertEncryptedDataKeyEquals(ENCRYPTED_KEY_1, encryptionMaterials.getEncryptedDataKeys().get(0));
@@ -229,7 +224,7 @@ class KmsKeyringTest {
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertFalse(encryptionMaterials.hasCleartextDataKey());
         assertEquals(0, encryptionMaterials.getKeyringTrace().getEntries().size());
@@ -250,7 +245,6 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_KEY_1, ALGORITHM_SUITE, ENCRYPTION_CONTEXT)).thenThrow(new CannotUnwrapDataKeyException());
@@ -258,7 +252,7 @@ class KmsKeyringTest {
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
@@ -283,7 +277,6 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         EncryptedDataKey wrongProviderKey = new KeyBlob("OtherProvider", KEY_ID_1.getBytes(PROVIDER_ENCODING), new byte[]{});
@@ -291,7 +284,7 @@ class KmsKeyringTest {
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(wrongProviderKey);
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
@@ -306,13 +299,12 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
@@ -328,7 +320,7 @@ class KmsKeyringTest {
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
-        keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_GENERATOR_KEY));
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_GENERATOR_KEY));
 
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
@@ -339,10 +331,9 @@ class KmsKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
-        keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
         assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());

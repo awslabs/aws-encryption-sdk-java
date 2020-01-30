@@ -137,9 +137,7 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
                         .setTrailingSignatureKey(signingKey)
                         .build();
 
-        keyring.onEncrypt(encryptionMaterials);
-
-        return encryptionMaterials;
+        return keyring.onEncrypt(encryptionMaterials);
     }
 
     private DecryptionMaterials getDecryptionMaterialsForKeyring(DecryptionMaterialsRequest request) {
@@ -152,13 +150,13 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
                         .setTrailingSignatureKey(verificationKey)
                         .build();
 
-        keyring.onDecrypt(decryptionMaterials, request.getEncryptedDataKeys());
+        final DecryptionMaterials result = keyring.onDecrypt(decryptionMaterials, request.getEncryptedDataKeys());
 
-        if(!decryptionMaterials.hasCleartextDataKey()) {
+        if(!result.hasCleartextDataKey()) {
             throw new CannotUnwrapDataKeyException("Could not decrypt any data keys");
         }
 
-        return decryptionMaterials;
+        return result;
     }
 
     private PrivateKey getSigningKey(CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext) {

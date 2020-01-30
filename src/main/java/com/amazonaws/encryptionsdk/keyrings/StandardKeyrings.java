@@ -66,13 +66,14 @@ public class StandardKeyrings {
      * @param clientSupplier    A function that returns a KMS client that can make GenerateDataKey,
      *                          Encrypt, and Decrypt calls in a particular AWS region.
      * @param grantTokens       A list of string grant tokens to be included in all KMS calls.
-     * @param keyIds            A list of strings identifying KMS CMKs, in ARN, CMK Alias, or ARN Alias format.
-     * @param generator         A string that identifies a KMS CMK responsible for generating a data key,
+     * @param keyIds            A list of strings identifying KMS CMKs used for encrypting and decrypting data keys in
+     *                          ARN, CMK Alias, or ARN Alias format.
+     * @param generatorKeyId    A string that identifies a KMS CMK responsible for generating a data key,
      *                          as well as encrypting and decrypting data keys in ARN, CMK Alias, or ARN Alias format.
      * @return The {@code Keyring}
      */
-    public static Keyring kms(KmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generator) {
-        return new KmsKeyring(DataKeyEncryptionDao.kms(clientSupplier, grantTokens), keyIds, generator);
+    public static Keyring kms(KmsClientSupplier clientSupplier, List<String> grantTokens, List<String> keyIds, String generatorKeyId) {
+        return new KmsKeyring(DataKeyEncryptionDao.kms(clientSupplier, grantTokens), keyIds, generatorKeyId);
     }
 
     /**

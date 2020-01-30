@@ -41,8 +41,8 @@ class DecryptionMaterialsTest {
 
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("testKey", "testValue");
-    private static final KeyringTrace KEYRING_TRACE = new KeyringTrace();
     private static final KeyringTraceEntry KEYRING_TRACE_ENTRY = new KeyringTraceEntry("Namespace", "Name", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
+    private static final KeyringTrace KEYRING_TRACE = new KeyringTrace(Collections.singletonList(KEYRING_TRACE_ENTRY));
     private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static PublicKey VERIFICATION_KEY;
 
@@ -83,9 +83,9 @@ class DecryptionMaterialsTest {
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> materials
-                .setCleartextDataKey(wrongAlgorithm, KEYRING_TRACE_ENTRY));
+                .withCleartextDataKey(wrongAlgorithm, KEYRING_TRACE_ENTRY));
         assertThrows(IllegalArgumentException.class, () -> materials
-                .setCleartextDataKey(wrongLength, KEYRING_TRACE_ENTRY));
+                .withCleartextDataKey(wrongLength, KEYRING_TRACE_ENTRY));
     }
 
     @Test
@@ -105,22 +105,22 @@ class DecryptionMaterialsTest {
     }
 
     @Test
-    void testSetPlaintextDataKey() {
-        DecryptionMaterials materials = DecryptionMaterials.newBuilder()
+    void testWithPlaintextDataKey() {
+        final DecryptionMaterials materials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
-        assertThrows(NullPointerException.class, () -> materials.setCleartextDataKey(null, KEYRING_TRACE_ENTRY));
-        assertThrows(NullPointerException.class, () -> materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, null));
+        assertThrows(NullPointerException.class, () -> materials.withCleartextDataKey(null, KEYRING_TRACE_ENTRY));
+        assertThrows(NullPointerException.class, () -> materials.withCleartextDataKey(PLAINTEXT_DATA_KEY, null));
 
-        materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY);
-        assertEquals(PLAINTEXT_DATA_KEY, materials.getCleartextDataKey());
-        assertEquals(PLAINTEXT_DATA_KEY, materials.getDataKey().getKey());
-        assertEquals(1, materials.getKeyringTrace().getEntries().size());
-        assertEquals(KEYRING_TRACE_ENTRY, materials.getKeyringTrace().getEntries().get(0));
+        final DecryptionMaterials newMaterials = materials.withCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY);
+        assertEquals(PLAINTEXT_DATA_KEY, newMaterials.getCleartextDataKey());
+        assertEquals(PLAINTEXT_DATA_KEY, newMaterials.getDataKey().getKey());
+        assertEquals(1, newMaterials.getKeyringTrace().getEntries().size());
+        assertEquals(KEYRING_TRACE_ENTRY, newMaterials.getKeyringTrace().getEntries().get(0));
 
-        assertThrows(IllegalStateException.class, () -> materials.setCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
+        assertThrows(IllegalStateException.class, () -> newMaterials.withCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
     }
 
     @Test

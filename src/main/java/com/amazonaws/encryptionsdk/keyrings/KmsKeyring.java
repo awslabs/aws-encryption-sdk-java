@@ -70,13 +70,15 @@ class KmsKeyring implements Keyring {
     }
 
     @Override
-    public void onEncrypt(EncryptionMaterials encryptionMaterials) {
+    public EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials) {
         requireNonNull(encryptionMaterials, "encryptionMaterials are required");
 
         // If this keyring is a discovery keyring, OnEncrypt MUST return the input encryption materials unmodified.
         if (isDiscovery) {
-            return;
+            return encryptionMaterials;
         }
+
+        EncryptionMaterials resultMaterials = encryptionMaterials;
 
         // If the input encryption materials do not contain a plaintext data key and this keyring does not
         // have a generator defined, OnEncrypt MUST not modify the encryption materials and MUST fail.
@@ -89,7 +91,7 @@ class KmsKeyring implements Keyring {
         // If the input encryption materials do not contain a plaintext data key and a generator is defined onEncrypt
         // MUST attempt to generate a new plaintext data key and encrypt that data key by calling KMS GenerateDataKey.
         if (!encryptionMaterials.hasCleartextDataKey()) {
-            generateDataKey(encryptionMaterials);
+            resultMaterials = generateDataKey(encryptionMaterials);
         } else if (generatorKeyId != null) {
             // If this keyring's generator is defined and was not used to generate a data key, OnEncrypt
             // MUST also attempt to encrypt the plaintext data key using the CMK specified by the generator.
@@ -99,35 +101,38 @@ class KmsKeyring implements Keyring {
         // Given a plaintext data key in the encryption materials, OnEncrypt MUST attempt
         // to encrypt the plaintext data key using each CMK specified in it's key IDs list.
         for (String keyId : keyIdsToEncrypt) {
-            encryptDataKey(keyId, encryptionMaterials);
+            resultMaterials = encryptDataKey(keyId, resultMaterials);
         }
+
+        return resultMaterials;
     }
 
-    private void generateDataKey(final EncryptionMaterials encryptionMaterials) {
+    private EncryptionMaterials generateDataKey(final EncryptionMaterials encryptionMaterials) {
         final GenerateDataKeyResult result = dataKeyEncryptionDao.generateDataKey(generatorKeyId,
                 encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
 
-        encryptionMaterials.setCleartextDataKey(result.getPlaintextDataKey(),
-                new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.GENERATED_DATA_KEY));
-        encryptionMaterials.addEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()),
-                new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
+        return encryptionMaterials
+                .withCleartextDataKey(result.getPlaintextDataKey(),
+                        new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.GENERATED_DATA_KEY))
+                .withEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()),
+                        new KeyringTraceEntry(KMS_PROVIDER_ID, generatorKeyId, KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
 
-    private void encryptDataKey(final String keyId, final EncryptionMaterials encryptionMaterials) {
+    private EncryptionMaterials encryptDataKey(final String keyId, final EncryptionMaterials encryptionMaterials) {
         final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao.encryptDataKey(keyId,
                 encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
 
-        encryptionMaterials.addEncryptedDataKey(new KeyBlob(encryptedDataKey),
+        return encryptionMaterials.withEncryptedDataKey(new KeyBlob(encryptedDataKey),
                 new KeyringTraceEntry(KMS_PROVIDER_ID, keyId, KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
 
     @Override
-    public void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
+    public DecryptionMaterials onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
         if (decryptionMaterials.hasCleartextDataKey() || encryptedDataKeys.isEmpty()) {
-            return;
+            return decryptionMaterials;
         }
 
         final Set<String> configuredKeyIds = new HashSet<>(keyIds);
@@ -142,15 +147,16 @@ class KmsKeyring implements Keyring {
                     final DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(encryptedDataKey,
                             decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
-                    decryptionMaterials.setCleartextDataKey(result.getPlaintextDataKey(),
+                    return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
                             new KeyringTraceEntry(KMS_PROVIDER_ID, result.getKeyArn(),
                                     KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
-                    return;
                 } catch (CannotUnwrapDataKeyException e) {
                     continue;
                 }
             }
         }
+
+        return decryptionMaterials;
     }
 
     private boolean okToDecrypt(EncryptedDataKey encryptedDataKey, Set<String> configuredKeyIds) {

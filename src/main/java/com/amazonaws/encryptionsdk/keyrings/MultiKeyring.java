@@ -45,30 +45,34 @@ class MultiKeyring implements Keyring {
     }
 
     @Override
-    public void onEncrypt(EncryptionMaterials encryptionMaterials) {
+    public EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials) {
         requireNonNull(encryptionMaterials, "encryptionMaterials are required");
 
+        EncryptionMaterials resultMaterials = encryptionMaterials;
+
         if (generatorKeyring != null) {
-            generatorKeyring.onEncrypt(encryptionMaterials);
+            resultMaterials = generatorKeyring.onEncrypt(encryptionMaterials);
         }
 
-        if (!encryptionMaterials.hasCleartextDataKey()) {
+        if (!resultMaterials.hasCleartextDataKey()) {
             throw new AwsCryptoException("Either a generator keyring must be supplied that produces a cleartext " +
                     "data key or a cleartext data key must already be present in the encryption materials.");
         }
 
         for (Keyring keyring : childrenKeyrings) {
-            keyring.onEncrypt(encryptionMaterials);
+            resultMaterials = keyring.onEncrypt(resultMaterials);
         }
+
+        return resultMaterials;
     }
 
     @Override
-    public void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
+    public DecryptionMaterials onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
         if (decryptionMaterials.hasCleartextDataKey()) {
-            return;
+            return decryptionMaterials;
         }
 
         final List<Keyring> keyringsToDecryptWith = new ArrayList<>();
@@ -83,11 +87,11 @@ class MultiKeyring implements Keyring {
 
         for (Keyring keyring : keyringsToDecryptWith) {
             try {
-                keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+                final DecryptionMaterials resultMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-                if (decryptionMaterials.hasCleartextDataKey()) {
+                if (resultMaterials.hasCleartextDataKey()) {
                     // Decryption succeeded, return immediately
-                    return;
+                    return resultMaterials;
                 }
             } catch (Exception e) {
                 exceptions.add(e);
@@ -100,5 +104,7 @@ class MultiKeyring implements Keyring {
             exceptions.forEach(exception::addSuppressed);
             throw exception;
         }
+
+        return decryptionMaterials;
     }
 }

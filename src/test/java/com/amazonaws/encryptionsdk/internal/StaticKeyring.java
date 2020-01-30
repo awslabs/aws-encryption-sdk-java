@@ -111,9 +111,9 @@ public class StaticKeyring implements Keyring {
     }
 
     @Override
-    public void onEncrypt(EncryptionMaterials encryptionMaterials) {
+    public EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials) {
         if(!encryptionMaterials.hasCleartextDataKey()) {
-            generateDataKey(encryptionMaterials);
+            return generateDataKey(encryptionMaterials);
         } else {
             byte[] encryptedKey;
             try {
@@ -121,39 +121,42 @@ public class StaticKeyring implements Keyring {
             } catch (GeneralSecurityException ex) {
                 throw new RuntimeException(ex);
             }
-            encryptionMaterials.addEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
+            return encryptionMaterials.withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
                     new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.ENCRYPTED_DATA_KEY));
         }
     }
 
     @Override
-    public void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
+    public DecryptionMaterials onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
         try {
             for (EncryptedDataKey edk :encryptedDataKeys) {
                 if (keyId_.equals(new String(edk.getProviderInformation(), StandardCharsets.UTF_8))) {
                     byte[] unencryptedDataKey = keyDecryptionCipher_.doFinal(edk.getEncryptedDataKey());
                     SecretKey key = new SecretKeySpec(unencryptedDataKey, decryptionMaterials.getAlgorithm().getDataKeyAlgo());
 
-                    decryptionMaterials.setCleartextDataKey(key,
+                    return decryptionMaterials.withCleartextDataKey(key,
                             new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.DECRYPTED_DATA_KEY));
                 }
             }
         } catch (GeneralSecurityException ex) {
             throw new RuntimeException(ex);
         }
+
+        return decryptionMaterials;
     }
 
-    private void generateDataKey(EncryptionMaterials encryptionMaterials) {
+    private EncryptionMaterials generateDataKey(EncryptionMaterials encryptionMaterials) {
         try {
             final byte[] rawKey = new byte[encryptionMaterials.getAlgorithm().getDataKeyLength()];
             Utils.getSecureRandom().nextBytes(rawKey);
             SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithm().getDataKeyAlgo());
             byte[] encryptedKey = keyEncryptionCipher_.doFinal(key.getEncoded());
 
-            encryptionMaterials.setCleartextDataKey(key,
-                    new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.GENERATED_DATA_KEY));
-            encryptionMaterials.addEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
-                    new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+            return encryptionMaterials
+                    .withCleartextDataKey(key,
+                        new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.GENERATED_DATA_KEY))
+                    .withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
+                        new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.ENCRYPTED_DATA_KEY));
         } catch (GeneralSecurityException ex) {
             throw new RuntimeException(ex);
         }

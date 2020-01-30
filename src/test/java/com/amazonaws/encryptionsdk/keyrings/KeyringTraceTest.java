@@ -15,6 +15,8 @@ package com.amazonaws.encryptionsdk.keyrings;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,10 +29,9 @@ class KeyringTraceTest {
         KeyringTraceEntry entry2 = new KeyringTraceEntry("ns2", "name2", KeyringTraceFlag.DECRYPTED_DATA_KEY);
         KeyringTraceEntry entry3 = new KeyringTraceEntry("ns3", "name3", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
 
-        KeyringTrace trace = new KeyringTrace();
-        trace.add(entry1.getKeyNamespace(), entry1.getKeyName(), entry1.getFlags().iterator().next());
-        trace.add(entry2.getKeyNamespace(), entry2.getKeyName(), entry2.getFlags().iterator().next());
-        trace.add(entry3.getKeyNamespace(), entry3.getKeyName(), entry3.getFlags().iterator().next());
+        KeyringTrace trace = KeyringTrace.EMPTY_TRACE.with(new KeyringTraceEntry(entry1.getKeyNamespace(), entry1.getKeyName(), entry1.getFlags().iterator().next()));
+        trace = trace.with(new KeyringTraceEntry(entry2.getKeyNamespace(), entry2.getKeyName(), entry2.getFlags().iterator().next()));
+        trace = trace.with(new KeyringTraceEntry(entry3.getKeyNamespace(), entry3.getKeyName(), entry3.getFlags().iterator().next()));
 
         assertEquals(entry1, trace.getEntries().get(0));
         assertEquals(entry2, trace.getEntries().get(1));
@@ -39,8 +40,7 @@ class KeyringTraceTest {
 
     @Test
     void testImmutable() {
-        KeyringTrace trace = new KeyringTrace();
-        trace.add("namespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY);
+        KeyringTrace trace = new KeyringTrace(Collections.singletonList(new KeyringTraceEntry("namespace", "name", KeyringTraceFlag.GENERATED_DATA_KEY)));
 
         assertThrows(UnsupportedOperationException.class, () ->
                 trace.getEntries().add(new KeyringTraceEntry("ns1", "name1", KeyringTraceFlag.GENERATED_DATA_KEY)));

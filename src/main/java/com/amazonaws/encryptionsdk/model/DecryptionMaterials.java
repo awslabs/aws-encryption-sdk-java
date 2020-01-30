@@ -19,7 +19,7 @@ import static org.apache.commons.lang3.Validate.isTrue;
 public final class DecryptionMaterials {
     private final CryptoAlgorithm algorithm;
     private final Map<String, String> encryptionContext;
-    private DataKey<?> dataKey;
+    private final DataKey<?> dataKey;
     private final PublicKey trailingSignatureKey;
     private final KeyringTrace keyringTrace;
 
@@ -54,20 +54,25 @@ public final class DecryptionMaterials {
     }
 
     /**
-     * Sets the cleartext data key. The cleartext data key must not already be populated.
+     * Creates a new {@code DecryptionMaterials} instance based on this instance with the addition of the
+     * provided cleartext data key and keyring trace entry. The cleartext data key must not already be populated.
      *
      * @param cleartextDataKey  The cleartext data key.
      * @param keyringTraceEntry The keyring trace entry recording this action.
+     * @return The new {@code DecryptionMaterials} instance.
      */
-    public void setCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public DecryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
         if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
         requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validateCleartextDataKey(algorithm, cleartextDataKey);
-        this.dataKey = new DataKey<>(cleartextDataKey, EMPTY_BYTE_ARRAY, EMPTY_BYTE_ARRAY, null);
-        keyringTrace.add(keyringTraceEntry);
+
+        return toBuilder()
+                .setCleartextDataKey(cleartextDataKey)
+                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
+                .build();
     }
 
     public SecretKey getCleartextDataKey() {
@@ -133,14 +138,14 @@ public final class DecryptionMaterials {
         private Map<String, String> encryptionContext = Collections.emptyMap();
         private DataKey<?> dataKey;
         private PublicKey trailingSignatureKey;
-        private KeyringTrace keyringTrace = new KeyringTrace();
+        private KeyringTrace keyringTrace = KeyringTrace.EMPTY_TRACE;
 
         private Builder(DecryptionMaterials result) {
             this.algorithm = result.getAlgorithm();
             this.encryptionContext = result.getEncryptionContext();
             this.dataKey = result.getDataKey();
             this.trailingSignatureKey = result.getTrailingSignatureKey();
-            this.keyringTrace = result.keyringTrace;
+            this.keyringTrace = result.getKeyringTrace();
         }
 
         private Builder() {}

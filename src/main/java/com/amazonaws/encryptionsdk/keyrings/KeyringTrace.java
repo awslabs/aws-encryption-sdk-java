@@ -17,35 +17,34 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.unmodifiableList;
 
 /**
  * A keyring trace containing all of the actions that keyrings have taken on a set of encryption materials.
  */
 public class KeyringTrace {
 
-    private final List<KeyringTraceEntry> entries = new ArrayList<>();
+    private final List<KeyringTraceEntry> entries;
+    public static final KeyringTrace EMPTY_TRACE = new KeyringTrace(emptyList());
 
-    /**
-     * Add a new entry to the keyring trace.
-     *
-     * @param keyNamespace The namespace for the key.
-     * @param keyName      The name of the key.
-     * @param flags        A set of one or more KeyringTraceFlag enums
-     *                     indicating what actions were taken by a keyring.
-     */
-    public void add(String keyNamespace, String keyName, KeyringTraceFlag... flags) {
-        add(new KeyringTraceEntry(keyNamespace, keyName, flags));
+    public KeyringTrace(final List<KeyringTraceEntry> entries) {
+        this.entries = unmodifiableList(new ArrayList<>(entries));
     }
 
     /**
-     * Add a new entry to the keyring trace.
+     * Creates a new instance of {@code KeyringTrace} with the provided {@link KeyringTraceEntry}.
      *
-     * @param entry The entry to add.
+     * @param entry The entry to include in the new {@code KeyringTrace}.
+     * @return The new {@code KeyringTrace} instance.
      */
-    public void add(KeyringTraceEntry entry) {
-        entries.add(entry);
+    public KeyringTrace with(KeyringTraceEntry entry) {
+        final List<KeyringTraceEntry> newEntries = new ArrayList<>(entries);
+        newEntries.add(entry);
+        return new KeyringTrace(newEntries);
     }
 
     /**
@@ -56,7 +55,7 @@ public class KeyringTrace {
      * @return An unmodifiable list of `KeyringTraceEntry`s
      */
     public List<KeyringTraceEntry> getEntries() {
-        return Collections.unmodifiableList(entries);
+        return entries;
     }
 
     @Override
@@ -64,5 +63,18 @@ public class KeyringTrace {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("entries", entries)
                 .toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KeyringTrace that = (KeyringTrace) o;
+        return Objects.equals(entries, that.entries);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(entries);
     }
 }

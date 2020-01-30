@@ -65,27 +65,29 @@ abstract class RawKeyring implements Keyring {
     abstract boolean validToDecrypt(EncryptedDataKey encryptedDataKey);
 
     @Override
-    public void onEncrypt(EncryptionMaterials encryptionMaterials) {
+    public EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials) {
         requireNonNull(encryptionMaterials, "encryptionMaterials are required");
 
+        EncryptionMaterials resultMaterials = encryptionMaterials;
+
         if (!encryptionMaterials.hasCleartextDataKey()) {
-            generateDataKey(encryptionMaterials);
+            resultMaterials = generateDataKey(encryptionMaterials);
         }
 
         final EncryptedDataKey encryptedDataKey = jceKeyCipher.encryptKey(
-                encryptionMaterials.getCleartextDataKey().getEncoded(),
-                keyName, keyNamespace, encryptionMaterials.getEncryptionContext());
-        encryptionMaterials.addEncryptedDataKey(new KeyBlob(encryptedDataKey),
+                resultMaterials.getCleartextDataKey().getEncoded(),
+                keyName, keyNamespace, resultMaterials.getEncryptionContext());
+        return resultMaterials.withEncryptedDataKey(new KeyBlob(encryptedDataKey),
                 new KeyringTraceEntry(keyNamespace, keyName, encryptTraceFlags()));
     }
 
     @Override
-    public void onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
+    public DecryptionMaterials onDecrypt(DecryptionMaterials decryptionMaterials, List<? extends EncryptedDataKey> encryptedDataKeys) {
         requireNonNull(decryptionMaterials, "decryptionMaterials are required");
         requireNonNull(encryptedDataKeys, "encryptedDataKeys are required");
 
         if (decryptionMaterials.hasCleartextDataKey() || encryptedDataKeys.isEmpty()) {
-            return;
+            return decryptionMaterials;
         }
 
         for (EncryptedDataKey encryptedDataKey : encryptedDataKeys) {
@@ -93,25 +95,24 @@ abstract class RawKeyring implements Keyring {
                 try {
                     final byte[] decryptedKey = jceKeyCipher.decryptKey(
                             encryptedDataKey, keyName, decryptionMaterials.getEncryptionContext());
-                    decryptionMaterials.setCleartextDataKey(
+                    return decryptionMaterials.withCleartextDataKey(
                             new SecretKeySpec(decryptedKey, decryptionMaterials.getAlgorithm().getDataKeyAlgo()),
                             new KeyringTraceEntry(keyNamespace, keyName, decryptTraceFlags()));
-                    return;
                 } catch (Exception e) {
                     LOGGER.info("Could not decrypt key due to: " + e.getMessage());
                 }
             }
         }
 
-        LOGGER.warning("Could not decrypt any data keys");
+        return decryptionMaterials;
     }
 
-    private void generateDataKey(EncryptionMaterials encryptionMaterials) {
+    private EncryptionMaterials generateDataKey(EncryptionMaterials encryptionMaterials) {
         final byte[] rawKey = new byte[encryptionMaterials.getAlgorithm().getDataKeyLength()];
         Utils.getSecureRandom().nextBytes(rawKey);
         final SecretKey key = new SecretKeySpec(rawKey, encryptionMaterials.getAlgorithm().getDataKeyAlgo());
 
-        encryptionMaterials.setCleartextDataKey(key, new KeyringTraceEntry(keyNamespace, keyName, GENERATED_DATA_KEY));
+        return encryptionMaterials.withCleartextDataKey(key, new KeyringTraceEntry(keyNamespace, keyName, GENERATED_DATA_KEY));
     }
 
     private KeyringTraceFlag[] encryptTraceFlags() {

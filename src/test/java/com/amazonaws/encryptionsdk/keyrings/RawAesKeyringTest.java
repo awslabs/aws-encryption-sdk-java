@@ -58,11 +58,10 @@ class RawAesKeyringTest {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setCleartextDataKey(DATA_KEY)
-                .setKeyringTrace(new KeyringTrace())
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
 
@@ -81,10 +80,9 @@ class RawAesKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
-        keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
         assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
@@ -98,11 +96,10 @@ class RawAesKeyringTest {
     void testEncryptDecryptGenerateDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
-                .setKeyringTrace(new KeyringTrace())
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
                 .build();
 
-        keyring.onEncrypt(encryptionMaterials);
+        encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
         assertNotNull(encryptionMaterials.getCleartextDataKey());
         assertEquals(encryptionMaterials.getCleartextDataKey().getAlgorithm(), ALGORITHM.getDataKeyAlgo());
@@ -123,10 +120,9 @@ class RawAesKeyringTest {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(new KeyringTrace())
                 .build();
 
-        keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(encryptionMaterials.getCleartextDataKey(), decryptionMaterials.getCleartextDataKey());
         assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
