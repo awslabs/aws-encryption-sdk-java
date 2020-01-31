@@ -25,8 +25,17 @@ public class AwsKmsKeyringBuilder {
     private List<AwsKmsCmkId> keyIds;
     private AwsKmsCmkId generatorKeyId;
 
-    AwsKmsKeyringBuilder() {
-        // Use StandardKeyrings.awsKms() to instantiate
+    private AwsKmsKeyringBuilder() {
+        // Use AwsKmsKeyringBuilder.standard() or StandardKeyrings.awsKms() to instantiate
+    }
+
+    /**
+     * Constructs a new instance of {@code AwsKmsKeyringBuilder}
+     *
+     * @return The {@code AwsKmsKeyringBuilder}
+     */
+    public static AwsKmsKeyringBuilder standard() {
+        return new AwsKmsKeyringBuilder();
     }
 
     /**

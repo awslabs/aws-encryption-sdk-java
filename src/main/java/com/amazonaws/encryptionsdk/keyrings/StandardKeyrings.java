@@ -13,6 +13,7 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
+import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
 import java.util.Arrays;
@@ -33,7 +34,7 @@ public class StandardKeyrings {
      * @return The {@link RawAesKeyringBuilder}
      */
     public static RawAesKeyringBuilder rawAes() {
-        return new RawAesKeyringBuilder();
+        return RawAesKeyringBuilder.standard();
     }
 
     /**
@@ -44,7 +45,7 @@ public class StandardKeyrings {
      * @return The {@link RawRsaKeyringBuilder}
      */
     public static RawRsaKeyringBuilder rawRsa() {
-        return new RawRsaKeyringBuilder();
+        return RawRsaKeyringBuilder.standard();
     }
       
     /**  
@@ -58,7 +59,7 @@ public class StandardKeyrings {
      * @return The {@code Keyring}
      */
     public static Keyring awsKms(AwsKmsCmkId generatorKeyId) {
-        return new AwsKmsKeyringBuilder()
+        return AwsKmsKeyringBuilder.standard()
                 .generatorKeyId(generatorKeyId)
                 .build();
     }
@@ -71,17 +72,29 @@ public class StandardKeyrings {
      * @return The {@link AwsKmsKeyringBuilder}
      */
     public static AwsKmsKeyringBuilder awsKms() {
-        return new AwsKmsKeyringBuilder();
+        return AwsKmsKeyringBuilder.standard();
     }
 
     /**
      * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to attempt to
      * decrypt all data keys provided to it. AWS KMS Discovery keyrings do not perform encryption.
+     * <p></p>
+     * To create an AWS KMS Regional Discovery Keyring, use {@link #awsKms()} and the
+     * {@link AwsKmsClientSupplier#builder()} to specify which regions to include/exclude.
+     * <p></p>
+     * For example, to include only CMKs in the us-east-1 region:
+     * <pre>
+     * StandardKeyrings.awsKms()
+     *             .awsKmsClientSupplier(
+     *                     AwsKmsClientSupplier.builder()
+     *                     .allowedRegions(Collections.singleton("us-east-1")).build())
+     *             .build();
+     * </pre>
      *
      * @return The {@code Keyring}
      */
     public static Keyring awsKmsDiscovery() {
-        return new AwsKmsKeyringBuilder().build();
+        return AwsKmsKeyringBuilder.standard().build();
     }
 
     /**

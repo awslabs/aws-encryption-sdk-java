@@ -20,8 +20,17 @@ public class RawAesKeyringBuilder {
     private String keyName;
     private SecretKey wrappingKey;
 
-    RawAesKeyringBuilder() {
-        // Use StandardKeyrings.rawAes() to instantiate
+    private RawAesKeyringBuilder() {
+        // Use RawAesKeyringBuilder.standard() or StandardKeyrings.rawAes() to instantiate
+    }
+
+    /**
+     * Constructs a new instance of {@code RawAesKeyringBuilder}
+     *
+     * @return The {@code RawAesKeyringBuilder}
+     */
+    public static RawAesKeyringBuilder standard() {
+        return new RawAesKeyringBuilder();
     }
 
     /**

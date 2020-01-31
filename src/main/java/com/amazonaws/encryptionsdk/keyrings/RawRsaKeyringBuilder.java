@@ -23,8 +23,17 @@ public class RawRsaKeyringBuilder {
     private PrivateKey privateKey;
     private String wrappingAlgorithm;
 
-    RawRsaKeyringBuilder() {
-        // Use StandardKeyrings.rawRsa() to instantiate
+    private RawRsaKeyringBuilder() {
+        // Use RawRsaKeyringBuilder.standard() or StandardKeyrings.rawRsa() to instantiate
+    }
+
+    /**
+     * Constructs a new instance of {@code RawRsaKeyringBuilder}
+     *
+     * @return The {@code RawRsaKeyringBuilder}
+     */
+    public static RawRsaKeyringBuilder standard() {
+        return new RawRsaKeyringBuilder();
     }
 
     /**
