@@ -13,6 +13,7 @@
 
 package com.amazonaws.crypto.examples;
 
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,6 @@ class BasicEncryptionExampleTest {
 
     @Test
     void testEncryptAndDecrypt() {
-        BasicEncryptionExample.encryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
+        BasicEncryptionExample.encryptAndDecrypt(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
     }
 }

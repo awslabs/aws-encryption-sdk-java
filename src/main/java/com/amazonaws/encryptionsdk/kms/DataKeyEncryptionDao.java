@@ -31,7 +31,7 @@ public interface DataKeyEncryptionDao {
      * @param encryptionContext The encryption context.
      * @return GenerateDataKeyResult containing the plaintext data key and the encrypted data key.
      */
-    GenerateDataKeyResult generateDataKey(String keyId, CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext);
+    GenerateDataKeyResult generateDataKey(AwsKmsCmkId keyId, CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext);
 
     /**
      * Encrypts the given plaintext data key using the customer aster key specified by the given keyId.
@@ -41,7 +41,7 @@ public interface DataKeyEncryptionDao {
      * @param encryptionContext The encryption context.
      * @return The encrypted data key.
      */
-    EncryptedDataKey encryptDataKey(final String keyId, SecretKey plaintextDataKey, Map<String, String> encryptionContext);
+    EncryptedDataKey encryptDataKey(final AwsKmsCmkId keyId, SecretKey plaintextDataKey, Map<String, String> encryptionContext);
 
     /**
      * Decrypted the given encrypted data key.

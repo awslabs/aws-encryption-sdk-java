@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
-import static com.amazonaws.encryptionsdk.kms.KmsUtils.KMS_PROVIDER_ID;
+import static com.amazonaws.encryptionsdk.internal.Constants.AWS_KMS_PROVIDER_ID;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,7 +60,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
     private static final SecretKey DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static final List<String> GRANT_TOKENS = Collections.singletonList("testGrantToken");
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("myKey", "myValue");
-    private static final EncryptedDataKey ENCRYPTED_DATA_KEY = new KeyBlob(KMS_PROVIDER_ID,
+    private static final EncryptedDataKey ENCRYPTED_DATA_KEY = new KeyBlob(AWS_KMS_PROVIDER_ID,
             "arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210".getBytes(EncryptedDataKey.PROVIDER_ENCODING), generate(ALGORITHM_SUITE.getDataKeyLength()));
 
     @Test
@@ -69,7 +69,8 @@ class AwsKmsDataKeyEncryptionDaoTest {
         DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
-        EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(keyId, DATA_KEY, ENCRYPTION_CONTEXT);
+        EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(
+                AwsKmsCmkId.fromString(keyId), DATA_KEY, ENCRYPTION_CONTEXT);
 
         ArgumentCaptor<EncryptRequest> er = ArgumentCaptor.forClass(EncryptRequest.class);
         verify(client, times(1)).encrypt(er.capture());
@@ -82,7 +83,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertArrayEquals(DATA_KEY.getEncoded(), actualRequest.getPlaintext().array());
         assertUserAgent(actualRequest);
 
-        assertEquals(KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
+        assertEquals(AWS_KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
         assertArrayEquals(keyId.getBytes(EncryptedDataKey.PROVIDER_ENCODING), encryptedDataKeyResult.getProviderInformation());
         assertNotNull(encryptedDataKeyResult.getEncryptedDataKey());
 
@@ -107,7 +108,8 @@ class AwsKmsDataKeyEncryptionDaoTest {
         DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(s -> client, GRANT_TOKENS);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
-        DataKeyEncryptionDao.GenerateDataKeyResult generateDataKeyResult = dao.generateDataKey(keyId, ALGORITHM_SUITE, ENCRYPTION_CONTEXT);
+        DataKeyEncryptionDao.GenerateDataKeyResult generateDataKeyResult = dao.generateDataKey(
+                AwsKmsCmkId.fromString(keyId), ALGORITHM_SUITE, ENCRYPTION_CONTEXT);
 
         ArgumentCaptor<GenerateDataKeyRequest> gr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gr.capture());
@@ -147,7 +149,8 @@ class AwsKmsDataKeyEncryptionDaoTest {
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         String rawKeyId = keyId.split("/")[1];
-        EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(rawKeyId, DATA_KEY, ENCRYPTION_CONTEXT);
+        EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(
+                AwsKmsCmkId.fromString(rawKeyId), DATA_KEY, ENCRYPTION_CONTEXT);
 
         ArgumentCaptor<EncryptRequest> er = ArgumentCaptor.forClass(EncryptRequest.class);
         verify(client, times(1)).encrypt(er.capture());
@@ -160,7 +163,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertArrayEquals(DATA_KEY.getEncoded(), actualRequest.getPlaintext().array());
         assertUserAgent(actualRequest);
 
-        assertEquals(KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
+        assertEquals(AWS_KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
         assertArrayEquals(keyId.getBytes(EncryptedDataKey.PROVIDER_ENCODING), encryptedDataKeyResult.getProviderInformation());
         assertNotNull(encryptedDataKeyResult.getEncryptedDataKey());
     }
@@ -175,7 +178,8 @@ class AwsKmsDataKeyEncryptionDaoTest {
 
         String keyId = client.createKey().getKeyMetadata().getArn();
 
-        assertThrows(IllegalArgumentException.class, () -> dao.encryptDataKey(keyId, key, ENCRYPTION_CONTEXT));
+        assertThrows(IllegalArgumentException.class, () -> dao.encryptDataKey(
+                AwsKmsCmkId.fromString(keyId), key, ENCRYPTION_CONTEXT));
     }
 
     @Test
@@ -188,8 +192,10 @@ class AwsKmsDataKeyEncryptionDaoTest {
         doThrow(new KMSInvalidStateException("fail")).when(client).encrypt(isA(EncryptRequest.class));
         doThrow(new KMSInvalidStateException("fail")).when(client).decrypt(isA(DecryptRequest.class));
 
-        assertThrows(AwsCryptoException.class, () -> dao.generateDataKey(keyId, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
-        assertThrows(AwsCryptoException.class, () -> dao.encryptDataKey(keyId, DATA_KEY, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.generateDataKey(
+                AwsKmsCmkId.fromString(keyId), ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.encryptDataKey(
+                AwsKmsCmkId.fromString(keyId), DATA_KEY, ENCRYPTION_CONTEXT));
         assertThrows(AwsCryptoException.class, () -> dao.decryptDataKey(ENCRYPTED_DATA_KEY, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
     }
 
@@ -203,8 +209,10 @@ class AwsKmsDataKeyEncryptionDaoTest {
         doThrow(new UnsupportedRegionException("fail")).when(client).encrypt(isA(EncryptRequest.class));
         doThrow(new UnsupportedRegionException("fail")).when(client).decrypt(isA(DecryptRequest.class));
 
-        assertThrows(AwsCryptoException.class, () -> dao.generateDataKey(keyId, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
-        assertThrows(AwsCryptoException.class, () -> dao.encryptDataKey(keyId, DATA_KEY, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.generateDataKey(
+                AwsKmsCmkId.fromString(keyId), ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
+        assertThrows(AwsCryptoException.class, () -> dao.encryptDataKey(
+                AwsKmsCmkId.fromString(keyId), DATA_KEY, ENCRYPTION_CONTEXT));
         assertThrows(AwsCryptoException.class, () -> dao.decryptDataKey(ENCRYPTED_DATA_KEY, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
     }
 

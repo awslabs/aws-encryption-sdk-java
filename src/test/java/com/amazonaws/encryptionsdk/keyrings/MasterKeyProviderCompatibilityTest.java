@@ -22,6 +22,7 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
@@ -49,7 +50,7 @@ class MasterKeyProviderCompatibilityTest {
     void testAwsKmsKeyringCompatibility() {
         MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
-        Keyring keyring = StandardKeyrings.awsKms(KMSTestFixtures.TEST_KEY_IDS[0]);
+        Keyring keyring = StandardKeyrings.awsKms(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
 
         testCompatibility(keyring, mkp);
     }
@@ -97,7 +98,7 @@ class MasterKeyProviderCompatibilityTest {
 
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
 
-        Keyring keyring1 = StandardKeyrings.awsKms(KMSTestFixtures.TEST_KEY_IDS[0]);
+        Keyring keyring1 = StandardKeyrings.awsKms(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
         Keyring keyring2 = StandardKeyrings.rawAes()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)

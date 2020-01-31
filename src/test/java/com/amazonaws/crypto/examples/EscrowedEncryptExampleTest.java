@@ -13,6 +13,7 @@
 
 package com.amazonaws.crypto.examples;
 
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,6 @@ class EscrowedEncryptExampleTest {
 
     @Test
     void testEncryptAndDecrypt() throws GeneralSecurityException {
-        EscrowedEncryptExample.escrowEncryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
+        EscrowedEncryptExample.escrowEncryptAndDecrypt(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
     }
 }

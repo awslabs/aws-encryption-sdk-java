@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.kms;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.arn.Arn;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.exception.UnsupportedRegionException;
 import com.amazonaws.services.kms.AWSKMS;
@@ -57,6 +58,25 @@ public interface AwsKmsClientSupplier {
      */
     static Builder builder() {
         return new Builder(AWSKMSClientBuilder.standard());
+    }
+
+    /**
+     * Parses region from the given key id (if possible) and passes that region to the
+     * given clientSupplier to produce an {@code AWSKMS} client.
+     *
+     * @param keyId          The Amazon Resource Name, Key Alias, Alias ARN or KeyId
+     * @param clientSupplier The client supplier
+     * @return AWSKMS The client
+     */
+    static AWSKMS getClientByKeyId(AwsKmsCmkId keyId, AwsKmsClientSupplier clientSupplier) {
+        requireNonNull(keyId, "keyId is required");
+        requireNonNull(clientSupplier, "clientSupplier is required");
+
+        if(keyId.isArn()) {
+            return clientSupplier.getClient(Arn.fromString(keyId.toString()).getRegion());
+        }
+
+        return clientSupplier.getClient(null);
     }
 
     /**

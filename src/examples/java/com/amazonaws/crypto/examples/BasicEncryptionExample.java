@@ -24,6 +24,7 @@ import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
 /**
  * <p>
@@ -41,12 +42,10 @@ public class BasicEncryptionExample {
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
     public static void main(final String[] args) {
-        final String keyArn = args[0];
-
-        encryptAndDecrypt(keyArn);
+        encryptAndDecrypt(AwsKmsCmkId.fromString(args[0]));
     }
 
-    static void encryptAndDecrypt(final String keyArn) {
+    static void encryptAndDecrypt(final AwsKmsCmkId keyArn) {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
@@ -81,7 +80,7 @@ public class BasicEncryptionExample {
 
         // 6. Before verifying the plaintext, inspect the Keyring Trace to verify that the CMK used
         //    to decrypt the encrypted data key was the CMK in the encryption keyring.
-        if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn)) {
+        if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn.toString())) {
             throw new IllegalStateException("Wrong key ID!");
         }
 

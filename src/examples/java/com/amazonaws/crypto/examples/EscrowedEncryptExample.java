@@ -18,6 +18,7 @@ import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -55,12 +56,10 @@ public class EscrowedEncryptExample {
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
     public static void main(final String[] args) throws GeneralSecurityException {
-        final String kmsArn = args[0];
-
-        escrowEncryptAndDecrypt(kmsArn);
+        escrowEncryptAndDecrypt(AwsKmsCmkId.fromString(args[0]));
     }
 
-    static void escrowEncryptAndDecrypt(String kmsArn) throws GeneralSecurityException {
+    static void escrowEncryptAndDecrypt(AwsKmsCmkId kmsArn) throws GeneralSecurityException {
         // This sample generates a new random key for each operation.
         // In practice, you would distribute the public key and save the private key in secure storage.
         final KeyPair escrowKeyPair = generateEscrowKeyPair();
@@ -79,7 +78,7 @@ public class EscrowedEncryptExample {
         assert Arrays.equals(escrowedDecryptedData, EXAMPLE_DATA);
     }
 
-    private static byte[] standardEncrypt(final String kmsArn, final PublicKey publicEscrowKey) {
+    private static byte[] standardEncrypt(final AwsKmsCmkId kmsArn, final PublicKey publicEscrowKey) {
         // Encrypt with the KMS CMK and the escrowed public key
 
         // 1. Instantiate the SDK
@@ -110,7 +109,7 @@ public class EscrowedEncryptExample {
                 .getResult();
     }
 
-    private static byte[] standardDecrypt(final String kmsArn, final byte[] cipherText) {
+    private static byte[] standardDecrypt(final AwsKmsCmkId kmsArn, final byte[] cipherText) {
         // Decrypt with the KMS CMK
 
         // 1. Instantiate the SDK

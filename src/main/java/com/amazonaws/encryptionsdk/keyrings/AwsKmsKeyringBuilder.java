@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 
 import java.util.List;
@@ -21,8 +22,8 @@ import java.util.List;
 public class AwsKmsKeyringBuilder {
     private AwsKmsClientSupplier awsKmsClientSupplier;
     private List<String> grantTokens;
-    private List<String> keyIds;
-    private String generatorKeyId;
+    private List<AwsKmsCmkId> keyIds;
+    private AwsKmsCmkId generatorKeyId;
 
     AwsKmsKeyringBuilder() {
         // Use StandardKeyrings.awsKms() to instantiate
@@ -53,25 +54,28 @@ public class AwsKmsKeyringBuilder {
     }
 
     /**
-     * A list of strings identifying AWS KMS CMKs used for encrypting and decrypting data keys
-     * in ARN, CMK Alias, or ARN Alias format.
+     * A list of {@link AwsKmsCmkId}s in ARN, CMK Alias, or ARN Alias format identifying AWS KMS CMKs
+     * used for encrypting and decrypting data keys.
      *
      * @param keyIds The list of AWS KMS CMKs
      * @return The AwsKmsKeyringBuilder, for method chaining
      */
-    public AwsKmsKeyringBuilder keyIds(List<String> keyIds) {
+    public AwsKmsKeyringBuilder keyIds(List<AwsKmsCmkId> keyIds) {
         this.keyIds = keyIds;
         return this;
     }
 
     /**
-     * A string that identifies a AWS KMS CMK responsible for generating a data key,
-     * as well as encrypting and decrypting data keys in ARN, CMK Alias, or ARN Alias format.
+     * An {@link AwsKmsCmkId} in ARN, CMK Alias, or ARN Alias format that identifies a
+     * AWS KMS CMK responsible for generating a data key, as well as encrypting and
+     * decrypting data keys .
      *
-     * @param generatorKeyId The generator AWS KMS CMK
+     * @param generatorKeyId An {@link AwsKmsCmkId} in ARN, CMK Alias, or ARN Alias format that identifies a
+     *                       AWS KMS CMK responsible for generating a data key, as well as encrypting and
+     *                       decrypting data keys.
      * @return The AwsKmsKeyringBuilder, for method chaining
      */
-    public AwsKmsKeyringBuilder generatorKeyId(String generatorKeyId) {
+    public AwsKmsKeyringBuilder generatorKeyId(AwsKmsCmkId generatorKeyId) {
         this.generatorKeyId = generatorKeyId;
         return this;
     }

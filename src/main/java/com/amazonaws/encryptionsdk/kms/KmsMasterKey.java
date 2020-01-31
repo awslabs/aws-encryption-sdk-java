@@ -90,7 +90,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     public DataKey<KmsMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
         final DataKeyEncryptionDao.GenerateDataKeyResult gdkResult = dataKeyEncryptionDao_.generateDataKey(
-                getKeyId(), algorithm, encryptionContext);
+                AwsKmsCmkId.fromString(getKeyId()), algorithm, encryptionContext);
         return new DataKey<>(gdkResult.getPlaintextDataKey(),
                 gdkResult.getEncryptedDataKey().getEncryptedDataKey(),
                 gdkResult.getEncryptedDataKey().getProviderInformation(),
@@ -117,7 +117,8 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
             final Map<String, String> encryptionContext,
             final DataKey<?> dataKey) {
         final SecretKey key = dataKey.getKey();
-        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao_.encryptDataKey(id_, key, encryptionContext);
+        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao_.encryptDataKey(
+                AwsKmsCmkId.fromString(id_), key, encryptionContext);
 
         return new DataKey<>(dataKey.getKey(),
                 encryptedDataKey.getEncryptedDataKey(),

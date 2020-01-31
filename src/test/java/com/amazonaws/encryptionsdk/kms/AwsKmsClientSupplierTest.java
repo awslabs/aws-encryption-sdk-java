@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
@@ -169,5 +170,19 @@ class AwsKmsClientSupplierTest {
         client3.toString();
         supplier.getClient(REGION_3);
         verify(kmsClientBuilder, times(8)).build();
+    }
+
+    @Test
+    void testGetClientByKeyId() {
+
+        final String arn = "arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210";
+        final String aliasArn = "arn:aws:kms:us-east-1:999999999999:alias/MyCryptoKey";
+        final String alias = "alias/MyCryptoKey";
+        final String keyId = "01234567-89ab-cdef-fedc-ba9876543210";
+
+        assertEquals(awskms, AwsKmsClientSupplier.getClientByKeyId(AwsKmsCmkId.fromString(arn), s -> awskms));
+        assertEquals(awskms, AwsKmsClientSupplier.getClientByKeyId(AwsKmsCmkId.fromString(aliasArn), s -> awskms));
+        assertEquals(awskms, AwsKmsClientSupplier.getClientByKeyId(AwsKmsCmkId.fromString(alias), s -> awskms));
+        assertEquals(awskms, AwsKmsClientSupplier.getClientByKeyId(AwsKmsCmkId.fromString(keyId), s -> awskms));
     }
 }
