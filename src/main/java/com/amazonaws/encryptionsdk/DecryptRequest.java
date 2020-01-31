@@ -46,7 +46,7 @@ public class DecryptRequest extends AwsCryptoRequest {
         private byte[] ciphertext;
 
         /**
-         * Sets the {@link ParsedCiphertext}. Either {@link ParsedCiphertext} or a
+         * Sets the {@link ParsedCiphertext} to decrypt. Either {@link ParsedCiphertext} or a
          * {@code byte[]} ciphertext is required.
          *
          * @param parsedCiphertext The {@link ParsedCiphertext}
@@ -59,8 +59,10 @@ public class DecryptRequest extends AwsCryptoRequest {
         }
 
         /**
-         * Sets the ciphertext. Either {@link ParsedCiphertext} or a
-         * {@code byte[]} ciphertext is required.
+         * Sets the ciphertext byte array to decrypt. Either {@link ParsedCiphertext} or a
+         * {@code byte[]} ciphertext is required. Note that this does not make a defensive
+         * copy of the ciphertext and so any modifications made to the backing array will be
+         * reflected in this Builder.
          *
          * @param ciphertext The ciphertext
          * @return The Builder, for method chaining

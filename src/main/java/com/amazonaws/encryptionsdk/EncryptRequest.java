@@ -53,8 +53,8 @@ public class EncryptRequest extends AwsCryptoRequest {
         private Map<String, String> encryptionContext = Collections.emptyMap();
 
         /**
-         * Sets the {@link Keyring}. Either a {@link CryptoMaterialsManager} or a
-         * {@link Keyring} is required.
+         * Sets the plaintext byte array to encrypt. Note that this does not make a defensive copy of the
+         * plaintext and so any modifications made to the backing array will be reflected in this Builder.
          *
          * @param plaintext The {@link Keyring}
          * @return The Builder, for method chaining
