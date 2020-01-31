@@ -24,9 +24,13 @@ public class AwsKmsKeyringBuilder {
     private List<String> grantTokens;
     private List<AwsKmsCmkId> keyIds;
     private AwsKmsCmkId generatorKeyId;
+    private final boolean isDiscovery;
 
-    private AwsKmsKeyringBuilder() {
+    private AwsKmsKeyringBuilder(boolean isDiscovery) {
         // Use AwsKmsKeyringBuilder.standard() or StandardKeyrings.awsKms() to instantiate
+        // or AwsKmsKeyringBuilder.discovery() or StandardKeyrings.awsKmsDiscovery() to instantiate
+        // a discovery keyring builder.
+        this.isDiscovery = isDiscovery;
     }
 
     /**
@@ -35,7 +39,18 @@ public class AwsKmsKeyringBuilder {
      * @return The {@code AwsKmsKeyringBuilder}
      */
     public static AwsKmsKeyringBuilder standard() {
-        return new AwsKmsKeyringBuilder();
+        return new AwsKmsKeyringBuilder(false);
+    }
+
+    /**
+     * Constructs a new instance of {@code AwsKmsKeyringBuilder} that produces an AWS KMS Discovery keyring.
+     * AWS KMS Discovery keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
+     * using any encrypted data key in an encrypted message. AWS KMS Discovery keyrings do not perform encryption.
+     *
+     * @return The {@code AwsKmsKeyringBuilder}
+     */
+    public static AwsKmsKeyringBuilder discovery() {
+        return new AwsKmsKeyringBuilder(true);
     }
 
     /**
@@ -98,6 +113,9 @@ public class AwsKmsKeyringBuilder {
         if(awsKmsClientSupplier == null) {
             awsKmsClientSupplier = AwsKmsClientSupplier.builder().build();
         }
-        return new AwsKmsKeyring(DataKeyEncryptionDao.awsKms(awsKmsClientSupplier, grantTokens), keyIds, generatorKeyId);
+
+        return new AwsKmsKeyring(DataKeyEncryptionDao.awsKms(awsKmsClientSupplier, grantTokens),
+                keyIds, generatorKeyId, isDiscovery);
     }
+
 }

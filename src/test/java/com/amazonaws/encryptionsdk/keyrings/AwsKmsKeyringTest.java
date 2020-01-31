@@ -95,7 +95,7 @@ class AwsKmsKeyringTest {
         List<AwsKmsCmkId> keyIds = new ArrayList<>();
         keyIds.add(AwsKmsCmkId.fromString(KEY_ID_1));
         keyIds.add(AwsKmsCmkId.fromString(KEY_ID_2));
-        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, keyIds, AwsKmsCmkId.fromString(GENERATOR_KEY_ID));
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, keyIds, AwsKmsCmkId.fromString(GENERATOR_KEY_ID), false);
     }
 
     @Test
@@ -106,23 +106,44 @@ class AwsKmsKeyringTest {
                 .build();
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
-        encryptedDataKeys.add(new KeyBlob(AWS_KMS_PROVIDER_ID, "badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
+        encryptedDataKeys.add(new KeyBlob(AWS_KMS_PROVIDER_ID, "arn:badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
 
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
         assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
 
+        decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM_SUITE)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
         // Malformed Arn for a non KMS provider shouldn't fail
         encryptedDataKeys.clear();
-        encryptedDataKeys.add(new KeyBlob("OtherProviderId", "badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
-        keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        encryptedDataKeys.add(new KeyBlob("OtherProviderId", "arn:badArn".getBytes(PROVIDER_ENCODING), new byte[]{}));
+        assertFalse(keyring.onDecrypt(decryptionMaterials, encryptedDataKeys).hasCleartextDataKey());
     }
 
     @Test
     void testGeneratorKeyInKeyIds() {
         assertThrows(IllegalArgumentException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao,
                 Collections.singletonList(AwsKmsCmkId.fromString(GENERATOR_KEY_ID)),
-                AwsKmsCmkId.fromString(GENERATOR_KEY_ID)));
+                AwsKmsCmkId.fromString(GENERATOR_KEY_ID), false));
+    }
+
+    @Test
+    void testNotDiscoveryNoKeysIds() {
+        assertThrows(IllegalArgumentException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao,
+                null,null, false));
+    }
+
+    @Test
+    void testDiscoveryWithKeyId() {
+        assertThrows(IllegalArgumentException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao,
+                null,
+                AwsKmsCmkId.fromString(GENERATOR_KEY_ID), true));
+        assertThrows(IllegalArgumentException.class, () -> new AwsKmsKeyring(dataKeyEncryptionDao,
+                Collections.singletonList(AwsKmsCmkId.fromString(GENERATOR_KEY_ID)),
+                null, true));
     }
 
     @Test
@@ -207,7 +228,7 @@ class AwsKmsKeyringTest {
                 .build();
 
         Keyring keyring = new AwsKmsKeyring(dataKeyEncryptionDao,
-                Collections.singletonList(AwsKmsCmkId.fromString(KEY_ID_1)), null);
+                Collections.singletonList(AwsKmsCmkId.fromString(KEY_ID_1)), null, false);
 
         encryptionMaterials = keyring.onEncrypt(encryptionMaterials);
 
@@ -222,7 +243,7 @@ class AwsKmsKeyringTest {
 
     @Test
     void testDiscoveryEncrypt() {
-        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null, true);
 
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
@@ -237,7 +258,7 @@ class AwsKmsKeyringTest {
     @Test
     void testEncryptNoGeneratorOrCleartextDataKey() {
         keyring = new AwsKmsKeyring(dataKeyEncryptionDao,
-                Collections.singletonList(AwsKmsCmkId.fromString(KEY_ID_1)), null);
+                Collections.singletonList(AwsKmsCmkId.fromString(KEY_ID_1)), null, false);
 
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder().setAlgorithm(ALGORITHM_SUITE).build();
         assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
@@ -297,7 +318,7 @@ class AwsKmsKeyringTest {
 
     @Test
     void testDiscoveryDecrypt() {
-        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null);
+        keyring = new AwsKmsKeyring(dataKeyEncryptionDao, null, null, true);
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)

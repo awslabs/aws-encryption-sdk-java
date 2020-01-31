@@ -76,25 +76,26 @@ public class StandardKeyrings {
     }
 
     /**
-     * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to attempt to
-     * decrypt all data keys provided to it. AWS KMS Discovery keyrings do not perform encryption.
+     * Returns an {@link AwsKmsKeyringBuilder} for use in constructing an AWS KMS Discovery keyring.
+     * AWS KMS Discovery keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
+     * using any encrypted data key in an encrypted message. AWS KMS Discovery keyrings do not perform encryption.
      * <p></p>
-     * To create an AWS KMS Regional Discovery Keyring, use {@link #awsKms()} and the
+     * To create an AWS KMS Regional Discovery Keyring, construct an {@link AwsKmsClientSupplier} using
      * {@link AwsKmsClientSupplier#builder()} to specify which regions to include/exclude.
      * <p></p>
      * For example, to include only CMKs in the us-east-1 region:
      * <pre>
-     * StandardKeyrings.awsKms()
+     * StandardKeyrings.awsKmsDiscovery()
      *             .awsKmsClientSupplier(
      *                     AwsKmsClientSupplier.builder()
      *                     .allowedRegions(Collections.singleton("us-east-1")).build())
      *             .build();
      * </pre>
      *
-     * @return The {@code Keyring}
+     * @return The {@code AwsKmsKeyringBuilder}
      */
-    public static Keyring awsKmsDiscovery() {
-        return AwsKmsKeyringBuilder.standard().build();
+    public static AwsKmsKeyringBuilder awsKmsDiscovery() {
+        return AwsKmsKeyringBuilder.discovery();
     }
 
     /**

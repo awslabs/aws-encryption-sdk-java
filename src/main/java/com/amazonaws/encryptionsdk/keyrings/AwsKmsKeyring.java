@@ -23,6 +23,7 @@ import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao.GenerateDataKeyResul
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
+import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,12 +48,20 @@ class AwsKmsKeyring implements Keyring {
     private final AwsKmsCmkId generatorKeyId;
     private final boolean isDiscovery;
 
-    AwsKmsKeyring(DataKeyEncryptionDao dataKeyEncryptionDao, List<AwsKmsCmkId> keyIds, AwsKmsCmkId generatorKeyId) {
+    AwsKmsKeyring(DataKeyEncryptionDao dataKeyEncryptionDao, List<AwsKmsCmkId> keyIds, AwsKmsCmkId generatorKeyId, boolean isDiscovery) {
         requireNonNull(dataKeyEncryptionDao, "dataKeyEncryptionDao is required");
         this.dataKeyEncryptionDao = dataKeyEncryptionDao;
         this.keyIds = keyIds == null ? emptyList() : unmodifiableList(new ArrayList<>(keyIds));
         this.generatorKeyId = generatorKeyId;
-        this.isDiscovery = this.generatorKeyId == null && this.keyIds.isEmpty();
+        this.isDiscovery = isDiscovery;
+
+        if(isDiscovery) {
+            Validate.isTrue(generatorKeyId == null && this.keyIds.isEmpty(),
+                    "AWS KMS Discovery keyrings cannot specify any key IDs");
+        } else {
+            Validate.isTrue(generatorKeyId != null || !this.keyIds.isEmpty(),
+                    "GeneratorKeyId or KeyIds are required for non-discovery AWS KMS Keyrings.");
+        }
 
         if (this.keyIds.contains(generatorKeyId)) {
             throw new IllegalArgumentException("KeyIds should not contain the generatorKeyId");
