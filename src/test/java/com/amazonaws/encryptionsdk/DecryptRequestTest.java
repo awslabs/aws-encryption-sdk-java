@@ -13,6 +13,7 @@
 
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.encryptionsdk.internal.StaticKeyring;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +28,7 @@ class DecryptRequestTest {
 
     @Mock private Keyring keyring;
     @Mock private ParsedCiphertext parsedCiphertext;
-    private static final byte[] CIPHERTEXT = new byte[] {1, 2,3 };
+    private static final byte[] CIPHERTEXT = new byte[] {1,2,3};
 
     @Test
     void testBothCiphertextAndParsedCiphertext() {
@@ -50,9 +51,15 @@ class DecryptRequestTest {
     @Test
     void testKeyringUsesDefaultCmm() {
 
+        byte[] ciphertext = new AwsCrypto().encrypt(EncryptRequest.builder()
+                .keyring(new StaticKeyring("keyId"))
+                .plaintext(new byte[]{4, 5, 6})
+                .build()).getResult();
+
+
         assertTrue(DecryptRequest.builder()
                 .keyring(keyring)
-                .ciphertext(CIPHERTEXT).build().cryptoMaterialsManager()
+                .ciphertext(ciphertext).build().cryptoMaterialsManager()
                 instanceof DefaultCryptoMaterialsManager);
     }
 }
