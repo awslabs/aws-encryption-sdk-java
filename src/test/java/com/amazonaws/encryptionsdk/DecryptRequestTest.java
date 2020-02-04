@@ -20,15 +20,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class DecryptRequestTest {
 
     @Mock private Keyring keyring;
     @Mock private ParsedCiphertext parsedCiphertext;
-    private static final byte[] CIPHERTEXT = new byte[] {1,2,3};
+    private static final byte[] CIPHERTEXT = new byte[]{1, 2, 3};
 
     @Test
     void testBothCiphertextAndParsedCiphertext() {

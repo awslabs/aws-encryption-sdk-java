@@ -19,16 +19,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class EncryptRequestTest {
 
     @Mock private Keyring keyring;
     @Mock private CryptoMaterialsManager cmm;
-    private static final byte[] PLAINTEXT = new byte[] {1, 2,3 };
+    private static final byte[] PLAINTEXT = new byte[]{1, 2, 3};
 
     @Test
     void testBothCmmAndKeyring() {
@@ -68,6 +68,6 @@ class EncryptRequestTest {
     @Test
     void testNullPlaintext() {
         assertThrows(NullPointerException.class, () -> EncryptRequest.builder()
-            .keyring(keyring).build());
+                .keyring(keyring).build());
     }
 }
