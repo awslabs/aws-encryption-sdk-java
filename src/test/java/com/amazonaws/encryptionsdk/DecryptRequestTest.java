@@ -13,7 +13,7 @@
 
 package com.amazonaws.encryptionsdk;
 
-import com.amazonaws.encryptionsdk.internal.StaticKeyring;
+import com.amazonaws.encryptionsdk.internal.TestKeyring;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +52,7 @@ class DecryptRequestTest {
     void testKeyringUsesDefaultCmm() {
 
         byte[] ciphertext = new AwsCrypto().encrypt(EncryptRequest.builder()
-                .keyring(new StaticKeyring("keyId"))
+                .keyring(new TestKeyring("keyId"))
                 .plaintext(new byte[]{4, 5, 6})
                 .build()).getResult();
 

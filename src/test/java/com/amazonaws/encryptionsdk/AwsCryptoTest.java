@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.encryptionsdk.internal.StaticKeyring;
+import com.amazonaws.encryptionsdk.internal.TestKeyring;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +65,7 @@ public class AwsCryptoTest {
     @Before
     public void init() {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
-        keyring = spy(new StaticKeyring("testmaterial"));
+        keyring = spy(new TestKeyring("testmaterial"));
 
         encryptionClient_ = new AwsCrypto();
         encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);

@@ -39,7 +39,7 @@ public class DecryptionHandlerTest {
     @Before
     public void init() {
         masterKeyProvider_ = new StaticMasterKey("testmaterial");
-        keyring = new StaticKeyring("testmaterial");
+        keyring = new TestKeyring("testmaterial");
     }
 
     @Test(expected = NullPointerException.class)

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import com.amazonaws.encryptionsdk.internal.StaticKeyring;
+import com.amazonaws.encryptionsdk.internal.TestKeyring;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.Test;
 
@@ -45,7 +45,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 public class DefaultCryptoMaterialsManagerTest {
     private static final MasterKey<?> mk1 = new StaticMasterKey("mk1");
     private static final MasterKey<?> mk2 = new StaticMasterKey("mk2");
-    private static final Keyring keyring1 = new StaticKeyring("keyring1");
+    private static final Keyring keyring1 = new TestKeyring("keyring1");
 
     @Test
     public void encrypt_testBasicFunctionalityWithMkp() {

@@ -40,7 +40,7 @@ import static com.amazonaws.encryptionsdk.EncryptedDataKey.PROVIDER_ENCODING;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Static implementation of the {@link Keyring} interface that should only
+ * Implementation of the {@link Keyring} interface that should only
  * used for unit-tests.
  * <p>
  * Contains a statically defined asymmetric key-pair that can be used
@@ -50,7 +50,7 @@ import static java.util.Objects.requireNonNull;
  * @author wesleyr
  */
 @NotThreadSafe
-public class StaticKeyring implements Keyring {
+public class TestKeyring implements Keyring {
     private static final String PROVIDER_ID = "static_provider";
 
     /**
@@ -89,7 +89,7 @@ public class StaticKeyring implements Keyring {
      * of the encrypted data, and is used to ensure that the header cannot
      * be tempered with.
      */
-    public StaticKeyring(@Nonnull final String keyId) {
+    public TestKeyring(@Nonnull final String keyId) {
         this.keyId_ = requireNonNull(keyId);
         
         try {
