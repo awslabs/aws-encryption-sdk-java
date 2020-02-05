@@ -85,7 +85,7 @@ public class BasicEncryptionExample {
         }
 
         // 7. Also, verify that the encryption context in the result contains the
-        //    encryption context supplied to the encryptData method. Because the
+        //    encryption context supplied to the encrypt method. Because the
         //    SDK can add values to the encryption context, don't require that
         //    the entire context matches.
         if (!encryptionContext.entrySet().stream()
