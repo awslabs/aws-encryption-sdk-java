@@ -34,6 +34,15 @@ public class TestUtils {
         });
     }
 
+    /**
+     *  JUnit tag name marking tests or test classes to be excluded from normal test profiles
+     */
+    public static final String TAG_SLOW_TEST = "slow";
+    /**
+     * JUnit tag name marking integration tests
+     */
+    public static final String TAG_INTEGRATION = "integration";
+
     @FunctionalInterface
     public interface ThrowingRunnable {
         void run() throws Throwable;
@@ -210,5 +219,9 @@ public class TestUtils {
         }
 
         return unsignedBytes;
+    }
+
+    public static boolean isFastTestsOnly() {
+        return Boolean.parseBoolean(System.getProperty("fastTestsOnly"));
     }
 }

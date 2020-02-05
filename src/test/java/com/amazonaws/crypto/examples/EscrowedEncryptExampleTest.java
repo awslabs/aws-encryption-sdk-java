@@ -13,12 +13,15 @@
 
 package com.amazonaws.crypto.examples;
 
+import com.amazonaws.encryptionsdk.TestUtils;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.security.GeneralSecurityException;
 
+@Tag(TestUtils.TAG_INTEGRATION)
 class EscrowedEncryptExampleTest {
 
     @Test
