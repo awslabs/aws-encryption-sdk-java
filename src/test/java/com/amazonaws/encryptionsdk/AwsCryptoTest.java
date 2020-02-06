@@ -101,13 +101,13 @@ public class AwsCryptoTest {
         encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
         encryptionClient_.setEncryptionFrameSize(frameSize);
 
-        final byte[] cipherText = encryptionClient_.encrypt(EncryptRequest.builder()
+        final byte[] cipherText = encryptionClient_.encrypt(request -> request
                 .keyring(keyring)
                 .encryptionContext(encryptionContext)
-                .plaintext(plaintextBytes).build()).getResult();
-        final byte[] decryptedText = encryptionClient_.decrypt(DecryptRequest.builder()
+                .plaintext(plaintextBytes)).getResult();
+        final byte[] decryptedText = encryptionClient_.decrypt(request -> request
                 .keyring(keyring)
-                .ciphertext(cipherText).build()).getResult();
+                .ciphertext(cipherText)).getResult();
 
         assertArrayEquals("Bad encrypt/decrypt for " + cryptoAlg, plaintextBytes, decryptedText);
     }
@@ -657,7 +657,6 @@ public class AwsCryptoTest {
                 .cryptoMaterialsManager(cmm)
                 .plaintextSize(42).build()
         );
-
         assertNullChecks(encryptionClient_, "encryptData",
                                    MasterKeyProvider.class, provider,
                                    byte[].class, buf,

@@ -11,7 +11,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.encryptionsdk;import com.amazonaws.encryptionsdk.keyrings.Keyring;
+package com.amazonaws.encryptionsdk;
+
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
+
+import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.isTrue;
@@ -65,5 +69,10 @@ class AwsCryptoRequest {
         }
 
         abstract T getThis();
+
+        T applyMutation(Consumer<T> mutator) {
+            mutator.accept(getThis());
+            return getThis();
+        }
     }
 }

@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
@@ -256,6 +257,21 @@ public class AwsCrypto {
     }
 
     /**
+     * Returns the best estimate for the output length of encrypting a plaintext with the plaintext size specified in
+     * the provided {@link EstimateCiphertextSizeRequest}. The actual ciphertext may be shorter.
+     * <p>
+     * This is a convenience which creates an instance of the {@link EstimateCiphertextSizeRequest.Builder} avoiding the need to
+     * create one manually via {@link EstimateCiphertextSizeRequest#builder()}
+     * </p>
+     *
+     * @param request A Consumer that will call methods on EstimateCiphertextSizeRequest.Builder to create a request.
+     * @return The estimated output length in bytes
+     */
+    public long estimateCiphertextSize(final Consumer<EstimateCiphertextSizeRequest.Builder> request) {
+        return estimateCiphertextSize(EstimateCiphertextSizeRequest.builder().applyMutation(request).build());
+    }
+
+    /**
      * Returns an encrypted form of {@code plaintext} that has been protected with {@link DataKey}s
      * that are in turn protected by {@link MasterKey MasterKeys} provided by
      * {@code provider}.
@@ -353,6 +369,21 @@ public class AwsCrypto {
 
         return new AwsCryptoResult<>(outBytes, encryptionMaterials.getKeyringTrace(),
                 cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
+    }
+
+    /**
+     * Returns an encrypted form of {@code plaintext} that has been protected with either the {@link CryptoMaterialsManager}
+     * or the {@link Keyring} specified in the {@link EncryptRequest}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link EncryptRequest.Builder} avoiding the need to
+     * create one manually via {@link EncryptRequest#builder()}
+     * </p>
+     *
+     * @param request A Consumer that will call methods on EncryptRequest.Builder to create a request.
+     * @return An {@link AwsCryptoResult} containing the encrypted data
+     */
+    public AwsCryptoResult<byte[]> encrypt(final Consumer<EncryptRequest.Builder> request) {
+        return encrypt(EncryptRequest.builder().applyMutation(request).build());
     }
 
     /**
@@ -526,6 +557,21 @@ public class AwsCrypto {
     }
 
     /**
+     * Decrypts the provided {@link ParsedCiphertext} using the {@link CryptoMaterialsManager} or the {@link Keyring}
+     * specified in the {@link DecryptRequest}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link DecryptRequest.Builder} avoiding the need to
+     * create one manually via {@link DecryptRequest#builder()}
+     * </p>
+     *
+     * @param request A Consumer that will call methods on DecryptRequest.Builder to create a request.
+     * @return An {@link AwsCryptoResult} containing the decrypted data
+     */
+    public AwsCryptoResult<byte[]> decrypt(final Consumer<DecryptRequest.Builder> request) {
+        return decrypt(DecryptRequest.builder().applyMutation(request).build());
+    }
+
+    /**
      * Base64 decodes the {@code ciphertext} prior to decryption and then treats the results as a
      * UTF-8 encoded string.
      *
@@ -659,6 +705,21 @@ public class AwsCrypto {
     }
 
     /**
+     * Returns a {@link AwsCryptoOutputStream} which encrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link CreateEncryptingOutputStreamRequest.Builder} avoiding the need to
+     * create one manually via {@link CreateEncryptingOutputStreamRequest#builder()}
+     * </p>
+     *
+     * @see #encrypt(EncryptRequest)
+     * @see javax.crypto.CipherOutputStream
+     */
+    public AwsCryptoOutputStream createEncryptingOutputStream(final Consumer<CreateEncryptingOutputStreamRequest.Builder> request) {
+        return createEncryptingOutputStream(CreateEncryptingOutputStreamRequest.builder().applyMutation(request).build());
+    }
+
+    /**
      * Returns a {@link CryptoInputStream} which encrypts the data after reading it from the
      * underlying {@link InputStream}.
      *
@@ -749,6 +810,21 @@ public class AwsCrypto {
     }
 
     /**
+     * Returns a {@link AwsCryptoInputStream} which encrypts the data after reading it from the
+     * underlying {@link InputStream}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link CreateEncryptingInputStreamRequest.Builder} avoiding the need to
+     * create one manually via {@link CreateEncryptingInputStreamRequest#builder()}
+     * </p>
+     *
+     * @see #encrypt(EncryptRequest)
+     * @see javax.crypto.CipherInputStream
+     */
+    public AwsCryptoInputStream createEncryptingInputStream(final Consumer<CreateEncryptingInputStreamRequest.Builder> request) {
+        return createEncryptingInputStream(CreateEncryptingInputStreamRequest.builder().applyMutation(request).build());
+    }
+
+    /**
      * Returns a {@link CryptoOutputStream} which decrypts the data prior to passing it onto the
      * underlying {@link OutputStream}.
      *
@@ -812,6 +888,22 @@ public class AwsCrypto {
         return new AwsCryptoOutputStream(request.outputStream(), cryptoHandler);
     }
 
+
+    /**
+     * Returns a {@link AwsCryptoOutputStream} which decrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link CreateDecryptingOutputStreamRequest.Builder} avoiding the need to
+     * create one manually via {@link CreateDecryptingOutputStreamRequest#builder()}
+     * </p>
+     *
+     * @see #decrypt(DecryptRequest)
+     * @see javax.crypto.CipherOutputStream
+     */
+    public AwsCryptoOutputStream createDecryptingOutputStream(final Consumer<CreateDecryptingOutputStreamRequest.Builder> request) {
+        return createDecryptingOutputStream(CreateDecryptingOutputStreamRequest.builder().applyMutation(request).build());
+    }
+
     /**
      * Returns a {@link CryptoInputStream} which decrypts the data after reading it from the
      * underlying {@link InputStream}.
@@ -842,6 +934,21 @@ public class AwsCrypto {
 
         final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(request.cryptoMaterialsManager());
         return new AwsCryptoInputStream(request.inputStream(), cryptoHandler);
+    }
+
+    /**
+     * Returns a {@link AwsCryptoInputStream} which decrypts the data after reading it from the
+     * underlying {@link InputStream}.
+     * <p>
+     * This is a convenience which creates an instance of the {@link CreateDecryptingInputStreamRequest.Builder} avoiding the need to
+     * create one manually via {@link CreateDecryptingInputStreamRequest#builder()}
+     * </p>
+     *
+     * @see #encrypt(EncryptRequest)
+     * @see javax.crypto.CipherInputStream
+     */
+    public AwsCryptoInputStream createDecryptingInputStream(final Consumer<CreateDecryptingInputStreamRequest.Builder> request) {
+        return createDecryptingInputStream(CreateDecryptingInputStreamRequest.builder().applyMutation(request).build());
     }
 
     private MessageCryptoHandler getEncryptingStreamHandler(

@@ -99,7 +99,7 @@ public class FileStreamingExample {
         }
 
         // 7. Create the decrypting input stream with the keyring.
-        try(final AwsCryptoInputStream decryptingStream = crypto.createDecryptingInputStream(
+        try (final AwsCryptoInputStream decryptingStream = crypto.createDecryptingInputStream(
                 CreateDecryptingInputStreamRequest.builder()
                         .keyring(keyring)
                         .inputStream(new FileInputStream(encryptedFile)).build())) {
@@ -143,7 +143,6 @@ public class FileStreamingExample {
                     (file2Line = file2Reader.readLine()) != null) {
                 assert Objects.equals(file1Line, file2Line);
             }
-
         }
     }
 

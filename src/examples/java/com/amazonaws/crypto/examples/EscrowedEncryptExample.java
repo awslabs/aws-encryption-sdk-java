@@ -89,7 +89,7 @@ public class EscrowedEncryptExample {
 
         // 3. Instantiate a RawRsaKeyring
         //    Because the user does not have access to the private escrow key,
-        //    they pass in "null" for the private key parameter.
+        //    they do not provide the private key parameter.
         final Keyring rsaKeyring = StandardKeyrings.rawRsa()
                 .keyNamespace("Escrow")
                 .keyName("Escrow")
