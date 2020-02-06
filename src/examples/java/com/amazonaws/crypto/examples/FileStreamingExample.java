@@ -63,9 +63,9 @@ public class FileStreamingExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Retrieve an encryption key. In this example, we generate a random key.
-        //    In practice, you would get a key from an existing store
-        final SecretKey cryptoKey = retrieveEncryptionKey();
+        // 2. Get an encryption key. In this example, we generate a random key.
+        //    In practice, you would get a key from an existing key store
+        final SecretKey cryptoKey = generateEncryptKey();
 
         // 3. Instantiate a RawAesKeyring using the random key
         final Keyring keyring = StandardKeyrings.rawAesBuilder()
@@ -124,7 +124,7 @@ public class FileStreamingExample {
      * In practice, this key would be saved in a secure location.
      * For this demo, we generate a new random key for each operation.
      */
-    private static SecretKey retrieveEncryptionKey() {
+    private static SecretKey generateEncryptKey() {
         SecureRandom rnd = new SecureRandom();
         byte[] rawKey = new byte[16]; // 128 bits
         rnd.nextBytes(rawKey);

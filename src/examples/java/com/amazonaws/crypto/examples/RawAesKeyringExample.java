@@ -20,6 +20,7 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -44,9 +45,9 @@ public class RawAesKeyringExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Retrieve an encryption key. In this example, we generate a random key.
-        //    In practice, you would get a key from an existing store
-        final SecretKey cryptoKey = retrieveEncryptionKey();
+        // 2. Get an encryption key. In this example, we generate a random key.
+        //    In practice, you would get a key from an existing key store
+        final SecretKey cryptoKey = generateEncryptKey();
 
         // 3. Instantiate a Raw AES Keyring with the encryption key
         final Keyring keyring = StandardKeyrings.rawAes()
@@ -98,7 +99,7 @@ public class RawAesKeyringExample {
      * In practice, this key would be saved in a secure location.
      * For this demo, we generate a new random key for each operation.
      */
-    private static SecretKey retrieveEncryptionKey() {
+    private static SecretKey generateEncryptKey() {
         SecureRandom rnd = new SecureRandom();
         byte[] rawKey = new byte[16]; // 128 bits
         rnd.nextBytes(rawKey);
