@@ -76,7 +76,7 @@ public class AwsCryptoResult<T> {
     }
 
     /**
-     * Convenience method equivalent to {@link #getHeaders()}.{@code getCryptoAlgoId()}.
+     * Convenience method equivalent to {@link #getHeaders()}{@code .getCryptoAlgoId()}.
      */
     public CryptoAlgorithm getAlgorithmSuite() {
         return headers.getCryptoAlgoId();

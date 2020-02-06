@@ -55,8 +55,8 @@ import static java.util.Objects.requireNonNull;
  * byte-arrays and streams. This data is encrypted using the specified {@link CryptoAlgorithm} and a
  * {@code plaintextDataKey} which is unique to each encrypted message. This {@code plaintextDataKey} is then encrypted
  * using one (or more) {@link MasterKey MasterKeys} or a {@link Keyring}. The process is reversed on decryption with the
- * code selecting a copy of the {@code EncryptedDataKey} protected by a usable {@code MasterKey} or {@code Keyring},
- * decrypting the {@code EncryptedDataKey}, and then decrypting the message.
+ * code selecting an {@code EncryptedDataKey} embedded in the encrypted message, decrypting the {@code EncryptedDataKey}
+ * using a {@link MasterKey MasterKey} or {@link Keyring}, and then decrypting the message.
  *
  * <p>
  * Note:

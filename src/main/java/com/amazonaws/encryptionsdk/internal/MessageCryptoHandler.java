@@ -50,6 +50,8 @@ public interface MessageCryptoHandler extends CryptoHandler {
      * All <em>used</em> {@link MasterKey}s. For encryption flows, these are all the
      * {@link MasterKey}s used to protect the data. In the decryption flow, it is the single
      * {@link MasterKey} actually used to decrypt the data.
+     *
+     * @deprecated MasterKeys and MasterKeyProviders have been deprecated in favor of {@link Keyring}s
      */
     @Deprecated
     List<? extends MasterKey<?>> getMasterKeys();

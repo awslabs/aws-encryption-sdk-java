@@ -21,12 +21,14 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -408,8 +410,19 @@ public class EncryptionHandler implements MessageCryptoHandler {
         return unsignedHeaders;
     }
 
+    /**
+     * The master keys that were used to encrypt the data key. This returns an
+     * empty list if Keyrings are in use.
+     *
+     * @deprecated MasterKeys have been deprecated in favor of {@link Keyring}s.
+     *             Use {@link #getKeyringTrace()} to view which key were used in encryption.
+     */
     @Override
+    @Deprecated
     public List<? extends MasterKey<?>> getMasterKeys() {
+        if(masterKeys_ == null) {
+            return Collections.emptyList();
+        }
         //noinspection unchecked
         return (List)masterKeys_; // This is unmodifiable
     }
