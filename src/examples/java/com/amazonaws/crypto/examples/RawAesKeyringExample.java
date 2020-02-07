@@ -76,22 +76,12 @@ public class RawAesKeyringExample {
                 .keyring(keyring)
                 .ciphertext(ciphertext).build());
 
-        // 7. Before verifying the plaintext, verify that the key that was used in the encryption
-        //    operation was the one used during the decryption operation.
-        if (!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals("ExampleKeyName")) {
-            throw new IllegalStateException("Wrong key ID!");
-        }
+        // 7. Verify that the encryption context in the result contains the
+        // data that we expect. The SDK can add values to the encryption context,
+        // so there may be additional keys in the result context.
+        assert decryptResult.getEncryptionContext().get("ExampleContextKey").equals("ExampleContextValue");
 
-        // 8. Also, verify that the encryption context in the result contains the
-        // encryption context supplied to the encrypt method. Because the
-        // SDK can add values to the encryption context, don't require that
-        // the entire context matches.
-        if (!encryptionContext.entrySet().stream()
-                .allMatch(e -> e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey())))) {
-            throw new IllegalStateException("Wrong Encryption Context!");
-        }
-
-        // 9. Verify that the decrypted plaintext matches the original plaintext
+        // 8. Verify that the decrypted plaintext matches the original plaintext
         assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
     }
 

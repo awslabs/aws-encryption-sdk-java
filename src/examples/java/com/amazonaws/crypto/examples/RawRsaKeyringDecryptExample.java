@@ -43,7 +43,12 @@ public class RawRsaKeyringDecryptExample {
                 .keyring(keyring)
                 .ciphertext(ciphertext).build());
 
-        // 4. Return the decrypted byte array result
+        // 4. Verify that the encryption context in the result contains the
+        // data that we expect. The SDK can add values to the encryption context,
+        // so there may be additional keys in the result context.
+        assert decryptResult.getEncryptionContext().get("ExampleContextKey").equals("ExampleContextValue");
+
+        // 5. Return the decrypted byte array result
         return decryptResult.getResult();
     }
 }

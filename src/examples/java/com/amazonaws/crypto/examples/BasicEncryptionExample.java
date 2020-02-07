@@ -78,20 +78,15 @@ public class BasicEncryptionExample {
                         .keyring(keyring)
                         .ciphertext(ciphertext).build());
 
-        // 6. Before verifying the plaintext, inspect the Keyring Trace to verify that the CMK used
-        //    to decrypt the encrypted data key was the CMK in the encryption keyring.
+        // 6. The Keyring Trace may be inspected to verify which CMK was used for decryption.
         if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn.toString())) {
             throw new IllegalStateException("Wrong key ID!");
         }
 
-        // 7. Also, verify that the encryption context in the result contains the
-        //    encryption context supplied to the encrypt method. Because the
-        //    SDK can add values to the encryption context, don't require that
-        //    the entire context matches.
-        if (!encryptionContext.entrySet().stream()
-                .allMatch(e -> e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey())))) {
-            throw new IllegalStateException("Wrong Encryption Context!");
-        }
+        // 7. Verify that the encryption context in the result contains the
+        //    data that we expect. The SDK can add values to the encryption context,
+        //    so there may be additional keys in the result context.
+        assert decryptResult.getEncryptionContext().get("ExampleContextKey").equals("ExampleContextValue");
 
         // 8. Verify that the decrypted plaintext matches the original plaintext
         assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
