@@ -144,8 +144,8 @@ class TestVectorRunner {
                                       JarFile jar) {
         final String plaintextUrl = (String) data.get("plaintext");
         final String ciphertextURL = (String) data.get("ciphertext");
-        cachedData.putIfAbsent(plaintextUrl, readBytesFromJar(jar, plaintextUrl));
-        cachedData.putIfAbsent(ciphertextURL, readBytesFromJar(jar, ciphertextURL));
+        cachedData.computeIfAbsent(plaintextUrl, k -> readBytesFromJar(jar, k));
+        cachedData.computeIfAbsent(ciphertextURL, k -> readBytesFromJar(jar, k));
 
         final List<Keyring> keyrings = new ArrayList<>();
         final List<MasterKey<?>> mks = new ArrayList<>();

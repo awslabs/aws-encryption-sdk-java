@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * This test exhaustively encrypts a 2^32 frame message, which takes approximately 2-3 hours on my hardware. Because of
  * this long test time, this test is not run as part of the normal suites.
  */
-@Tag(TestUtils.TAG_SLOW_TEST)
+@Tag(TestUtils.TAG_AD_HOC)
 class FrameEncryptionHandlerVeryLongTest {
     @Test
     void exhaustiveIVCheck() throws Exception {

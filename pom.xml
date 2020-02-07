@@ -197,7 +197,7 @@
         </profile>
 
         <profile>
-            <id>full-test-suite</id>
+            <id>test-suite</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
@@ -208,7 +208,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>2.22.0</version>
                         <configuration>
-                            <excludedGroups>slow</excludedGroups>
+                            <excludedGroups>ad_hoc</excludedGroups>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -226,7 +226,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>2.22.0</version>
                         <configuration>
-                            <excludedGroups>slow, integration</excludedGroups>
+                            <excludedGroups>ad_hoc, integration</excludedGroups>
                             <systemPropertyVariables>
                                 <fastTestsOnly>true</fastTestsOnly>
                             </systemPropertyVariables>
