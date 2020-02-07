@@ -89,7 +89,7 @@ public interface AwsKmsClientSupplier {
         private ClientConfiguration clientConfiguration;
         private Set<String> allowedRegions = Collections.emptySet();
         private Set<String> excludedRegions = Collections.emptySet();
-        private boolean clientCachingEnabled = false;
+        private boolean clientCachingEnabled = true;
         private final Map<String, AWSKMS> clientsCache = new HashMap<>();
         private static final Set<String> AWSKMS_METHODS = new HashSet<>();
         private AWSKMSClientBuilder awsKmsClientBuilder;
@@ -188,7 +188,8 @@ public interface AwsKmsClientSupplier {
         }
 
         /**
-         * When set to true, allows for the AWSKMS client for each region to be cached and reused.
+         * When set to false, disables the AWSKMS client for each region from being cached and reused.
+         * By default, client caching is enabled.
          *
          * @param enabled Whether or not caching is enabled.
          */

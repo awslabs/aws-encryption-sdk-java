@@ -128,7 +128,6 @@ class AwsKmsClientSupplierTest {
     @Test
     void testClientCaching() {
         AwsKmsClientSupplier supplier = new AwsKmsClientSupplier.Builder(kmsClientBuilder)
-                .clientCaching(true)
                 .build();
 
         when(kmsClientBuilder.withRegion(REGION_1)).thenReturn(kmsClientBuilder);
