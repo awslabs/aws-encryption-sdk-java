@@ -65,7 +65,6 @@ class TestVectorRunner {
     private static final Map<String, byte[]> cachedData = new HashMap<>();
     private static final AwsKmsClientSupplier awsKmsClientSupplier = AwsKmsClientSupplier.builder()
             .credentialsProvider(new DefaultAWSCredentialsProviderChain())
-            .clientCaching(true)
             .build();
     private static final KmsMasterKeyProvider kmsProv = KmsMasterKeyProvider
             .builder()
