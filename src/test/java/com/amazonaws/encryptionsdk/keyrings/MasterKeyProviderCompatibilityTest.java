@@ -19,6 +19,7 @@ import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.TestUtils;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
@@ -27,6 +28,7 @@ import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
@@ -46,6 +48,7 @@ class MasterKeyProviderCompatibilityTest {
     private static final byte[] PLAINTEXT = RandomBytesGenerator.generate(1000);
     private final AwsCrypto awsCrypto = new AwsCrypto();
 
+    @Tag(TestUtils.TAG_INTEGRATION)
     @Test
     void testAwsKmsKeyringCompatibility() {
         MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
@@ -89,6 +92,7 @@ class MasterKeyProviderCompatibilityTest {
         testCompatibility(keyring, mkp);
     }
 
+    @Tag(TestUtils.TAG_INTEGRATION)
     @Test
     void testMultiKeyringCompatibility() {
         SecretKey key = generateRandomKey();

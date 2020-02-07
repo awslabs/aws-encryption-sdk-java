@@ -14,9 +14,9 @@
 package com.amazonaws.encryptionsdk;
 
 import static com.amazonaws.encryptionsdk.AwsCrypto.getDefaultFrameSize;
-import static com.amazonaws.encryptionsdk.FastTestsOnlySuite.isFastTestSuiteActive;
 import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static com.amazonaws.encryptionsdk.TestUtils.insecureRandomBytes;
+import static com.amazonaws.encryptionsdk.TestUtils.isFastTestsOnly;
 import static com.amazonaws.encryptionsdk.TestUtils.toByteArray;
 import static com.amazonaws.encryptionsdk.internal.TestIOUtils.getSha256Hash;
 import static org.junit.Assert.assertArrayEquals;
@@ -163,7 +163,7 @@ public class CryptoOutputStreamTest {
                     int[] bytesToTest = { 0, 1, frameSize - 1, frameSize, frameSize + 1, (int) (frameSize * 1.5),
                                           frameSize * 2, 1000000 };
 
-                    if (isFastTestSuiteActive()) {
+                    if (isFastTestsOnly()) {
                         // Exclude the last two sizes, as they're the slowest
                         bytesToTest = Arrays.copyOfRange(bytesToTest, 0, bytesToTest.length - 2);
                     }
@@ -173,7 +173,7 @@ public class CryptoOutputStreamTest {
                         final int byteSize = bytesToTest[j];
                         int[] readLenVals = { byteSize - 1, byteSize, byteSize + 1, byteSize * 2, 1000000 };
 
-                        if (isFastTestSuiteActive()) {
+                        if (isFastTestsOnly()) {
                             // Only test one read() call buffer length in the fast tests. This greatly cuts down on
                             // the combinatorial explosion of test cases here.
                             readLenVals = Arrays.copyOfRange(readLenVals, 0, 1);

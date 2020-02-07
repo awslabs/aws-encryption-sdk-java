@@ -13,9 +13,9 @@
 
 package com.amazonaws.encryptionsdk;
 
-import static com.amazonaws.encryptionsdk.FastTestsOnlySuite.isFastTestSuiteActive;
 import static com.amazonaws.encryptionsdk.TestUtils.assertNullChecks;
 import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
+import static com.amazonaws.encryptionsdk.TestUtils.isFastTestsOnly;
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -203,7 +203,7 @@ public class AwsCryptoTest {
                 for (int j = 0; j < bytesToTest.length; j++) {
                     final int byteSize = bytesToTest[j];
 
-                    if (byteSize > 500_000 && isFastTestSuiteActive()) {
+                    if (byteSize > 500_000 && isFastTestsOnly()) {
                         continue;
                     }
 
@@ -232,7 +232,7 @@ public class AwsCryptoTest {
                 for (int j = 0; j < bytesToTest.length; j++) {
                     final int byteSize = bytesToTest[j];
 
-                    if (byteSize > 500_000 && isFastTestSuiteActive()) {
+                    if (byteSize > 500_000 && isFastTestsOnly()) {
                         continue;
                     }
 
@@ -258,7 +258,7 @@ public class AwsCryptoTest {
                 for (int j = 0; j < bytesToTest.length; j++) {
                     final int byteSize = bytesToTest[j];
 
-                    if (byteSize > 500_000 && isFastTestSuiteActive()) {
+                    if (byteSize > 500_000 && isFastTestsOnly()) {
                         continue;
                     }
 
@@ -467,7 +467,7 @@ public class AwsCryptoTest {
                 for (int j = 0; j < bytesToTest.length; j++) {
                     final int byteSize = bytesToTest[j];
 
-                    if (byteSize > 500_000 && isFastTestSuiteActive()) {
+                    if (byteSize > 500_000 && isFastTestsOnly()) {
                         continue;
                     }
 

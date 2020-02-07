@@ -1,28 +1,29 @@
 package com.amazonaws.encryptionsdk.internal;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.fail;
-
 import javax.crypto.spec.SecretKeySpec;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import com.amazonaws.encryptionsdk.TestUtils;
 import org.bouncycastle.util.encoders.Hex;
-import org.bouncycastle.util.encoders.HexTranslator;
-import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.model.CipherFrameHeaders;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 /*
  * This test exhaustively encrypts a 2^32 frame message, which takes approximately 2-3 hours on my hardware. Because of
  * this long test time, this test is not run as part of the normal suites.
  */
-public class FrameEncryptionHandlerVeryLongTest {
+@Tag(TestUtils.TAG_AD_HOC)
+class FrameEncryptionHandlerVeryLongTest {
     @Test
-    public void exhaustiveIVCheck() throws Exception {
+    void exhaustiveIVCheck() throws Exception {
         CryptoAlgorithm algorithm = CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF;
         FrameEncryptionHandler frameEncryptionHandler_ = new FrameEncryptionHandler(
                 new SecretKeySpec(new byte[16], "AES"),
