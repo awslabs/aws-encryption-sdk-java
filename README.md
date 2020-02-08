@@ -2,7 +2,7 @@
 
 The AWS Encryption SDK is a client-side encryption library designed to make it easy for everyone to encrypt and decrypt data using industry standards and best practices. It enables you to focus on the core functionality of your application, rather than on how to best encrypt and decrypt your data.
 
-For more details about the design and architecture of the SDK, see the [official documentation](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/).
+For details about the design, architecture and usage of the SDK, see the [official documentation](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/), [example code][examples] and the [Javadoc](https://aws.github.io/aws-encryption-sdk-java/javadoc/).
 
 ## Getting Started
 
@@ -54,7 +54,7 @@ You can get the latest release from Maven:
 <dependency>
   <groupId>com.amazonaws</groupId>
   <artifactId>aws-encryption-sdk-java</artifactId>
-  <version>1.6.1</version>
+  <version>1.7.0</version>
 </dependency>
 ```
 
