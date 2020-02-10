@@ -63,7 +63,7 @@ class MasterKeyProviderCompatibilityTest {
         SecretKey key = generateRandomKey();
 
         JceMasterKey mkp = JceMasterKey.getInstance(key, KEY_NAMESPACE, KEY_NAME, "AES/GCM/NoPadding");
-        Keyring keyring = StandardKeyrings.rawAes()
+        Keyring keyring = StandardKeyrings.rawAesBuilder()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)
                 .wrappingKey(key)
@@ -81,7 +81,7 @@ class MasterKeyProviderCompatibilityTest {
 
         JceMasterKey mkp = JceMasterKey.getInstance(keyPair.getPublic(), keyPair.getPrivate(), KEY_NAMESPACE, KEY_NAME,
                 wrappingAlgorithm);
-        Keyring keyring = StandardKeyrings.rawRsa()
+        Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)
                 .publicKey(keyPair.getPublic())
@@ -103,7 +103,7 @@ class MasterKeyProviderCompatibilityTest {
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
 
         Keyring keyring1 = StandardKeyrings.awsKms(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
-        Keyring keyring2 = StandardKeyrings.rawAes()
+        Keyring keyring2 = StandardKeyrings.rawAesBuilder()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)
                 .wrappingKey(key)

@@ -80,8 +80,8 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
          * Sets the {@link CryptoMaterialsManager} that should be queried when the {@link CachingCryptoMaterialsManager}
          * incurs a cache miss.
          *
-         * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
-         * be used.
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
          *
          * @param backingCMM The CryptoMaterialsManager to invoke on cache misses
          * @return this builder
@@ -95,8 +95,8 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
          * Sets the {@link MasterKeyProvider} that should be queried when the {@link CachingCryptoMaterialsManager}
          * incurs a cache miss.
          *
-         * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
-         * be used.
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
          *
          * This method is equivalent to calling {@link #withBackingMaterialsManager(CryptoMaterialsManager)} passing a
          * {@link DefaultCryptoMaterialsManager} constructed using your {@link MasterKeyProvider}.
@@ -115,8 +115,8 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
          * Sets the {@link Keyring} that should be queried when the {@link CachingCryptoMaterialsManager}
          * incurs a cache miss.
          *
-         * You can set either a Keyring or a CryptoMaterialsManager to back the CCMM - the last value set will
-         * be used.
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
          *
          * This method is equivalent to calling {@link #withBackingMaterialsManager(CryptoMaterialsManager)} passing a
          * {@link DefaultCryptoMaterialsManager} constructed using your {@link Keyring}.

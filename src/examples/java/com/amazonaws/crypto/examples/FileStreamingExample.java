@@ -68,7 +68,7 @@ public class FileStreamingExample {
         final SecretKey cryptoKey = retrieveEncryptionKey();
 
         // 3. Instantiate a RawAesKeyring using the random key
-        final Keyring keyring = StandardKeyrings.rawAes()
+        final Keyring keyring = StandardKeyrings.rawAesBuilder()
                 .keyNamespace("Example")
                 .keyName("RandomKey")
                 .wrappingKey(cryptoKey)

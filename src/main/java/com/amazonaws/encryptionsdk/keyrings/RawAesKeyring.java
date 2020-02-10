@@ -23,7 +23,7 @@ import javax.crypto.SecretKey;
  * A {@code Keyring} which does local AES-GCM encryption
  * decryption of data keys using the provided wrapping key.
  * <p>
- * Instantiate by using the {@code StandardKeyrings.rawAes(...)} factory method.
+ * Instantiate by using the {@code StandardKeyrings.rawAesBuilder(...)} factory method.
  */
 class RawAesKeyring extends RawKeyring {
 

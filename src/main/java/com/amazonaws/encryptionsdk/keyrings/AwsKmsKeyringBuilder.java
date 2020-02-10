@@ -27,9 +27,9 @@ public class AwsKmsKeyringBuilder {
     private final boolean isDiscovery;
 
     private AwsKmsKeyringBuilder(boolean isDiscovery) {
-        // Use AwsKmsKeyringBuilder.standard() or StandardKeyrings.awsKms() to instantiate
-        // or AwsKmsKeyringBuilder.discovery() or StandardKeyrings.awsKmsDiscovery() to instantiate
-        // a discovery keyring builder.
+        // Use AwsKmsKeyringBuilder.standard() or StandardKeyrings.awsKmsBuilder() to instantiate
+        // a standard Aws Kms Keyring builder. If an Aws Kms Discovery Keyring builder is needed use
+        // AwsKmsKeyringBuilder.discovery() or StandardKeyrings.awsKmsDiscoveryBuilder().
         this.isDiscovery = isDiscovery;
     }
 
@@ -110,7 +110,7 @@ public class AwsKmsKeyringBuilder {
      * @return The {@link Keyring} instance
      */
     public Keyring build() {
-        if(awsKmsClientSupplier == null) {
+        if (awsKmsClientSupplier == null) {
             awsKmsClientSupplier = AwsKmsClientSupplier.builder().build();
         }
 

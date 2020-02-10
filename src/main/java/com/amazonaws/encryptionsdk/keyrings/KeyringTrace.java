@@ -26,7 +26,7 @@ import static java.util.Collections.unmodifiableList;
 /**
  * A keyring trace containing all of the actions that keyrings have taken on a set of encryption materials.
  */
-public class KeyringTrace {
+public final class KeyringTrace {
 
     private final List<KeyringTraceEntry> entries;
     public static final KeyringTrace EMPTY_TRACE = new KeyringTrace(emptyList());

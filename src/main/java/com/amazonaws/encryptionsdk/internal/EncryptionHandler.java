@@ -415,7 +415,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
      * empty list if Keyrings are in use.
      *
      * @deprecated MasterKeys have been deprecated in favor of {@link Keyring}s.
-     *             Use {@link #getKeyringTrace()} to view which key were used in encryption.
+     *             Use {@link #getKeyringTrace()} to view which keys were used in encryption.
      */
     @Override
     @Deprecated

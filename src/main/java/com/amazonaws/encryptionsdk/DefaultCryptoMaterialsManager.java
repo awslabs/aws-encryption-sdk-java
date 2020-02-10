@@ -32,6 +32,7 @@ import com.amazonaws.encryptionsdk.model.KeyBlob;
  * encryption context (and extracting them at decrypt time).
  */
 public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
+    // Exactly one of keyring or mkp should be null
     private final Keyring keyring;
     private final MasterKeyProvider<?> mkp;
 
@@ -62,6 +63,35 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
             return getEncryptionMaterialsForKeyring(request);
         }
 
+        return getEncryptionMaterialsForMasterKeyProvider(request);
+    }
+
+    @Override
+    public DecryptionMaterials decryptMaterials(DecryptionMaterialsRequest request) {
+       if(keyring != null) {
+           return getDecryptionMaterialsForKeyring(request);
+        }
+
+        return getDecryptionMaterialsForMasterKeyProvider(request);
+    }
+
+    private EncryptionMaterials getEncryptionMaterialsForKeyring(EncryptionMaterialsRequest request) {
+        final CryptoAlgorithm algorithmSuite = request.getRequestedAlgorithm() != null ?
+                request.getRequestedAlgorithm() : getDefaultCryptoAlgorithm();
+        final Map<String, String> encryptionContext = new HashMap<>(request.getContext());
+        final PrivateKey signingKey = getSigningKey(algorithmSuite, encryptionContext);
+
+        final EncryptionMaterials encryptionMaterials =
+                EncryptionMaterials.newBuilder()
+                        .setAlgorithm(algorithmSuite)
+                        .setEncryptionContext(encryptionContext)
+                        .setTrailingSignatureKey(signingKey)
+                        .build();
+
+        return keyring.onEncrypt(encryptionMaterials);
+    }
+
+    private EncryptionMaterials getEncryptionMaterialsForMasterKeyProvider(EncryptionMaterialsRequest request) {
         final Map<String, String> encryptionContext = new HashMap<>(request.getContext());
         final CryptoAlgorithm algorithmSuite = request.getRequestedAlgorithm() != null ?
                 request.getRequestedAlgorithm() : getDefaultCryptoAlgorithm();
@@ -103,43 +133,6 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
                 .build();
     }
 
-    @Override
-    public DecryptionMaterials decryptMaterials(DecryptionMaterialsRequest request) {
-       if(keyring != null) {
-           return getDecryptionMaterialsForKeyring(request);
-        }
-
-        final DataKey<?> dataKey = mkp.decryptDataKey(
-                request.getAlgorithm(),
-                request.getEncryptedDataKeys(),
-                request.getEncryptionContext());
-
-        if (dataKey == null) {
-            throw new CannotUnwrapDataKeyException("Could not decrypt any data keys");
-        }
-
-        return DecryptionMaterials.newBuilder()
-                .setDataKey(dataKey)
-                .setTrailingSignatureKey(getVerificationKey(request))
-                .build();
-    }
-
-    private EncryptionMaterials getEncryptionMaterialsForKeyring(EncryptionMaterialsRequest request) {
-        final CryptoAlgorithm algorithmSuite = request.getRequestedAlgorithm() != null ?
-                request.getRequestedAlgorithm() : getDefaultCryptoAlgorithm();
-        final Map<String, String> encryptionContext = new HashMap<>(request.getContext());
-        final PrivateKey signingKey = getSigningKey(algorithmSuite, encryptionContext);
-
-        final EncryptionMaterials encryptionMaterials =
-                EncryptionMaterials.newBuilder()
-                        .setAlgorithm(algorithmSuite)
-                        .setEncryptionContext(encryptionContext)
-                        .setTrailingSignatureKey(signingKey)
-                        .build();
-
-        return keyring.onEncrypt(encryptionMaterials);
-    }
-
     private DecryptionMaterials getDecryptionMaterialsForKeyring(DecryptionMaterialsRequest request) {
         final PublicKey verificationKey = getVerificationKey(request);
 
@@ -157,6 +150,22 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
         }
 
         return result;
+    }
+
+    private DecryptionMaterials getDecryptionMaterialsForMasterKeyProvider(DecryptionMaterialsRequest request) {
+        final DataKey<?> dataKey = mkp.decryptDataKey(
+                request.getAlgorithm(),
+                request.getEncryptedDataKeys(),
+                request.getEncryptionContext());
+
+        if (dataKey == null) {
+            throw new CannotUnwrapDataKeyException("Could not decrypt any data keys");
+        }
+
+        return DecryptionMaterials.newBuilder()
+                .setDataKey(dataKey)
+                .setTrailingSignatureKey(getVerificationKey(request))
+                .build();
     }
 
     private PrivateKey getSigningKey(CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext) {

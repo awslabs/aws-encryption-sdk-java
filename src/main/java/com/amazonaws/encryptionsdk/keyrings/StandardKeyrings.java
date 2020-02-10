@@ -33,7 +33,7 @@ public class StandardKeyrings {
      *
      * @return The {@link RawAesKeyringBuilder}
      */
-    public static RawAesKeyringBuilder rawAes() {
+    public static RawAesKeyringBuilder rawAesBuilder() {
         return RawAesKeyringBuilder.standard();
     }
 
@@ -44,14 +44,14 @@ public class StandardKeyrings {
      *
      * @return The {@link RawRsaKeyringBuilder}
      */
-    public static RawRsaKeyringBuilder rawRsa() {
+    public static RawRsaKeyringBuilder rawRsaBuilder() {
         return RawRsaKeyringBuilder.standard();
     }
       
     /**  
      * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to create,
      * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Key (CMK).
-     * Use {@link #awsKms()} for more advanced configuration using a {@link AwsKmsKeyringBuilder}/
+     * Use {@link #awsKmsBuilder()} for more advanced configuration using an {@link AwsKmsKeyringBuilder}
      *
      * @param generatorKeyId    An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies a
      *                          AWS KMS CMK responsible for generating a data key, as well as encrypting and
@@ -71,7 +71,7 @@ public class StandardKeyrings {
      *
      * @return The {@link AwsKmsKeyringBuilder}
      */
-    public static AwsKmsKeyringBuilder awsKms() {
+    public static AwsKmsKeyringBuilder awsKmsBuilder() {
         return AwsKmsKeyringBuilder.standard();
     }
 
@@ -94,7 +94,7 @@ public class StandardKeyrings {
      *
      * @return The {@code AwsKmsKeyringBuilder}
      */
-    public static AwsKmsKeyringBuilder awsKmsDiscovery() {
+    public static AwsKmsKeyringBuilder awsKmsDiscoveryBuilder() {
         return AwsKmsKeyringBuilder.discovery();
     }
 

@@ -24,13 +24,13 @@ import java.util.Objects;
  * A representation of an AWS KMS Customer Master Key Identifier, which may be one either a
  * key ID, key Amazon Resource Name (ARN), alias name, or alias ARN.
  */
-public class AwsKmsCmkId {
+public final class AwsKmsCmkId {
 
     private static final String ARN_PREFIX = "arn:";
     private String keyId;
 
     private AwsKmsCmkId(String keyId) throws MalformedArnException {
-        Validate.notBlank(keyId, "keyId must be a valid CMK Amazon Resource Name (ARN), CMK Alias, Key Id or Alias ARN");
+        Validate.notBlank(keyId, "keyId is required");
 
         if (keyId.startsWith(ARN_PREFIX)) {
             try {

@@ -90,7 +90,7 @@ public class EscrowedEncryptExample {
         // 3. Instantiate a RawRsaKeyring
         //    Because the user does not have access to the private escrow key,
         //    they do not provide the private key parameter.
-        final Keyring rsaKeyring = StandardKeyrings.rawRsa()
+        final Keyring rsaKeyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("Escrow")
                 .keyName("Escrow")
                 .publicKey(publicEscrowKey)
@@ -134,7 +134,7 @@ public class EscrowedEncryptExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a RawRsaKeyring using the escrowed private key
-        final Keyring rsaKeyring = StandardKeyrings.rawRsa()
+        final Keyring rsaKeyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("Escrow")
                 .keyName("Escrow")
                 .privateKey(privateEscrowKey)
