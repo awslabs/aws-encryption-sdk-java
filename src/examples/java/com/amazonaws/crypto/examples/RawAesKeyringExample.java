@@ -50,7 +50,7 @@ public class RawAesKeyringExample {
         final SecretKey cryptoKey = generateEncryptKey();
 
         // 3. Instantiate a Raw AES Keyring with the encryption key
-        final Keyring keyring = StandardKeyrings.rawAes()
+        final Keyring keyring = StandardKeyrings.rawAesBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
                 .wrappingKey(cryptoKey).build();
@@ -76,9 +76,11 @@ public class RawAesKeyringExample {
                 .keyring(keyring)
                 .ciphertext(ciphertext).build());
 
-        // 7. Verify that the encryption context in the result contains the
-        // data that we expect. The SDK can add values to the encryption context,
-        // so there may be additional keys in the result context.
+        // 7. Verify that the encryption context that was used to decrypt the data is the one that you expect.
+        //    This helps to ensure that the ciphertext that you decrypted was the one that you intended.
+        //
+        //    When verifying, test that your expected encryption context is a subset of the actual encryption context,
+        //    not an exact match. When appropriate, the Encryption SDK adds the signing key to the encryption context.
         assert decryptResult.getEncryptionContext().get("ExampleContextKey").equals("ExampleContextValue");
 
         // 8. Verify that the decrypted plaintext matches the original plaintext

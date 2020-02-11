@@ -32,7 +32,7 @@ public class RawRsaKeyringDecryptExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a Raw RSA Keyring with the private key
-        final Keyring keyring = StandardKeyrings.rawRsa()
+        final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
                 .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
@@ -43,9 +43,11 @@ public class RawRsaKeyringDecryptExample {
                 .keyring(keyring)
                 .ciphertext(ciphertext).build());
 
-        // 4. Verify that the encryption context in the result contains the
-        // data that we expect. The SDK can add values to the encryption context,
-        // so there may be additional keys in the result context.
+        // 4. Verify that the encryption context that was used to decrypt the data is the one that you expect.
+        //    This helps to ensure that the ciphertext that you decrypted was the one that you intended.
+        //
+        //    When verifying, test that your expected encryption context is a subset of the actual encryption context,
+        //    not an exact match. When appropriate, the Encryption SDK adds the signing key to the encryption context.
         assert decryptResult.getEncryptionContext().get("ExampleContextKey").equals("ExampleContextValue");
 
         // 5. Return the decrypted byte array result

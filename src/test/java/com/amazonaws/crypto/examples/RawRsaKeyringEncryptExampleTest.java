@@ -34,7 +34,7 @@ class RawRsaKeyringEncryptExampleTest {
 
         byte[] ciphertext = RawRsaKeyringEncryptExample.encrypt(keyPair.getPublic());
 
-        final Keyring keyring = StandardKeyrings.rawRsa()
+        final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
                 .privateKey(keyPair.getPrivate())

@@ -36,7 +36,7 @@ public class RawRsaKeyringEncryptExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a Raw RSA Keyring with the public key
-        final Keyring keyring = StandardKeyrings.rawRsa()
+        final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
                 .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")

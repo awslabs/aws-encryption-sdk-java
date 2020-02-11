@@ -63,7 +63,7 @@ public class MultiRegionRecordPusherExample {
 
         final DefaultAWSCredentialsProviderChain credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
-        // Build AwsKmsKeyring and AmazonKinesisClient objects for each target region
+        // Build AwsKmsKeyring and AmazonKinesisClient objects for each target Region
         final List<Keyring> keyrings = new ArrayList<>();
 
         for (Region region : regions) {
@@ -72,7 +72,7 @@ public class MultiRegionRecordPusherExample {
                     .withRegion(region.getName())
                     .build());
 
-            keyrings.add(StandardKeyrings.awsKms()
+            keyrings.add(StandardKeyrings.awsKmsBuilder()
                     .awsKmsClientSupplier(AwsKmsClientSupplier.builder()
                             .credentialsProvider(credentialsProvider)
                             .allowedRegions(Collections.singleton(region.getName()))
@@ -80,8 +80,8 @@ public class MultiRegionRecordPusherExample {
                     .generatorKeyId(AwsKmsCmkId.fromString(kmsAliasName)).build());
         }
 
-        // Collect keyrings into single multi keyring and add cache. The keyring for the
-        // first region will be used to generate a data key.
+        // Collect keyrings into a single multi-keyring and add cache. In this example, the keyring for the
+        // first region is used as the generatorKeyring to generate a data key.
         final List<Keyring> childrenKeyrings = keyrings.size() > 1 ? keyrings.subList(1, keyrings.size()) : emptyList();
         final Keyring keyring = StandardKeyrings.multi(keyrings.get(0), childrenKeyrings);
 

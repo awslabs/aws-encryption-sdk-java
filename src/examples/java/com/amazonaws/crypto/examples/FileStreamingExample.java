@@ -64,7 +64,7 @@ public class FileStreamingExample {
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Get an encryption key. In this example, we generate a random key.
-        //    In practice, you would get a key from an existing key store
+        //    In practice, you would get a key from an existing key store.
         final SecretKey cryptoKey = generateEncryptKey();
 
         // 3. Instantiate a RawAesKeyring using the random key
@@ -104,11 +104,12 @@ public class FileStreamingExample {
                         .keyring(keyring)
                         .inputStream(new FileInputStream(encryptedFile)).build())) {
 
-            // 8. Verify that the encryption context in the result contains the
-            //    encryption context supplied to the createEncryptingStream method.
-            if (!"FileStreaming".equals(decryptingStream.getAwsCryptoResult().getEncryptionContext().get("Example"))) {
-                throw new IllegalStateException("Bad encryption context");
-            }
+            // 8. Verify that the encryption context that was used to decrypt the data is the one that you expect.
+            //    This helps to ensure that the ciphertext that you decrypted was the one that you intended.
+            //
+            //    When verifying, test that your expected encryption context is a subset of the actual encryption context,
+            //    not an exact match. When appropriate, the Encryption SDK adds the signing key to the encryption context.
+            assert "FileStreaming".equals(decryptingStream.getAwsCryptoResult().getEncryptionContext().get("Example"));
 
             // 9. Copy the plaintext data to a file
             try (FileOutputStream out = new FileOutputStream(decryptedFile)) {
@@ -122,7 +123,7 @@ public class FileStreamingExample {
 
     /**
      * In practice, this key would be saved in a secure location.
-     * For this demo, we generate a new random key for each operation.
+     * In this example, we generate a new random key for each operation.
      */
     private static SecretKey generateEncryptKey() {
         SecureRandom rnd = new SecureRandom();

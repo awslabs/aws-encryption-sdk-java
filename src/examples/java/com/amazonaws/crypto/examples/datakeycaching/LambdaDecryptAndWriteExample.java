@@ -45,12 +45,11 @@ public class LambdaDecryptAndWriteExample implements RequestHandler<KinesisEvent
     private final Table table_;
 
     /**
-     * Because the cache is used only for decryption, the code doesn't set
-     * the max bytes or max message security thresholds that are enforced
-     * only on on data keys used for encryption.
+     * This code doesn't set the max bytes or max message security thresholds that are enforced
+     * only on data keys used for encryption.
      *
      * @param cmkArn The AWS KMS customer master key to use for decryption
-     * @param tableName The DynamoDB table name to store decrypted messages in
+     * @param tableName The name of the DynamoDB table name that stores decrypted messages
      */
     public LambdaDecryptAndWriteExample(final String cmkArn, final String tableName) {
         cachingMaterialsManager_ = CachingCryptoMaterialsManager.newBuilder()
