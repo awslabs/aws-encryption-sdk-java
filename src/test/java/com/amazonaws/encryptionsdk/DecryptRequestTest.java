@@ -56,10 +56,11 @@ class DecryptRequestTest {
                 .plaintext(new byte[]{4, 5, 6})
                 .build()).getResult();
 
-
-        assertTrue(DecryptRequest.builder()
+        final CryptoMaterialsManager cryptoMaterialsManager = DecryptRequest.builder()
                 .keyring(keyring)
-                .ciphertext(ciphertext).build().cryptoMaterialsManager()
-                instanceof DefaultCryptoMaterialsManager);
+                .ciphertext(ciphertext).build()
+                .cryptoMaterialsManager();
+
+        assertTrue(cryptoMaterialsManager instanceof DefaultCryptoMaterialsManager);
     }
 }

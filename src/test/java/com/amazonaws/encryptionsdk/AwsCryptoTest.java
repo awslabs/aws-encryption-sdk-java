@@ -21,7 +21,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -126,15 +125,10 @@ public class AwsCryptoTest {
                 plaintextBytes,
                 encryptionContext).getResult();
         cipherText[cipherText.length - 2] ^= (byte) 0xff;
-        try {
-            encryptionClient_.decryptData(
-                    masterKeyProvider,
-                    cipherText
-                    ).getResult();
-            fail("Expected BadCiphertextException");
-        } catch (final BadCiphertextException ex) {
-            // Expected exception
-        }
+
+        assertThrows(BadCiphertextException.class, () -> encryptionClient_.decryptData(
+                masterKeyProvider,
+                cipherText));
     }
 
     private void doTamperedEncryptDecryptWithKeyring(final CryptoAlgorithm cryptoAlg, final int byteSize, final int frameSize) {
@@ -150,14 +144,10 @@ public class AwsCryptoTest {
                 .keyring(keyring)
                 .plaintext(plaintextBytes).build()).getResult();
         cipherText[cipherText.length - 2] ^= (byte) 0xff;
-        try {
-            encryptionClient_.decrypt(DecryptRequest.builder()
-                    .keyring(keyring)
-                    .ciphertext(cipherText).build());
-            fail("Expected BadCiphertextException");
-        } catch (final BadCiphertextException ex) {
-            // Expected exception
-        }
+
+        assertThrows(BadCiphertextException.class, () -> encryptionClient_.decrypt(DecryptRequest.builder()
+                .keyring(keyring)
+                .ciphertext(cipherText).build()));
     }
 
     private void doEncryptDecryptWithParsedCiphertext(final int byteSize, final int frameSize) {

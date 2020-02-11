@@ -58,6 +58,5 @@ class AwsKmsCmkIdTest {
     void testEquals() {
         assertEquals(AwsKmsCmkId.fromString(VALID_ARN), AwsKmsCmkId.fromString(VALID_ARN));
         assertNotEquals(AwsKmsCmkId.fromString(VALID_ALIAS), AwsKmsCmkId.fromString(VALID_ALIAS_ARN));
-
     }
 }

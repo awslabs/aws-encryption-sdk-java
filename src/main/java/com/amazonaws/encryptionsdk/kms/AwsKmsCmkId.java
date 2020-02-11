@@ -30,7 +30,7 @@ public final class AwsKmsCmkId {
     private String keyId;
 
     private AwsKmsCmkId(String keyId) throws MalformedArnException {
-        Validate.notBlank(keyId, "keyId is required");
+        Validate.notBlank(keyId, "keyId must be neither null, empty nor whitespace");
 
         if (keyId.startsWith(ARN_PREFIX)) {
             try {

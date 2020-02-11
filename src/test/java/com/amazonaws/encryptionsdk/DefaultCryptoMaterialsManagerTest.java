@@ -6,7 +6,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.same;
@@ -414,13 +414,8 @@ public class DefaultCryptoMaterialsManagerTest {
                                                                            .setEncryptionContext(Collections.emptyMap())
                                                                            .build();
 
-            try {
-                new DefaultCryptoMaterialsManager(mk1).decryptMaterials(request);
-                fail("expected exception");
-            } catch (AwsCryptoException e) {
-                // ok
-                continue;
-            }
+            assertThrows(AwsCryptoException.class, () ->
+                    new DefaultCryptoMaterialsManager(mk1).decryptMaterials(request));
         }
     }
 
@@ -441,13 +436,8 @@ public class DefaultCryptoMaterialsManagerTest {
                     .setEncryptionContext(Collections.emptyMap())
                     .build();
 
-            try {
-                new DefaultCryptoMaterialsManager(keyring1).decryptMaterials(request);
-                fail("expected exception");
-            } catch (AwsCryptoException e) {
-                // ok
-                continue;
-            }
+            assertThrows(AwsCryptoException.class, () ->
+                    new DefaultCryptoMaterialsManager(keyring1).decryptMaterials(request));
         }
     }
 }
