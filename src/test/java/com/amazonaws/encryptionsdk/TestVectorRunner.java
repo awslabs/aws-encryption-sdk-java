@@ -156,7 +156,7 @@ class TestVectorRunner {
             final KeyEntry key = keys.get(keyName);
 
             if ("aws-kms".equals(type)) {
-                keyrings.add(StandardKeyrings.awsKms()
+                keyrings.add(StandardKeyrings.awsKmsBuilder()
                         .awsKmsClientSupplier(awsKmsClientSupplier)
                         .generatorKeyId(AwsKmsCmkId.fromString(key.keyId))
                         .build());
@@ -165,7 +165,7 @@ class TestVectorRunner {
                 final String provId = mkEntry.get("provider-id");
                 final String algorithm = mkEntry.get("encryption-algorithm");
                 if ("aes".equals(algorithm)) {
-                    keyrings.add(StandardKeyrings.rawAes()
+                    keyrings.add(StandardKeyrings.rawAesBuilder()
                             .keyName(key.keyId)
                             .keyNamespace(provId)
                             .wrappingKey((SecretKey) key.key).build());
@@ -192,7 +192,7 @@ class TestVectorRunner {
                         wrappingKey = null;
                         unwrappingKey = (PrivateKey) key.key;
                     }
-                    keyrings.add(StandardKeyrings.rawRsa()
+                    keyrings.add(StandardKeyrings.rawRsaBuilder()
                             .publicKey(wrappingKey)
                             .privateKey(unwrappingKey)
                             .keyNamespace(provId)
