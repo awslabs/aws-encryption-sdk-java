@@ -28,7 +28,7 @@ import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
 /**
  * <p>
- * Encrypts and then decrypts data using an AWS KMS customer master key.
+ * Encrypts and then decrypts data using an AWS Key Management Service (AWS KMS) customer master key.
  *
  * <p>
  * Arguments:
@@ -49,9 +49,9 @@ public class BasicEncryptionExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS keyring, supplying the key ARN as the generator for generating a data key. While
-        //    using a key ARN is a best practice, for encryption operations it is also acceptable to use a CMK alias or
-        //    an alias ARN.
+        // 2. Instantiate a KMS keyring. Supply the key ARN for the generator key
+        //    that generates a data key. While using a key ARN is a best practice,
+        //    for encryption operations you can also use an alias name or alias ARN.
         final Keyring keyring = StandardKeyrings.awsKms(keyArn);
 
         // 3. Create an encryption context
@@ -71,7 +71,7 @@ public class BasicEncryptionExample {
                     .plaintext(EXAMPLE_DATA).build());
         final byte[] ciphertext = encryptResult.getResult();
 
-        // 5. Decrypt the data. The same keyring may be used to encrypt and decrypt, but for decryption
+        // 5. Decrypt the data. You can use the same keyring to encrypt and decrypt, but for decryption
         //    the key IDs must be in the key ARN format.
         final AwsCryptoResult<byte[]> decryptResult = crypto.decrypt(
                 DecryptRequest.builder()
