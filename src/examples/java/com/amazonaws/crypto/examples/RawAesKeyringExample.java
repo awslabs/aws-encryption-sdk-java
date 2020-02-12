@@ -31,7 +31,7 @@ import java.util.Map;
 
 /**
  * <p>
- * Encrypts and then decrypts data using the Raw AES Keyring.
+ * Encrypts and then decrypts data using the Raw AES keyring.
  */
 public class RawAesKeyringExample {
 
@@ -49,7 +49,7 @@ public class RawAesKeyringExample {
         //    In practice, you would get a key from an existing key store
         final SecretKey cryptoKey = generateEncryptKey();
 
-        // 3. Instantiate a Raw AES Keyring with the encryption key
+        // 3. Instantiate a Raw AES keyring with the encryption key
         final Keyring keyring = StandardKeyrings.rawAesBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")

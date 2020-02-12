@@ -23,7 +23,7 @@ import java.security.KeyPair;
 
 /**
  * <p>
- * Decrypts data using the Raw RSA Keyring.
+ * Decrypts data using the Raw RSA keyring.
  */
 public class RawRsaKeyringDecryptExample {
 
@@ -31,7 +31,7 @@ public class RawRsaKeyringDecryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a Raw RSA Keyring with the private key
+        // 2. Instantiate a Raw RSA keyring with the private key
         final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")

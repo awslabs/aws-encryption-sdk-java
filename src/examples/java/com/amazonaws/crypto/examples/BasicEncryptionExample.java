@@ -49,7 +49,7 @@ public class BasicEncryptionExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Keyring, supplying the key ARN as the generator for generating a data key. While
+        // 2. Instantiate a KMS keyring, supplying the key ARN as the generator for generating a data key. While
         //    using a key ARN is a best practice, for encryption operations it is also acceptable to use a CMK alias or
         //    an alias ARN.
         final Keyring keyring = StandardKeyrings.awsKms(keyArn);

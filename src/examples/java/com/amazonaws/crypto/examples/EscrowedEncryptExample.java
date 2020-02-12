@@ -84,7 +84,7 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        // 2. Instantiate a KMS keyring, supplying the keyArn as the generator for generating a data key.
         final Keyring kmsKeyring = StandardKeyrings.awsKms(kmsArn);
 
         // 3. Instantiate a RawRsaKeyring
@@ -115,7 +115,7 @@ public class EscrowedEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Keyring, supplying the keyArn as the generator for generating a data key.
+        // 2. Instantiate a KMS keyring, supplying the keyArn as the generator for generating a data key.
         final Keyring kmsKeyring = StandardKeyrings.awsKms(kmsArn);
 
         // 4. Decrypt the data with the keyring.

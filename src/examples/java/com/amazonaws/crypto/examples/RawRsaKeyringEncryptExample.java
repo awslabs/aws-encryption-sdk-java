@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Encrypts data using the Raw RSA Keyring.
+ * Encrypts data using the Raw RSA keyring.
  */
 public class RawRsaKeyringEncryptExample {
 
@@ -35,7 +35,7 @@ public class RawRsaKeyringEncryptExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a Raw RSA Keyring with the public key
+        // 2. Instantiate a Raw RSA keyring with the public key
         final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
