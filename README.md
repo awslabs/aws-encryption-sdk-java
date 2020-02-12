@@ -63,7 +63,7 @@ You can get the latest release from Maven:
 The following code sample demonstrates how to get started:
 
 1. Instantiate the SDK.
-2. Setup an AWS KMS Keyring.
+2. Setup a KMS keyring.
 3. Encrypt and decrypt data.
 
 ```java
@@ -95,7 +95,7 @@ public class BasicEncryptionExample {
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate an AWS KMS Keyring, supplying the key ARN as the generator for generating a 
+        // 2. Instantiate a KMS keyring, supplying the key ARN as the generator for generating a 
         //    data key. While using a key ARN is a best practice, for encryption operations it is also
         //    acceptable to use a CMK alias or an alias ARN.
         final Keyring keyring = StandardKeyrings.awsKms(keyArn);
