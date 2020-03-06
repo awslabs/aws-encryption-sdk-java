@@ -40,10 +40,46 @@ import com.amazonaws.util.BinaryUtils;
 public class LambdaDecryptAndWriteExample implements RequestHandler<KinesisEvent, Void> {
     private static final long MAX_ENTRY_AGE_MILLISECONDS = 600000;
     private static final int MAX_CACHE_ENTRIES = 100;
+    
+    // For best caching performance in Lambda, we want our cache to be a static final field
+    // configured by environment variables.
+    // However, to make this example easier for people to experiment with, we also provide a non-static
+    // version with simpler configuration.
+    private static final CachingCryptoMaterialsManager CACHING_CRYPTO_MATERIALS_MANAGER;
+    private static final String TABLE_NAME = System.getProperty("TABLE_NAME");
+    
+    static {
+        final String cmkArn = System.getProperty("CMK_ARN");
+        CACHING_CRYPTO_MATERIALS_MANAGER = CachingCryptoMaterialsManager.newBuilder()
+                .withKeyring(StandardKeyrings.awsKms(AwsKmsCmkId.fromString(cmkArn)))
+                .withCache(new LocalCryptoMaterialsCache(MAX_CACHE_ENTRIES))
+                .withMaxAge(MAX_ENTRY_AGE_MILLISECONDS, TimeUnit.MILLISECONDS)
+                .build();
+    }
+    
     private final CachingCryptoMaterialsManager cachingMaterialsManager_;
     private final AwsCrypto crypto_;
     private final Table table_;
 
+    /**
+     * No-argument constructor for use with Lambda.
+     * 
+     * This is almost equivalent to calling {@link #LambdaDecryptAndWriteExample(String, String)} with
+     * {@code cmkArn = System.getProperty("CMK_ARN")}
+     * and
+     * {@code tableName = System.getProperty("TABLE_NAME")}
+     * respectively.
+     * The only difference is that this constructor will re-use the underlying cache across all instances
+     * for better cache performance.
+     * 
+     * @see #LambdaDecryptAndWriteExample(String, String)
+     * @see #CACHING_CRYPTO_MATERIALS_MANAGER
+     * @see #TABLE_NAME
+     */
+    public LambdaDecryptAndWriteExample() {
+        this(CACHING_CRYPTO_MATERIALS_MANAGER, TABLE_NAME);
+    }
+    
     /**
      * This code doesn't set the max bytes or max message security thresholds that are enforced
      * only on data keys used for encryption.
@@ -52,15 +88,21 @@ public class LambdaDecryptAndWriteExample implements RequestHandler<KinesisEvent
      * @param tableName The name of the DynamoDB table name that stores decrypted messages
      */
     public LambdaDecryptAndWriteExample(final String cmkArn, final String tableName) {
-        cachingMaterialsManager_ = CachingCryptoMaterialsManager.newBuilder()
+        this(
+            CachingCryptoMaterialsManager.newBuilder()
                 .withKeyring(StandardKeyrings.awsKms(AwsKmsCmkId.fromString(cmkArn)))
                 .withCache(new LocalCryptoMaterialsCache(MAX_CACHE_ENTRIES))
                 .withMaxAge(MAX_ENTRY_AGE_MILLISECONDS, TimeUnit.MILLISECONDS)
-                .build();
+                .build(),
+            tableName);
+    }
+
+    public LambdaDecryptAndWriteExample(CachingCryptoMaterialsManager cachingMatherialsManager, String tableName) {
+        cachingMaterialsManager_ = cachingMatherialsManager;
         crypto_ = new AwsCrypto();
         table_ = new DynamoDB(AmazonDynamoDBClientBuilder.defaultClient()).getTable(tableName);
     }
-
+    
     /**
      * Decrypts Kinesis events and writes the data to DynamoDB
      *
