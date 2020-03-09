@@ -17,9 +17,9 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;

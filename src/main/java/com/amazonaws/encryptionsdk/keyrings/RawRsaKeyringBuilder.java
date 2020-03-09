@@ -13,8 +13,6 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
-import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
-
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -100,5 +98,30 @@ public class RawRsaKeyringBuilder {
      */
     public Keyring build() {
         return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, paddingScheme);
+    }
+
+    public enum RsaPaddingScheme {
+
+        PKCS1("RSA/ECB/PKCS1Padding"),
+        OAEP_SHA1_MGF1("RSA/ECB/OAEPWithSHA-1AndMGF1Padding"),
+        OAEP_SHA256_MGF1("RSA/ECB/OAEPWithSHA-256AndMGF1Padding"),
+        OAEP_SHA384_MGF1("RSA/ECB/OAEPWithSHA-384AndMGF1Padding"),
+        OAEP_SHA512_MGF1("RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+
+        private final String transformation;
+
+        RsaPaddingScheme(String transformation) {
+            this.transformation = transformation;
+        }
+
+        /**
+         * The Cipher transformation standard name as specified in
+         * https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#Cipher
+         *
+         * @return The transformation name
+         */
+        public String getTransformation() {
+            return transformation;
+        }
     }
 }

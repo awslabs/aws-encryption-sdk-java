@@ -15,7 +15,7 @@ package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
-import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;

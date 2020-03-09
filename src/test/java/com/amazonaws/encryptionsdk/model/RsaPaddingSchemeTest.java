@@ -13,6 +13,7 @@
 
 package com.amazonaws.encryptionsdk.model;
 
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.Cipher;
