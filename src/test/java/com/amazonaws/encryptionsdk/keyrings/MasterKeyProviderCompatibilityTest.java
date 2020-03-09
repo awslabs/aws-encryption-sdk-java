@@ -27,6 +27,7 @@ import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KMSTestFixtures;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -74,19 +75,19 @@ class MasterKeyProviderCompatibilityTest {
 
     @Test
     void testRawRsaKeyringCompatibility() throws Exception {
-        final String wrappingAlgorithm = "RSA/ECB/OAEPWithSHA-512AndMGF1Padding";
+        final RsaPaddingScheme paddingScheme = RsaPaddingScheme.OAEP_SHA512_MGF1;
         final KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");
         kg.initialize(4096);
         KeyPair keyPair = kg.generateKeyPair();
 
         JceMasterKey mkp = JceMasterKey.getInstance(keyPair.getPublic(), keyPair.getPrivate(), KEY_NAMESPACE, KEY_NAME,
-                wrappingAlgorithm);
+                paddingScheme.getTransformation());
         Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)
                 .publicKey(keyPair.getPublic())
                 .privateKey(keyPair.getPrivate())
-                .wrappingAlgorithm(wrappingAlgorithm)
+                .paddingScheme(paddingScheme)
                 .build();
 
         testCompatibility(keyring, mkp);

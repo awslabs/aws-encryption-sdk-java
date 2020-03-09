@@ -18,6 +18,7 @@ import com.amazonaws.encryptionsdk.AwsCryptoResult;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
+import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
 
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
@@ -39,7 +40,7 @@ public class RawRsaKeyringEncryptExample {
         final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
-                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .paddingScheme(RsaPaddingScheme.OAEP_SHA512_MGF1)
                 .publicKey(publicKey).build();
 
         // 3. Create an encryption context

@@ -13,6 +13,8 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
+import com.amazonaws.encryptionsdk.model.RsaPaddingScheme;
+
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -21,7 +23,7 @@ public class RawRsaKeyringBuilder {
     private String keyName;
     private PublicKey publicKey;
     private PrivateKey privateKey;
-    private String wrappingAlgorithm;
+    private RsaPaddingScheme paddingScheme;
 
     private RawRsaKeyringBuilder() {
         // Use RawRsaKeyringBuilder.standard() or StandardKeyrings.rawRsa() to instantiate
@@ -81,13 +83,13 @@ public class RawRsaKeyringBuilder {
     }
 
     /**
-     * The RSA algorithm to use with this keyring (required).
+     * The RSA padding scheme to use with this keyring (required).
      *
-     * @param wrappingAlgorithm The algorithm
+     * @param paddingScheme The RSA padding scheme
      * @return The RawRsaKeyringBuilder, for method chaining
      */
-    public RawRsaKeyringBuilder wrappingAlgorithm(String wrappingAlgorithm) {
-        this.wrappingAlgorithm = wrappingAlgorithm;
+    public RawRsaKeyringBuilder paddingScheme(RsaPaddingScheme paddingScheme) {
+        this.paddingScheme = paddingScheme;
         return this;
     }
 
@@ -97,6 +99,6 @@ public class RawRsaKeyringBuilder {
      * @return The {@link Keyring} instance
      */
     public Keyring build() {
-        return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, wrappingAlgorithm);
+        return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, paddingScheme);
     }
 }
