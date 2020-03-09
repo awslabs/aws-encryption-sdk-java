@@ -117,6 +117,8 @@ public class RawRsaKeyringBuilder {
         /**
          * The Cipher transformation standard name as specified in
          * https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#Cipher
+         * Note: In all cases the hash function used with MGF1 is the
+         * same as the hash function used directly with the message.
          *
          * @return The transformation name
          */
