@@ -24,15 +24,12 @@ import com.amazonaws.services.kms.model.AWSKMSException;
 import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.commons.lang3.Validate.isTrue;
-import static org.apache.commons.lang3.Validate.notEmpty;
 
 /**
  * Represents a function that accepts an AWS region and returns an {@code AWSKMS} client for that region. The
@@ -80,16 +77,14 @@ public interface AwsKmsClientSupplier {
     }
 
     /**
-     * Builder to construct an AwsKmsClientSupplier given various
-     * optional settings.
+     * Builder to construct an AwsKmsClientSupplier that will create and cache clients
+     * for any region. CredentialProvider and ClientConfiguration are optional and may
+     * be configured if necessary.
      */
     class Builder {
 
         private AWSCredentialsProvider credentialsProvider;
         private ClientConfiguration clientConfiguration;
-        private Set<String> allowedRegions = Collections.emptySet();
-        private Set<String> excludedRegions = Collections.emptySet();
-        private boolean clientCachingEnabled = true;
         private final Map<String, AWSKMS> clientsCache = new HashMap<>();
         private static final Set<String> AWSKMS_METHODS = new HashSet<>();
         private AWSKMSClientBuilder awsKmsClientBuilder;
@@ -105,19 +100,8 @@ public interface AwsKmsClientSupplier {
         }
 
         public AwsKmsClientSupplier build() {
-            isTrue(allowedRegions.isEmpty() || excludedRegions.isEmpty(),
-                    "Either allowed regions or excluded regions may be set, not both.");
 
             return regionId -> {
-                if (!allowedRegions.isEmpty() && !allowedRegions.contains(regionId)) {
-                    throw new UnsupportedRegionException(String.format("Region %s is not in the list of allowed regions %s",
-                            regionId, allowedRegions));
-                }
-
-                if (excludedRegions.contains(regionId)) {
-                    throw new UnsupportedRegionException(String.format("Region %s is in the list of excluded regions %s",
-                            regionId, excludedRegions));
-                }
 
                 if (clientsCache.containsKey(regionId)) {
                     return clientsCache.get(regionId);
@@ -135,13 +119,7 @@ public interface AwsKmsClientSupplier {
                     awsKmsClientBuilder = awsKmsClientBuilder.withRegion(regionId);
                 }
 
-                AWSKMS client = awsKmsClientBuilder.build();
-
-                if (clientCachingEnabled) {
-                    client = newCachingProxy(client, regionId);
-                }
-
-                return client;
+                return newCachingProxy(awsKmsClientBuilder.build(), regionId);
             };
         }
 
@@ -162,39 +140,6 @@ public interface AwsKmsClientSupplier {
          */
         public Builder clientConfiguration(ClientConfiguration clientConfiguration) {
             this.clientConfiguration = clientConfiguration;
-            return this;
-        }
-
-        /**
-         * Sets the AWS regions that the client supplier is permitted to use.
-         *
-         * @param regions The set of regions.
-         */
-        public Builder allowedRegions(Set<String> regions) {
-            notEmpty(regions, "At least one region is required");
-            this.allowedRegions = Collections.unmodifiableSet(new HashSet<>(regions));
-            return this;
-        }
-
-        /**
-         * Sets the AWS regions that the client supplier is not permitted to use.
-         *
-         * @param regions The set of regions.
-         */
-        public Builder excludedRegions(Set<String> regions) {
-            requireNonNull(regions, "regions is required");
-            this.excludedRegions = Collections.unmodifiableSet(new HashSet<>(regions));
-            return this;
-        }
-
-        /**
-         * When set to false, disables the AWSKMS client for each region from being cached and reused.
-         * By default, client caching is enabled.
-         *
-         * @param enabled Whether or not caching is enabled.
-         */
-        public Builder clientCaching(boolean enabled) {
-            this.clientCachingEnabled = enabled;
             return this;
         }
 

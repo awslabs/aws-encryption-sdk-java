@@ -13,7 +13,6 @@
 
 package com.amazonaws.crypto.examples.datakeycaching;
 
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.AwsCryptoResult;
@@ -22,6 +21,7 @@ import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
+import com.amazonaws.encryptionsdk.kms.AllowRegionsAwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.regions.Region;
@@ -32,7 +32,6 @@ import com.amazonaws.util.json.Jackson;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -73,10 +72,10 @@ public class MultiRegionRecordPusherExample {
                     .build());
 
             keyrings.add(StandardKeyrings.awsKmsBuilder()
-                    .awsKmsClientSupplier(AwsKmsClientSupplier.builder()
+                    .awsKmsClientSupplier(new AllowRegionsAwsKmsClientSupplier(Collections.singleton(region.getName()),
+                            AwsKmsClientSupplier.builder()
                             .credentialsProvider(credentialsProvider)
-                            .allowedRegions(Collections.singleton(region.getName()))
-                            .build())
+                            .build()))
                     .generatorKeyId(AwsKmsCmkId.fromString(kmsAliasName)).build());
         }
 
