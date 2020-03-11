@@ -16,6 +16,7 @@ package com.amazonaws.encryptionsdk;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
@@ -171,15 +172,27 @@ class TestVectorRunner {
                             .wrappingKey((SecretKey) key.key).build());
                     mks.add(JceMasterKey.getInstance((SecretKey) key.key, provId, key.keyId, "AES/GCM/NoPadding"));
                 } else if ("rsa".equals(algorithm)) {
-                    String transformation = "RSA/ECB/";
+                    final RsaPaddingScheme paddingScheme;
                     final String padding = mkEntry.get("padding-algorithm");
                     if ("pkcs1".equals(padding)) {
-                        transformation += "PKCS1Padding";
+                        paddingScheme = RsaPaddingScheme.PKCS1;
                     } else if ("oaep-mgf1".equals(padding)) {
-                        final String hashName = mkEntry.get("padding-hash")
-                                .replace("sha", "sha-")
-                                .toUpperCase();
-                        transformation += "OAEPWith" + hashName + "AndMGF1Padding";
+                        switch(mkEntry.get("padding-hash")) {
+                            case "sha1":
+                                paddingScheme = RsaPaddingScheme.OAEP_SHA1_MGF1;
+                                break;
+                            case "sha256":
+                                paddingScheme = RsaPaddingScheme.OAEP_SHA256_MGF1;
+                                break;
+                            case "sha384":
+                                paddingScheme = RsaPaddingScheme.OAEP_SHA384_MGF1;
+                                break;
+                            case "sha512":
+                                paddingScheme = RsaPaddingScheme.OAEP_SHA512_MGF1;
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Unsupported padding hash:" + mkEntry.get("padding-hash"));
+                        }
                     } else {
                         throw new IllegalArgumentException("Unsupported padding:" + padding);
                     }
@@ -197,8 +210,8 @@ class TestVectorRunner {
                             .privateKey(unwrappingKey)
                             .keyNamespace(provId)
                             .keyName(key.keyId)
-                            .wrappingAlgorithm(transformation).build());
-                    mks.add(JceMasterKey.getInstance(wrappingKey, unwrappingKey, provId, key.keyId, transformation));
+                            .paddingScheme(paddingScheme).build());
+                    mks.add(JceMasterKey.getInstance(wrappingKey, unwrappingKey, provId, key.keyId, paddingScheme.getTransformation()));
                 } else {
                     throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
                 }

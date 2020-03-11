@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RawRsaKeyringTest {
 
-    private static final String TRANSFORMATION = "RSA/ECB/PKCS1Padding";
+    private static final RsaPaddingScheme PADDING_SCHEME = RsaPaddingScheme.PKCS1;
     private static RawRsaKeyring keyring;
 
     @BeforeAll
@@ -45,7 +46,7 @@ class RawRsaKeyringTest {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         final KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        keyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, keyPair.getPublic(), keyPair.getPrivate(), TRANSFORMATION);
+        keyring = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, keyPair.getPublic(), keyPair.getPrivate(), PADDING_SCHEME);
     }
 
     @Test

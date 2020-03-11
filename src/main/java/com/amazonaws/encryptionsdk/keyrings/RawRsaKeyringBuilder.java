@@ -21,7 +21,7 @@ public class RawRsaKeyringBuilder {
     private String keyName;
     private PublicKey publicKey;
     private PrivateKey privateKey;
-    private String wrappingAlgorithm;
+    private RsaPaddingScheme paddingScheme;
 
     private RawRsaKeyringBuilder() {
         // Use RawRsaKeyringBuilder.standard() or StandardKeyrings.rawRsa() to instantiate
@@ -81,13 +81,13 @@ public class RawRsaKeyringBuilder {
     }
 
     /**
-     * The RSA algorithm to use with this keyring (required).
+     * The RSA padding scheme to use with this keyring (required).
      *
-     * @param wrappingAlgorithm The algorithm
+     * @param paddingScheme The RSA padding scheme
      * @return The RawRsaKeyringBuilder, for method chaining
      */
-    public RawRsaKeyringBuilder wrappingAlgorithm(String wrappingAlgorithm) {
-        this.wrappingAlgorithm = wrappingAlgorithm;
+    public RawRsaKeyringBuilder paddingScheme(RsaPaddingScheme paddingScheme) {
+        this.paddingScheme = paddingScheme;
         return this;
     }
 
@@ -97,6 +97,33 @@ public class RawRsaKeyringBuilder {
      * @return The {@link Keyring} instance
      */
     public Keyring build() {
-        return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, wrappingAlgorithm);
+        return new RawRsaKeyring(keyNamespace, keyName, publicKey, privateKey, paddingScheme);
+    }
+
+    public enum RsaPaddingScheme {
+
+        PKCS1("RSA/ECB/PKCS1Padding"),
+        OAEP_SHA1_MGF1("RSA/ECB/OAEPWithSHA-1AndMGF1Padding"),
+        OAEP_SHA256_MGF1("RSA/ECB/OAEPWithSHA-256AndMGF1Padding"),
+        OAEP_SHA384_MGF1("RSA/ECB/OAEPWithSHA-384AndMGF1Padding"),
+        OAEP_SHA512_MGF1("RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+
+        private final String transformation;
+
+        RsaPaddingScheme(String transformation) {
+            this.transformation = transformation;
+        }
+
+        /**
+         * The Cipher transformation standard name as specified in
+         * https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#Cipher
+         * Note: In all cases the hash function used with MGF1 is the
+         * same as the hash function used directly with the message.
+         *
+         * @return The transformation name
+         */
+        public String getTransformation() {
+            return transformation;
+        }
     }
 }

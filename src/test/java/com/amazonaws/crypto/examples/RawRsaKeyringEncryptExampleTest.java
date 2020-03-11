@@ -16,6 +16,7 @@ package com.amazonaws.crypto.examples;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,7 @@ class RawRsaKeyringEncryptExampleTest {
                 .keyNamespace("ExampleKeyNamespace")
                 .keyName("ExampleKeyName")
                 .privateKey(keyPair.getPrivate())
-                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .paddingScheme(RsaPaddingScheme.OAEP_SHA512_MGF1)
                 .build();
 
 

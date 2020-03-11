@@ -17,6 +17,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
@@ -94,7 +95,7 @@ public class EscrowedEncryptExample {
                 .keyNamespace("Escrow")
                 .keyName("Escrow")
                 .publicKey(publicEscrowKey)
-                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .paddingScheme(RsaPaddingScheme.OAEP_SHA512_MGF1)
                 .build();
 
         // 4. Combine the providers into a single MultiKeyring
@@ -138,7 +139,7 @@ public class EscrowedEncryptExample {
                 .keyNamespace("Escrow")
                 .keyName("Escrow")
                 .privateKey(privateEscrowKey)
-                .wrappingAlgorithm("RSA/ECB/OAEPWithSHA-512AndMGF1Padding")
+                .paddingScheme(RsaPaddingScheme.OAEP_SHA512_MGF1)
                 .build();
 
         // 3. Decrypt the data with the keyring

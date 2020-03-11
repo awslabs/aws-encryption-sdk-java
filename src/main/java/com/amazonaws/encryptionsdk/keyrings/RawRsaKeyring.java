@@ -15,6 +15,7 @@ package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
+import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -28,8 +29,8 @@ import java.util.Arrays;
  */
 class RawRsaKeyring extends RawKeyring {
 
-    RawRsaKeyring(String keyNamespace, String keyName, PublicKey publicKey, PrivateKey privateKey, String transformation) {
-        super(keyNamespace, keyName, JceKeyCipher.rsa(publicKey, privateKey, transformation));
+    RawRsaKeyring(String keyNamespace, String keyName, PublicKey publicKey, PrivateKey privateKey, RsaPaddingScheme rsaPaddingScheme) {
+        super(keyNamespace, keyName, JceKeyCipher.rsa(publicKey, privateKey, rsaPaddingScheme.getTransformation()));
     }
 
     @Override
