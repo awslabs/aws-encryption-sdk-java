@@ -16,6 +16,7 @@ package com.amazonaws.encryptionsdk.keyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
+import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
 
 import java.util.List;
 
@@ -111,7 +112,7 @@ public class AwsKmsKeyringBuilder {
      */
     public Keyring build() {
         if (awsKmsClientSupplier == null) {
-            awsKmsClientSupplier = AwsKmsClientSupplier.builder().build();
+            awsKmsClientSupplier = StandardAwsKmsClientSuppliers.defaultBuilder().build();
         }
 
         return new AwsKmsKeyring(DataKeyEncryptionDao.awsKms(awsKmsClientSupplier, grantTokens),

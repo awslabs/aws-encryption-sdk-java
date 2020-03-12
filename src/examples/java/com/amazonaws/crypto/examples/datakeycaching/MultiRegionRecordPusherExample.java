@@ -21,9 +21,8 @@ import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.AllowRegionsAwsKmsClientSupplier;
-import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
+import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
@@ -72,10 +71,10 @@ public class MultiRegionRecordPusherExample {
                     .build());
 
             keyrings.add(StandardKeyrings.awsKmsBuilder()
-                    .awsKmsClientSupplier(new AllowRegionsAwsKmsClientSupplier(Collections.singleton(region.getName()),
-                            AwsKmsClientSupplier.builder()
-                            .credentialsProvider(credentialsProvider)
-                            .build()))
+                    .awsKmsClientSupplier(StandardAwsKmsClientSuppliers
+                            .allowRegionsBuilder(Collections.singleton(region.getName()))
+                            .baseClientSupplier(StandardAwsKmsClientSuppliers.defaultBuilder()
+                                    .credentialsProvider(credentialsProvider).build()).build())
                     .generatorKeyId(AwsKmsCmkId.fromString(kmsAliasName)).build());
         }
 

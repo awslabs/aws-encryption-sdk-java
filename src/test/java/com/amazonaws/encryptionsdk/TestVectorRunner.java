@@ -21,6 +21,7 @@ import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.util.IOUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -64,7 +65,7 @@ class TestVectorRunner {
     // We save the files in memory to avoid repeatedly retrieving them.
     // This won't work if the plaintexts are too large or numerous
     private static final Map<String, byte[]> cachedData = new HashMap<>();
-    private static final AwsKmsClientSupplier awsKmsClientSupplier = AwsKmsClientSupplier.builder()
+    private static final AwsKmsClientSupplier awsKmsClientSupplier = StandardAwsKmsClientSuppliers.defaultBuilder()
             .credentialsProvider(new DefaultAWSCredentialsProviderChain())
             .build();
     private static final KmsMasterKeyProvider kmsProv = KmsMasterKeyProvider

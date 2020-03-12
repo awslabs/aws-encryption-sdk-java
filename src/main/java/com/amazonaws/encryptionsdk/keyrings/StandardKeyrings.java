@@ -13,9 +13,8 @@
 
 package com.amazonaws.encryptionsdk.keyrings;
 
-import com.amazonaws.encryptionsdk.kms.AllowRegionsAwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.DenyRegionsAwsKmsClientSupplier;
+import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -81,14 +80,14 @@ public class StandardKeyrings {
      * AWS KMS Discovery keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
      * using any encrypted data key in an encrypted message. AWS KMS Discovery keyrings do not perform encryption.
      * <p></p>
-     * To create an AWS KMS Regional Discovery Keyring, use an {@link AllowRegionsAwsKmsClientSupplier} or a
-     * {@link DenyRegionsAwsKmsClientSupplier}  to specify which regions to include/exclude.
+     * To create an AWS KMS Regional Discovery Keyring, use {@link StandardAwsKmsClientSuppliers#allowRegionsBuilder} or
+     * {@link StandardAwsKmsClientSuppliers#denyRegionsBuilder} to specify which regions to include/exclude.
      * <p></p>
      * For example, to include only CMKs in the us-east-1 region:
      * <pre>
      * StandardKeyrings.awsKmsDiscovery()
      *             .awsKmsClientSupplier(
-     *                     new AllowRegionsAwsKmsClientSupplier(Collections.singleton("us-east-1")))
+     *                     StandardAwsKmsClientSuppliers.allowRegionsBuilder(Collections.singleton("us-east-1")).build()
      *             .build();
      * </pre>
      *
