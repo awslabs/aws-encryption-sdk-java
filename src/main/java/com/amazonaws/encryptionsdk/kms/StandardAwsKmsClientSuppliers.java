@@ -22,10 +22,10 @@ import com.amazonaws.services.kms.model.AWSKMSException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.notEmpty;
@@ -77,9 +77,10 @@ public class StandardAwsKmsClientSuppliers {
 
         private AWSCredentialsProvider credentialsProvider;
         private ClientConfiguration clientConfiguration;
-        private final Map<String, AWSKMS> clientsCache = new HashMap<>();
+        private final Map<String, AWSKMS> clientsCache = new ConcurrentHashMap<>();
         private static final Set<String> AWSKMS_METHODS = new HashSet<>();
         private AWSKMSClientBuilder awsKmsClientBuilder;
+        private static final String NULL_REGION = "null-region";
 
         static {
             AWSKMS_METHODS.add("generateDataKey");
@@ -95,6 +96,10 @@ public class StandardAwsKmsClientSuppliers {
 
             return regionId -> {
 
+                if(regionId == null) {
+                    regionId = NULL_REGION;
+                }
+
                 if (clientsCache.containsKey(regionId)) {
                     return clientsCache.get(regionId);
                 }
@@ -107,7 +112,7 @@ public class StandardAwsKmsClientSuppliers {
                     awsKmsClientBuilder = awsKmsClientBuilder.withClientConfiguration(clientConfiguration);
                 }
 
-                if (regionId != null) {
+                if (!regionId.equals(NULL_REGION)) {
                     awsKmsClientBuilder = awsKmsClientBuilder.withRegion(regionId);
                 }
 
