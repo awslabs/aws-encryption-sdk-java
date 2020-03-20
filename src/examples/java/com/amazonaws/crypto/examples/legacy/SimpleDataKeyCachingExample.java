@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.crypto.examples.datakeycaching;
+package com.amazonaws.crypto.examples.legacy;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.crypto.examples.datakeycaching;
+package com.amazonaws.crypto.examples.legacy;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.encryptionsdk.AwsCrypto;
