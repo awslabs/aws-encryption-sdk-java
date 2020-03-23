@@ -21,7 +21,31 @@ you need to describe how you want the library to protect your data keys.
 You can do this using
 [keyrings](#keyrings) or [cryptographic materials managers](#cryptographic-materials-managers),
 or using [master key providers](#master-key-providers).
-These examples will show you how.
+These examples will show you how yo use the configuration tools that we include for you 
+as well as how to create some of your own. We start with AWS KMS examples, then show 
+how to use other wrapping keys.
+
+* Using AWS Key Management Service (AWS KMS)
+    * How to use a single AWS KMS CMK
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/SingleCmk.java)
+    * How to use multiple AWS KMS CMKs in different regions
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/MultipleRegions.java)
+    * How to decrypt when you don't know the CMK
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecrypt.java)
+    * How to decrypt within a region
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptInRegionOnly.java)
+    * How to decrypt with a preferred region but failover to others
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptWithPreferredRegions.java)
+* Using raw wrapping keys
+    * How to use a raw AES wrapping key
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawaes/RawAes.java)
+    * How to use a raw RSA wrapping key
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawrsa/RawRsa.java)
+    * How to encrypt with a raw RSA public key wrapping key without access to the private key
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawrsa/PublicPrivateKeySeparate.java)
+* Combining wrapping keys
+    * How to combine AWS KMS with an offline escrow key
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/multi/AwsKmsWithEscrow.java)
 
 ### Keyrings
 

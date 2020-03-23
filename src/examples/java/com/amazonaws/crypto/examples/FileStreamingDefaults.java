@@ -1,15 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples;
 
@@ -53,7 +43,7 @@ public class FileStreamingDefaults {
      * @param sourcePlaintextFile Plaintext file to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final File sourcePlaintextFile) throws IOException {
-        // Instantiate the SDK
+        // Instantiate the AWS Encryption SDK
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // We assume that you can also write to the directory containing the plaintext file,
@@ -63,7 +53,7 @@ public class FileStreamingDefaults {
         encryptedFile.deleteOnExit();
         decryptedFile.deleteOnExit();
 
-        // Prepare your encryption context
+        // Prepare your encryption context.
         // https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
         final Map<String, String> encryptionContext = new HashMap<>();
         encryptionContext.put("encryption", "context");
@@ -84,7 +74,7 @@ public class FileStreamingDefaults {
                         .encryptionContext(encryptionContext)
                         .inputStream(new FileInputStream(sourcePlaintextFile)).build())) {
 
-            // Copy the encrypted data into the encrypted file.
+            // Encrypt the data and write the ciphertext to the encrypted file.
             try (FileOutputStream out = new FileOutputStream(encryptedFile)) {
                 IOUtils.copy(encryptingStream, out);
             }
@@ -111,7 +101,8 @@ public class FileStreamingDefaults {
                 assert v.equals(decryptResult.getEncryptionContext().get(k));
             });
 
-            // Copy the plaintext data to a file
+            // Now that we are more confident that we will decrypt the right message,
+            // we can start decrypting.
             try (FileOutputStream out = new FileOutputStream(decryptedFile)) {
                 IOUtils.copy(decryptingStream, out);
             }

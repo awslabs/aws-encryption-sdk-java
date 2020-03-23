@@ -1,15 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples;
 
@@ -55,11 +45,11 @@ public class OneStepUnsigned {
      * @param sourcePlaintext Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
-        // Instantiate the SDK and specify the algorithm suite that we want to use.
+        // Instantiate the AWS Encryption SDK and specify the algorithm suite that we want to use.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
         awsEncryptionSdk.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256);
 
-        // Prepare your encryption context
+        // Prepare your encryption context.
         // https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
         final Map<String, String> encryptionContext = new HashMap<>();
         encryptionContext.put("encryption", "context");

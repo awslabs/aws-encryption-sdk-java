@@ -1,15 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples.legacy;
 
@@ -80,7 +70,7 @@ public class EscrowedEncryptExample {
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
         // Encrypt with the KMS CMK and the escrowed public key
-        // 1. Instantiate the SDK
+        // 1. Instantiate the AWS Encryption SDK
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a KMS master key provider
@@ -111,7 +101,7 @@ public class EscrowedEncryptExample {
         // Decrypt with the KMS CMK and the escrow public key. You can use a combined provider,
         // as shown here, or just the KMS master key provider.
 
-        // 1. Instantiate the SDK
+        // 1. Instantiate the AWS Encryption SDK
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a KMS master key provider
@@ -141,7 +131,7 @@ public class EscrowedEncryptExample {
         // You can decrypt the stream using only the private key.
         // This method does not call KMS.
 
-        // 1. Instantiate the SDK
+        // 1. Instantiate the AWS Encryption SDK
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a JCE master key provider
