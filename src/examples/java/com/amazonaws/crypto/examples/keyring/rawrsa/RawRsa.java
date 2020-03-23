@@ -48,7 +48,9 @@ public class RawRsa {
         // Generate an RSA key pair to use with your keyring.
         // In practice, you should get this key from a secure key management system such as an HSM.
         final KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");
-        kg.initialize(4096); // Escrow keys should be very strong
+        // The National Institute of Standards and Technology (NIST) recommends a minimum of 2048-bit keys for RSA.
+        // https://www.nist.gov/publications/transitioning-use-cryptographic-algorithms-and-key-lengths
+        kg.initialize(4096);
         final KeyPair keyPair = kg.generateKeyPair();
 
         // Create the keyring that determines how your data keys are protected.

@@ -153,7 +153,9 @@ public class EscrowedEncryptExample {
 
     private static void generateEscrowKeyPair() throws GeneralSecurityException {
         final KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");
-        kg.initialize(4096); // Escrow keys should be very strong
+        // The National Institute of Standards and Technology (NIST) recommends a minimum of 2048-bit keys for RSA.
+        // https://www.nist.gov/publications/transitioning-use-cryptographic-algorithms-and-key-lengths
+        kg.initialize(4096);
         final KeyPair keyPair = kg.generateKeyPair();
         publicEscrowKey = keyPair.getPublic();
         privateEscrowKey = keyPair.getPrivate();

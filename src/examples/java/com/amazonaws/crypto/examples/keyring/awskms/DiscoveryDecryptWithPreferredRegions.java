@@ -92,7 +92,7 @@ public class DiscoveryDecryptWithPreferredRegions {
 
         // Finally, combine those two keyrings into a multi-keyring.
         //
-        // The multi-keyring steps through its member keyrings in the order that you provider them,
+        // The multi-keyring steps through its member keyrings in the order that you provide them,
         // attempting to decrypt every encrypted data key with each keyring before moving on to the next keyring.
         // Because of this, otherRegionsDecryptKeyring will not be called
         // unless localRegionDecryptKeyring fails to decrypt every encrypted data key.
@@ -109,7 +109,7 @@ public class DiscoveryDecryptWithPreferredRegions {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data using the multi keyring.
+        // Decrypt your encrypted data using the multi-keyring.
         //
         // We do not need to specify the encryption context on decrypt
         // because the header message includes the encryption context.

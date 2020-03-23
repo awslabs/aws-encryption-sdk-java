@@ -37,7 +37,7 @@ import java.util.Map;
 public class MultipleRegions {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS keyring with a single CMK.
+     * Demonstrate an encrypt/decrypt cycle using a KMS keyring with CMKs in multiple regions.
      *
      * @param awsKmsGeneratorCmk   The ARN of an AWS KMS CMK that protects data keys
      * @param awsKmsAdditionalCmks Additional ARNs of secondary KMS CMKs
