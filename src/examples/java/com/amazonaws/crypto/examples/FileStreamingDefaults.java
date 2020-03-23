@@ -43,7 +43,7 @@ public class FileStreamingDefaults {
      * @param sourcePlaintextFile Plaintext file to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final File sourcePlaintextFile) throws IOException {
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // We assume that you can also write to the directory containing the plaintext file,

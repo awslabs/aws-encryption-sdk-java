@@ -51,7 +51,7 @@ public class MultiRegionRecordPusherExample {
 
         final DefaultAWSCredentialsProviderChain credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
-        // Build AwsKmsKeyring and AmazonKinesisClient objects for each target Region
+        // Build AwsKmsKeyring and AmazonKinesisClient objects for each target Region.
         final List<Keyring> keyrings = new ArrayList<>();
 
         for (Region region : regions) {
@@ -88,10 +88,10 @@ public class MultiRegionRecordPusherExample {
         String partitionKey = UUID.randomUUID().toString();
         Map<String, String> encryptionContext = Collections.singletonMap("stream", streamName_);
 
-        // JSON serialize data
+        // JSON serialize data.
         String jsonData = Jackson.toJsonString(data);
 
-        // Encrypt data
+        // Encrypt data.
         AwsCryptoResult<byte[]> result = crypto_.encrypt(
                 EncryptRequest.builder()
                         .cryptoMaterialsManager(cachingMaterialsManager_)
@@ -101,7 +101,7 @@ public class MultiRegionRecordPusherExample {
 
         byte[] encryptedData = result.getResult();
 
-        // Put records to Kinesis stream in all Regions
+        // Put records to Kinesis stream in all Regions.
         for (AmazonKinesis regionalKinesisClient : kinesisClients_) {
             regionalKinesisClient.putRecord(
                     streamName_,

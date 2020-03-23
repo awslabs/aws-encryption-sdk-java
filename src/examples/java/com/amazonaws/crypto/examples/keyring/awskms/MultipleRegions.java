@@ -44,7 +44,7 @@ public class MultipleRegions {
      * @param sourcePlaintext      Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsGeneratorCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, byte[] sourcePlaintext) {
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // Prepare your encryption context.
@@ -87,7 +87,7 @@ public class MultipleRegions {
         // It should contain one EDK for each CMK.
         assert encryptResult.getHeaders().getEncryptedKeyBlobCount() == awsKmsAdditionalCmks.size() + 1;
 
-        // Demonstrate that the ciphertext and plaintext are different
+        // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
         // Decrypt your encrypted data separately using the single-CMK keyrings.

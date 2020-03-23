@@ -33,7 +33,7 @@ public class RawRsa {
      * @param sourcePlaintext Plaintext to encrypt
      */
     public static void run(final byte[] sourcePlaintext) throws GeneralSecurityException {
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // Prepare your encryption context.
@@ -79,7 +79,7 @@ public class RawRsa {
                         .plaintext(sourcePlaintext).build());
         final byte[] ciphertext = encryptResult.getResult();
 
-        // Demonstrate that the ciphertext and plaintext are different
+        // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
         // Decrypt your encrypted data using the same keyring you used on encrypt.

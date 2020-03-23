@@ -38,13 +38,13 @@ public class BasicEncryptionExample {
     }
 
     static void encryptAndDecrypt(final String keyArn) {
-        // 1. Instantiate the AWS Encryption SDK
+        // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS master key provider
+        // 2. Instantiate a KMS master key provider.
         final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().withKeysForEncryption(keyArn).build();
 
-        // 3. Create an encryption context
+        // 3. Create an encryption context.
         //
         // Most encrypted data should have an associated encryption context
         // to protect integrity. This sample uses placeholder values.
@@ -53,11 +53,11 @@ public class BasicEncryptionExample {
         // blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
         final Map<String, String> encryptionContext = Collections.singletonMap("ExampleContextKey", "ExampleContextValue");
 
-        // 4. Encrypt the data
+        // 4. Encrypt the data.
         final CryptoResult<byte[], KmsMasterKey> encryptResult = crypto.encryptData(masterKeyProvider, EXAMPLE_DATA, encryptionContext);
         final byte[] ciphertext = encryptResult.getResult();
 
-        // 5. Decrypt the data
+        // 5. Decrypt the data.
         final CryptoResult<byte[], KmsMasterKey> decryptResult = crypto.decryptData(masterKeyProvider, ciphertext);
 
         // 6. Before verifying the plaintext, verify that the customer master key that
@@ -75,7 +75,7 @@ public class BasicEncryptionExample {
             throw new IllegalStateException("Wrong Encryption Context!");
         }
 
-        // 8. Verify that the decrypted plaintext matches the original plaintext
+        // 8. Verify that the decrypted plaintext matches the original plaintext.
         assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
     }
 }

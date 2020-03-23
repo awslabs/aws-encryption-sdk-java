@@ -48,7 +48,7 @@ public class CustomKmsClientConfig {
      * @param sourcePlaintext Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // Prepare your encryption context.
@@ -90,7 +90,7 @@ public class CustomKmsClientConfig {
                         .plaintext(sourcePlaintext).build());
         final byte[] ciphertext = encryptResult.getResult();
 
-        // Demonstrate that the ciphertext and plaintext are different
+        // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
         // Decrypt your encrypted data using the same keyring you used on encrypt.

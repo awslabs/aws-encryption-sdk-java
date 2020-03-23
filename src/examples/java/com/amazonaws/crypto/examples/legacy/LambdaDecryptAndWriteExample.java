@@ -105,20 +105,20 @@ public class LambdaDecryptAndWriteExample implements RequestHandler<KinesisEvent
             ByteBuffer ciphertextBuffer = record.getKinesis().getData();
             byte[] ciphertext = BinaryUtils.copyAllBytesFrom(ciphertextBuffer);
 
-            // Decrypt and unpack record
+            // Decrypt and unpack record.
             AwsCryptoResult<byte[]> plaintextResult = crypto_.decrypt(
                     DecryptRequest.builder()
                             .cryptoMaterialsManager(cachingMaterialsManager_)
                             .ciphertext(ciphertext).build());
 
-            // Verify the encryption context value
+            // Verify the encryption context value.
             String streamArn = record.getEventSourceARN();
             String streamName = streamArn.substring(streamArn.indexOf("/") + 1);
             if (!streamName.equals(plaintextResult.getEncryptionContext().get("stream"))) {
                 throw new IllegalStateException("Wrong Encryption Context!");
             }
 
-            // Write record to DynamoDB
+            // Write record to DynamoDB.
             String jsonItem = new String(plaintextResult.getResult(), StandardCharsets.UTF_8);
             table_.putItem(Item.fromJSON(jsonItem));
         }

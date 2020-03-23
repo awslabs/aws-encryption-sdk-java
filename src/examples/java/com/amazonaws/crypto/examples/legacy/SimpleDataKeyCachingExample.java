@@ -61,19 +61,19 @@ public class SimpleDataKeyCachingExample {
 
     static byte[] encryptWithCaching(AwsKmsCmkId kmsCmkArn) {
 
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
-        // Create an encryption context
+        // Create an encryption context.
         final Map<String, String> encryptionContext = Collections.singletonMap("purpose", "test");
 
-        // Create a keyring
+        // Create a keyring.
         final Keyring keyring = StandardKeyrings.awsKms(kmsCmkArn);
 
-        // Create a cache
+        // Create a cache.
         final CryptoMaterialsCache cache = new LocalCryptoMaterialsCache(CAPACITY);
 
-        // Create a caching CMM
+        // Create a caching CMM.
         final CryptoMaterialsManager cachingCmm =
                 CachingCryptoMaterialsManager.newBuilder()
                         .withKeyring(keyring)
@@ -83,7 +83,7 @@ public class SimpleDataKeyCachingExample {
                         .build();
 
         // When the call to encrypt specifies a caching CMM,
-        // the encryption operation uses the data key cache
+        // the encryption operation uses the data key cache.
         return crypto.encrypt(EncryptRequest.builder()
                 .cryptoMaterialsManager(cachingCmm)
                 .plaintext(EXAMPLE_DATA)

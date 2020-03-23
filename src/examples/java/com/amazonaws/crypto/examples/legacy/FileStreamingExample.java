@@ -43,16 +43,16 @@ public class FileStreamingExample {
         srcFile = args[0];
 
         // In this example, we generate a random key. In practice,
-        // you would get a key from an existing store
+        // you would get a key from an existing store.
         SecretKey cryptoKey = retrieveEncryptionKey();
 
-        // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm
+        // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm.
         JceMasterKey masterKey = JceMasterKey.getInstance(cryptoKey, "Example", "RandomKey", "AES/GCM/NoPadding");
 
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         AwsCrypto crypto = new AwsCrypto();
 
-        // Create an encryption context to identify this ciphertext
+        // Create an encryption context to identify this ciphertext.
         Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");
 
         // Because the file might be to large to load into memory, we stream the data, instead of
@@ -73,7 +73,7 @@ public class FileStreamingExample {
             throw new IllegalStateException("Bad encryption context");
         }
 
-        // Return the plaintext data
+        // Return the plaintext data.
         out = new FileOutputStream(srcFile + ".decrypted");
         IOUtils.copy(decryptingStream, out);
         decryptingStream.close();

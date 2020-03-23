@@ -40,7 +40,7 @@ public class InMemoryStreamingDefaults {
      * @param sourcePlaintext Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) throws IOException {
-        // Instantiate the AWS Encryption SDK
+        // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // Prepare your encryption context.

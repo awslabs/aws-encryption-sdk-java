@@ -70,22 +70,22 @@ public class EscrowedEncryptExample {
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
         // Encrypt with the KMS CMK and the escrowed public key
-        // 1. Instantiate the AWS Encryption SDK
+        // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS master key provider
+        // 2. Instantiate a KMS master key provider.
         final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
 
-        // 3. Instantiate a JCE master key provider
+        // 3. Instantiate a JCE master key provider.
         // Because the user does not have access to the private escrow key,
         // they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 4. Combine the providers into a single master key provider
+        // 4. Combine the providers into a single master key provider.
         final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(kms, escrowPub);
 
-        // 5. Encrypt the file
+        // 5. Encrypt the file.
         // To simplify the code, we omit the encryption context. Production code should always
         // use an encryption context. For an example, see the other SDK samples.
         final FileInputStream in = new FileInputStream(fileName);
@@ -101,22 +101,22 @@ public class EscrowedEncryptExample {
         // Decrypt with the KMS CMK and the escrow public key. You can use a combined provider,
         // as shown here, or just the KMS master key provider.
 
-        // 1. Instantiate the AWS Encryption SDK
+        // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a KMS master key provider
+        // 2. Instantiate a KMS master key provider.
         final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
 
-        // 3. Instantiate a JCE master key provider
+        // 3. Instantiate a JCE master key provider.
         // Because the user does not have access to the private
         // escrow key, they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 4. Combine the providers into a single master key provider
+        // 4. Combine the providers into a single master key provider.
         final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(kms, escrowPub);
 
-        // 5. Decrypt the file
+        // 5. Decrypt the file.
         // To simplify the code, we omit the encryption context. Production code should always
         // use an encryption context. For an example, see the other SDK samples.
         final FileInputStream in = new FileInputStream(fileName + ".encrypted");
@@ -131,15 +131,15 @@ public class EscrowedEncryptExample {
         // You can decrypt the stream using only the private key.
         // This method does not call KMS.
 
-        // 1. Instantiate the AWS Encryption SDK
+        // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
-        // 2. Instantiate a JCE master key provider
-        // This method call uses the escrowed private key, not null
+        // 2. Instantiate a JCE master key provider.
+        // This method call uses the escrowed private key, not null.
         final JceMasterKey escrowPriv = JceMasterKey.getInstance(publicEscrowKey, privateEscrowKey, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 3. Decrypt the file
+        // 3. Decrypt the file.
         // To simplify the code, we omit the encryption context. Production code should always
         // use an encryption context. For an example, see the other SDK samples.
         final FileInputStream in = new FileInputStream(fileName + ".encrypted");

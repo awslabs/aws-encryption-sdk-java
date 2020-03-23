@@ -69,7 +69,7 @@ public class OneStepUnsigned {
                         .plaintext(sourcePlaintext).build());
         final byte[] ciphertext = encryptResult.getResult();
 
-        // Demonstrate that the ciphertext and plaintext are different
+        // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
         // Decrypt your encrypted data using the same keyring you used on encrypt.
