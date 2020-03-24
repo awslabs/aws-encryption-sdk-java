@@ -48,7 +48,7 @@ public class RawAes {
         //
         // In practice, you should get this key from a secure key management system such as an HSM.
         SecureRandom rnd = new SecureRandom();
-        byte[] rawKey = new byte[16]; // 128 bits
+        byte[] rawKey = new byte[32]; // 256 bits
         rnd.nextBytes(rawKey);
         SecretKey key = new SecretKeySpec(rawKey, "AES");
 

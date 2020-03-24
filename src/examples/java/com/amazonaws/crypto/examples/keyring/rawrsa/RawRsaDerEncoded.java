@@ -7,41 +7,38 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.AwsCryptoResult;
 import com.amazonaws.encryptionsdk.DecryptRequest;
 import com.amazonaws.encryptionsdk.EncryptRequest;
-import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * One of the benefits of asymmetric encryption
- * is that you can encrypt with just the public key.
- * This means that you can give someone the ability to encrypt
- * without giving them the ability to decrypt.
+ * When you store RSA keys, you have to serialize them somehow.
  * <p>
- * The raw RSA keyring supports encrypt-only operations
- * when it only has access to a public key.
+ * This example shows how to configure and use a raw RSA keyring using a DER-encoded RSA private key.
  * <p>
- * This example shows how to construct and use the raw RSA keyring
- * to encrypt with only the public key and decrypt with the private key.
- * <p>
- * If your RSA key is in DER format,
- * see the {@link RawRsaDerEncoded} example.
+ * The most commonly used encodings for RSA keys tend to be PEM and DER.
+ * For parsing PEM-encoded keys, see https://www.bouncycastle.org/docs/pkixdocs1.4/org/bouncycastle/openssl/PEMParser.html
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-raw-rsa-keyring
  * <p>
  * In this example, we use the one-step encrypt and decrypt APIs.
  */
-public class PublicPrivateKeySeparate {
+public class RawRsaDerEncoded {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using separate public and private raw RSA keyrings.
+     * Demonstrate an encrypt/decrypt cycle using a raw RSA keyring loaded from a DER-encoded key.
      *
      * @param sourcePlaintext Plaintext to encrypt
      */
@@ -66,10 +63,23 @@ public class PublicPrivateKeySeparate {
         kg.initialize(4096);
         final KeyPair keyPair = kg.generateKeyPair();
 
+        // Serialize the RSA keys to DER encoding.
+        // This or PEM encoding is likely to be what you get from your key management system in practice.
+        byte[] publicKeyEncoded = keyPair.getPublic().getEncoded();
+        byte[] privateKeyEncoded = keyPair.getPrivate().getEncoded();
+
+        final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+        // Deserialize the RSA private key.
+        final PrivateKey privateKey = keyFactory.generatePrivate(
+                new PKCS8EncodedKeySpec(privateKeyEncoded));
+
+        // Deserialize the RSA public key.
+        final PublicKey publicKey = keyFactory.generatePublic(
+                new X509EncodedKeySpec(publicKeyEncoded));
+
         // Create the keyring that determines how your data keys are protected.
-        //
-        // Create the encrypt keyring that only has access to the public key.
-        final Keyring publicKeyKeyring = StandardKeyrings.rawRsaBuilder()
+        final Keyring keyring = StandardKeyrings.rawRsaBuilder()
                 // The key namespace and key name are defined by you
                 // and are used by the raw RSA keyring
                 // to determine whether it should attempt to decrypt
@@ -78,7 +88,8 @@ public class PublicPrivateKeySeparate {
                 // https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-raw-rsa-keyring
                 .keyNamespace("some managed raw keys")
                 .keyName("my RSA wrapping key")
-                .publicKey(keyPair.getPublic())
+                .privateKey(privateKey)
+                .publicKey(publicKey)
                 // The padding scheme tells the raw RSA keyring
                 // how to use your wrapping key to encrypt data keys.
                 //
@@ -87,20 +98,10 @@ public class PublicPrivateKeySeparate {
                 .paddingScheme(RawRsaKeyringBuilder.RsaPaddingScheme.OAEP_SHA256_MGF1)
                 .build();
 
-        // Create the decrypt keyring that has access to the private key.
-        final Keyring privateKeyKeyring = StandardKeyrings.rawRsaBuilder()
-                // The key namespace and key name MUST match the encrypt keyring.
-                .keyNamespace("some managed raw keys")
-                .keyName("my RSA wrapping key")
-                .privateKey(keyPair.getPrivate())
-                // The padding scheme MUST match the encrypt keyring.
-                .paddingScheme(RawRsaKeyringBuilder.RsaPaddingScheme.OAEP_SHA256_MGF1)
-                .build();
-
-        // Encrypt your plaintext data using the encrypt keyring.
+        // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(
                 EncryptRequest.builder()
-                        .keyring(publicKeyKeyring)
+                        .keyring(keyring)
                         .encryptionContext(encryptionContext)
                         .plaintext(sourcePlaintext).build());
         final byte[] ciphertext = encryptResult.getResult();
@@ -108,27 +109,13 @@ public class PublicPrivateKeySeparate {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Try to decrypt your encrypted data using the *encrypt* keyring.
-        // This demonstrates that you cannot decrypt using the public key.
-        try {
-            awsEncryptionSdk.decrypt(
-                    DecryptRequest.builder()
-                            .keyring(publicKeyKeyring)
-                            .ciphertext(ciphertext)
-                            .build());
-            throw new AssertionError("The public key can never decrypt!");
-        } catch (AwsCryptoException ex) {
-            // The public key cannot decrypt.
-            // Reaching this point means everything is working as expected.
-        }
-
-        // Decrypt your encrypted data using the decrypt keyring.
+        // Decrypt your encrypted data using the same keyring you used on encrypt.
         //
         // We do not need to specify the encryption context on decrypt
         // because the header message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
-                        .keyring(privateKeyKeyring)
+                        .keyring(keyring)
                         .ciphertext(ciphertext).build());
         final byte[] decrypted = decryptResult.getResult();
 

@@ -21,7 +21,10 @@ import java.util.Map;
 /**
  * This examples shows how to configure and use a raw RSA keyring using a pre-loaded RSA key pair.
  * <p>
- * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-raw-aes-keyring
+ * If your RSA key is in DER format,
+ * see the {@link RawRsaDerEncoded} example.
+ * <p>
+ * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-raw-rsa-keyring
  * <p>
  * In this example, we use the one-step encrypt and decrypt APIs.
  */
