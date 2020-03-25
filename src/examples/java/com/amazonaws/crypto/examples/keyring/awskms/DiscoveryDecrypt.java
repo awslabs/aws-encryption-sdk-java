@@ -19,10 +19,10 @@ import java.util.Map;
  * When you give the KMS keyring specific key IDs it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
- * especially if you might not know beforehand which CMK was used to encrypt a message.
+ * especially when you don't know which CMKs were used to encrypt a message.
  * To address this need, you can use a KMS discovery keyring.
- * The KMS discovery keyring will do nothing on encrypt
- * but will attempt to decrypt *any* data keys that were encrypted under a KMS CMK.
+ * The KMS discovery keyring does nothing on encrypt
+ * but attempts to decrypt *any* data keys that were encrypted under a KMS CMK.
  * <p>
  * This example shows how to configure and use a KMS discovery keyring.
  * <p>
@@ -63,7 +63,7 @@ public class DiscoveryDecrypt {
         // Create the keyring that determines how your data keys are protected.
         final Keyring encryptKeyring = StandardKeyrings.awsKms(awsKmsCmk);
 
-        // Create the KMS discovery keyring that we will use on decrypt.
+        // Create a KMS discovery keyring to use on decrypt.
         final Keyring decryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder().build();
 
         // Encrypt your plaintext data.
@@ -79,8 +79,8 @@ public class DiscoveryDecrypt {
 
         // Decrypt your encrypted data using the KMS discovery keyring.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(decryptKeyring)

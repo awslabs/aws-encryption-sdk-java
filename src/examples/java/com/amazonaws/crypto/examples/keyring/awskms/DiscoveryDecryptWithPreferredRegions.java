@@ -111,8 +111,8 @@ public class DiscoveryDecryptWithPreferredRegions {
 
         // Decrypt your encrypted data using the multi-keyring.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(decryptKeyring)

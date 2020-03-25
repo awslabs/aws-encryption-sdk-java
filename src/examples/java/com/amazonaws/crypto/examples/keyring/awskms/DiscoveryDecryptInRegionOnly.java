@@ -23,13 +23,13 @@ import static java.util.Collections.singleton;
  * When you give the KMS keyring specific key IDs it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
- * especially if you might not know beforehand which CMK was used to encrypt a message.
+ * especially if you don't know which CMK was used to encrypt a message.
  * To address this need, you can use a KMS discovery keyring.
- * The KMS discovery keyring will do nothing on encrypt
- * but will attempt to decrypt *any* data keys that were encrypted under a KMS CMK.
+ * The KMS discovery keyring does nothing on encrypt
+ * but attempts to decrypt *any* data keys that were encrypted under a KMS CMK.
  * <p>
  * However, sometimes you need to be a *bit* more restrictive than that.
- * To address this need, you can use a client supplier to restrict what regions a KMS keyring can talk to.
+ * To address this need, you can use a client supplier that restricts the regions a KMS keyring can talk to.
  * <p>
  * This example shows how to configure and use a KMS regional discovery keyring that is restricted to one region.
  * <p>
@@ -95,8 +95,8 @@ public class DiscoveryDecryptInRegionOnly {
 
         // Decrypt your encrypted data using the KMS discovery keyring.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(decryptKeyring)

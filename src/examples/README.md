@@ -16,17 +16,17 @@ in the [`examples`](./java/com/amazonaws/crypto/examples) directory.
 
 ## Configuration
 
-To use the library APIs,
+To use the encryption and decryption APIs,
 you need to describe how you want the library to protect your data keys.
-You can do this using
+You can do this by configuring
 [keyrings](#keyrings) or [cryptographic materials managers](#cryptographic-materials-managers),
-or using [master key providers](#master-key-providers).
+or by configuring [master key providers](#master-key-providers).
 These examples will show you how to use the configuration tools that we include for you 
-as well as how to create some of your own.
+and how to create some of your own.
 We start with AWS KMS examples, then show how to use other wrapping keys.
 
 * Using AWS Key Management Service (AWS KMS)
-    * How to use a single AWS KMS CMK
+    * How to use one AWS KMS CMK
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/SingleCmk.java)
     * How to use multiple AWS KMS CMKs in different regions
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/MultipleRegions.java)

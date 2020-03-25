@@ -24,8 +24,8 @@ import java.util.Map;
  * supplies a client with the same configuration for every region.
  * If you need different behavior, you can write your own client supplier.
  * <p>
- * One use-case where you might need this is
- * if you need different credentials to talk to different AWS regions.
+ * You might use this
+ * if you need different credentials in different AWS regions.
  * This might be because you are crossing partitions (ex: "aws" and "aws-cn")
  * or if you are working with regions that have separate authentication silos
  * like "ap-east-1" and "me-south-1".
@@ -116,8 +116,8 @@ public class CustomClientSupplier {
 
         // Decrypt your encrypted data using the same keyring you used on encrypt.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(keyring)

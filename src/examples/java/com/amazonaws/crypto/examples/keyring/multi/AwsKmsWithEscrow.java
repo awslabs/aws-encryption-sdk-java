@@ -119,8 +119,8 @@ public class AwsKmsWithEscrow {
 
         // Decrypt your encrypted data separately using the KMS keyring and the escrow decrypt keyring.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptedKmsResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(kmsKeyring)

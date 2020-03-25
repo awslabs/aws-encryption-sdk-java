@@ -60,8 +60,8 @@ public class OneStepDefaults {
 
         // Decrypt your encrypted data using the same keyring you used on encrypt.
         //
-        // We do not need to specify the encryption context on decrypt
-        // because the header message includes the encryption context.
+        // You do not need to specify the encryption context on decrypt because
+        // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
                 DecryptRequest.builder()
                         .keyring(keyring)
