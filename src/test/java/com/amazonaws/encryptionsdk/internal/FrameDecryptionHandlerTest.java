@@ -15,11 +15,14 @@ package com.amazonaws.encryptionsdk.internal;
 
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.amazonaws.encryptionsdk.TestUtils;
+import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -71,5 +74,19 @@ public class FrameDecryptionHandlerTest {
 
         frameDecryptionHandler_.processBytes(in, 0, in.length, out, 0);
         frameDecryptionHandler_.processBytes(in, 0, Integer.MAX_VALUE, out, 0);
+    }
+
+    @Test(expected = BadCiphertextException.class)
+    public void finalFrameLengthTooLarge() {
+
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(25);
+        byteBuffer.put(TestUtils.unsignedBytesToSignedBytes(
+                new int[] {255, 255, 255, 255, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}));
+        byteBuffer.putInt(AwsCrypto.getDefaultFrameSize() + 1);
+
+        final byte[] in = byteBuffer.array();
+        final byte[] out = new byte[in.length];
+
+        frameDecryptionHandler_.processBytes(in, 0, in.length, out, 0);
     }
 }
