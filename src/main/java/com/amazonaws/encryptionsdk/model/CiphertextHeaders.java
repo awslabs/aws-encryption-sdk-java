@@ -143,6 +143,10 @@ public class CiphertextHeaders {
         messageId_ = new byte[Constants.MESSAGE_ID_LEN];
         RND.nextBytes(messageId_);
 
+        if(contentType == ContentType.FRAME && frameSize <= 0) {
+            throw new BadCiphertextException("Framed data requires a positive frame length");
+        }
+
         frameLength_ = frameSize;
 
         // Completed by construction
@@ -628,6 +632,10 @@ public class CiphertextHeaders {
 
             if (headerTag_ == null) {
                 parsedBytes += parseHeaderTag(b, off + parsedBytes);
+            }
+
+            if(frameLength_ <= 0 && ContentType.deserialize(contentTypeVal_) == ContentType.FRAME) {
+                throw new BadCiphertextException("Framed data requires a positive frame length");
             }
 
             isComplete_ = true;

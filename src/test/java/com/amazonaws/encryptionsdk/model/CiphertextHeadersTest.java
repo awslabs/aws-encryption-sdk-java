@@ -431,8 +431,8 @@ public class CiphertextHeadersTest {
 
         readUptoNonceLen(headerBuff);
 
-        // set content type to an invalid value
-        headerBuff.putInt(-1);
+        // set frame type to an invalid value for framed data
+        headerBuff.putInt(0);
 
         final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
         reconstructedHeaders.deserialize(headerBuff.array(), 0);
