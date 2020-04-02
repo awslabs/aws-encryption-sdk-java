@@ -135,7 +135,7 @@ class FrameDecryptionHandler implements CryptoHandler {
                     protectedContentLen = currentFrameHeaders_.getFrameContentLength();
 
                     // The final frame should not be able to exceed the frameLength
-                    if(frameSize_ > 0 && protectedContentLen > frameSize_) {
+                    if (frameSize_ > 0 && protectedContentLen > frameSize_) {
                         throw new BadCiphertextException("Final frame length exceeds frame length.");
                     }
                 } else {
