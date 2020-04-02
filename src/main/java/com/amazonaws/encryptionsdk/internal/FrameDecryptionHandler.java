@@ -119,6 +119,11 @@ class FrameDecryptionHandler implements CryptoHandler {
             if (currentFrameHeaders_ == null) {
                 currentFrameHeaders_ = new CipherFrameHeaders();
                 currentFrameHeaders_.setNonceLength(nonceLen_);
+                if (frameSize_ == 0) {
+                    // if frame size in ciphertext headers is 0, the frame size
+                    // will need to be parsed in individual frame headers.
+                    currentFrameHeaders_.includeFrameSize(true);
+                }
             }
 
             totalParsedBytes += currentFrameHeaders_.deserialize(bytesToParse, totalParsedBytes);
@@ -130,7 +135,7 @@ class FrameDecryptionHandler implements CryptoHandler {
                     protectedContentLen = currentFrameHeaders_.getFrameContentLength();
 
                     // The final frame should not be able to exceed the frameLength
-                    if(protectedContentLen > frameSize_) {
+                    if(frameSize_ > 0 && protectedContentLen > frameSize_) {
                         throw new BadCiphertextException("Final frame length exceeds frame length.");
                     }
                 } else {
