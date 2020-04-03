@@ -28,10 +28,13 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
 * Using AWS Key Management Service (AWS KMS)
     * How to use one AWS KMS CMK
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/SingleCmk.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/awskms/SingleCmk.java)
     * How to use multiple AWS KMS CMKs in different regions
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/MultipleRegions.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/awskms/MultipleRegions.java)
     * How to decrypt when you don't know the CMK
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecrypt.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/awskms/DiscoveryDecrypt.java)
     * How to decrypt within a region
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptInRegionOnly.java)
     * How to decrypt with a preferred region but failover to others
@@ -39,8 +42,10 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
 * Using raw wrapping keys
     * How to use a raw AES wrapping key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawaes/RawAes.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/rawaes/RawAes.java)
     * How to use a raw RSA wrapping key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawrsa/RawRsa.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/rawrsa/RawRsa.java)
     * How to encrypt with a raw RSA public key wrapping key without access to the private key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawrsa/PublicPrivateKeySeparate.java)
     * How to use a raw RSA wrapping key when the key is DER encoded
@@ -48,6 +53,7 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
 * Combining wrapping keys
     * How to combine AWS KMS with an offline escrow key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/multi/AwsKmsWithEscrow.java)
+        * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/multi/AwsKmsWithEscrow.java)
 
 ### Keyrings
 

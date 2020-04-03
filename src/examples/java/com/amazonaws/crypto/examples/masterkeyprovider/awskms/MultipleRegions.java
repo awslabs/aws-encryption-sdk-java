@@ -18,8 +18,8 @@ import java.util.Map;
 import static java.util.stream.Collectors.toList;
 
 /**
- * This example is provided as a reference for users migrating away from master key providers.
- * We recommend using keyrings instead of master key providers.
+ * This example is intended to serve as reference material for users migrating away from master key providers.
+ * We recommend using keyrings rather than master key providers.
  * For examples using keyrings, see the 'examples/keyring' directory.
  * <p>
  * This example shows how to configure and use a KMS master key provider with with CMKs in multiple regions.

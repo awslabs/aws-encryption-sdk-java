@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This example is provided as a reference for users migrating away from master key providers.
- * We recommend using keyrings instead of master key providers.
+ * This example is intended to serve as reference material for users migrating away from master key providers.
+ * We recommend using keyrings rather than master key providers.
  * For examples using keyrings, see the 'examples/keyring' directory.
  * <p>
  * One use-case that we have seen customers need is
