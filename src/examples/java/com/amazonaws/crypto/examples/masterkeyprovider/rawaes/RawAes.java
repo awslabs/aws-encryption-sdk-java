@@ -61,8 +61,8 @@ public class RawAes {
                 // an encrypted data key.
                 key,
                 "some managed raw keys",    // provider corresponds to key namespace for keyrings
-                "my AES wrapping key",   // key ID corresponds to key name for keyrings
-                "AES/GCM/NOPADDING"); // the AES JceMasterKey only supports AES/GCM/NOPADDING
+                "my AES wrapping key",      // key ID corresponds to key name for keyrings
+                "AES/GCM/NOPADDING");       // the AES JceMasterKey only supports AES/GCM/NOPADDING
 
         // Encrypt your plaintext data.
         final CryptoResult<byte[], JceMasterKey> encryptResult = awsEncryptionSdk.encryptData(

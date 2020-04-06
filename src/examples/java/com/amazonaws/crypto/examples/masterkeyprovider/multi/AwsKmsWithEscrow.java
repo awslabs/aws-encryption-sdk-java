@@ -81,7 +81,7 @@ public class AwsKmsWithEscrow {
                 // and are used by the raw RSA master key
                 // to determine whether it should attempt to decrypt
                 // an encrypted data key.
-                "some managed raw keys",  // provider corresponds to key namespace for keyrings
+                "some managed raw keys",    // provider corresponds to key namespace for keyrings
                 "my RSA wrapping key",      // key ID corresponds to key name for keyrings
                 // The padding scheme tells the raw RSA master key
                 // how to use your wrapping key to encrypt data keys.
@@ -96,7 +96,7 @@ public class AwsKmsWithEscrow {
                 keyPair.getPrivate(),
                 // The key namespace and key name MUST match the encrypt master key.
                 "some managed raw keys",  // provider corresponds to key namespace for keyrings
-                "my RSA wrapping key",      // key ID corresponds to key name for keyrings
+                "my RSA wrapping key",    // key ID corresponds to key name for keyrings
                 // The wrapping algorithm MUST match the encrypt master key.
                 "RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
 

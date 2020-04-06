@@ -61,7 +61,7 @@ public class RawRsa {
                 // and are used by the raw RSA master key
                 // to determine whether it should attempt to decrypt
                 // an encrypted data key.
-                "some managed raw keys",  // provider corresponds to key namespace for keyrings
+                "some managed raw keys",    // provider corresponds to key namespace for keyrings
                 "my RSA wrapping key",      // key ID corresponds to key name for keyrings
                 // The padding scheme tells the raw RSA master key
                 // how to use your wrapping key to encrypt data keys.
