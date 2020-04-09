@@ -54,6 +54,12 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
     * How to combine AWS KMS with an offline escrow key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/multi/AwsKmsWithEscrow.java)
         * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/multi/AwsKmsWithEscrow.java)
+* How to reuse data keys across multiple messages
+    * [with the caching cryptographic materials manager](./java/com/amazonaws/crypto/examples/cryptomaterialsmanager/caching/SimpleCache.java)
+* How to restrict algorithm suites
+    * [with a custom cryptographic materials manager](./java/com/amazonaws/crypto/examples/cryptomaterialsmanager/custom/AlgorithmSuiteEnforcement.java)
+* How to require encryption context fields
+    * [with a custom cryptographic materials manager](./java/com/amazonaws/crypto/examples/cryptomaterialsmanager/custom/RequiringEncryptionContextFields.java)
 
 ### Keyrings
 
