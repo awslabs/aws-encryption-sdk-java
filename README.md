@@ -54,95 +54,13 @@ You can get the latest release from Maven:
 <dependency>
   <groupId>com.amazonaws</groupId>
   <artifactId>aws-encryption-sdk-java</artifactId>
-  <version>1.7.0</version>
+  <version>1.6.1</version>
 </dependency>
 ```
 
-### Get Started
+### Sample Code
 
-The following code sample demonstrates how to get started:
-
-1. Instantiate the SDK.
-2. Setup a KMS keyring.
-3. Encrypt and decrypt data.
-
-```java
-// This sample code encrypts and then decrypts data using an AWS Key Management Service (AWS KMS) customer master key (CMK).
-package com.amazonaws.crypto.examples;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-
-import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCryptoResult;
-import com.amazonaws.encryptionsdk.DecryptRequest;
-import com.amazonaws.encryptionsdk.EncryptRequest;
-import com.amazonaws.encryptionsdk.keyrings.Keyring;
-import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-
-public class BasicEncryptionExample {
-
-    private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
-
-    public static void main(final String[] args) {
-        encryptAndDecrypt(AwsKmsCmkId.fromString(args[0]));
-    }
-
-    static void encryptAndDecrypt(final AwsKmsCmkId keyArn) {
-        // 1. Instantiate the SDK
-        final AwsCrypto crypto = new AwsCrypto();
-
-        // 2. Instantiate a KMS keyring. Supply the key ARN for the generator key that generates a
-        //    data key. While using a key ARN is a best practice, for encryption operations you can also
-        //    use an alias name or alias ARN.
-        final Keyring keyring = StandardKeyrings.awsKms(keyArn);
-
-        // 3. Create an encryption context
-        //
-        //    Most encrypted data should have an associated encryption context
-        //    to protect integrity. This sample uses placeholder values.
-        //
-        //    For more information see: https://amzn.to/1nSbe9X (blogs.aws.amazon.com)
-        final Map<String, String> encryptionContext = Collections.singletonMap("Example", "String");
-
-        // 4. Encrypt the data with the keyring and encryption context
-        final AwsCryptoResult<byte[]> encryptResult = crypto.encrypt(
-                EncryptRequest.builder()
-                    .keyring(keyring)
-                    .encryptionContext(encryptionContext)
-                    .plaintext(EXAMPLE_DATA).build());
-        final byte[] ciphertext = encryptResult.getResult();
-
-        // 5. Decrypt the data. You can use the same keyring to encrypt and decrypt, but for decryption
-        //    the key IDs must be in the key ARN format.
-        final AwsCryptoResult<byte[]> decryptResult = crypto.decrypt(
-                DecryptRequest.builder()
-                        .keyring(keyring)
-                        .ciphertext(ciphertext).build());
-
-        // 6. To verify the CMK that was actually used in the decrypt operation, inspect the keyring trace.
-        if(!decryptResult.getKeyringTrace().getEntries().get(0).getKeyName().equals(keyArn.toString())) {
-            throw new IllegalStateException("Wrong key ID!");
-        }
-
-        // 7.  To verify that the encryption context used to decrypt the data was the encryption context you expected,
-        //     examine the encryption context in the result. This helps to ensure that you decrypted the ciphertext that
-        //     you intended.
-        //
-        //     When verifying, test that your expected encryption context is a subset of the actual encryption context,
-        //     not an exact match. The Encryption SDK adds the signing key to the encryption context when appropriate.
-        assert decryptResult.getEncryptionContext().get("Example").equals("String");
-
-        // 8. Verify that the decrypted plaintext matches the original plaintext
-        assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
-    }
-}
-```
-
-You can find more examples in the [examples directory][examples].
+You can find sample code in the [examples directory][examples].
 
 ## Public API
 
