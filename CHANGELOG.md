@@ -10,9 +10,11 @@ When we decide to remove them, we will communicate that as defined in our versio
 * Deprecated `encryptData`, `decryptData` and related methods in `AwsCrypto`. Replace your calls to these methods with
 calls to `AwsCrypto.encrypt(EncryptRequest)` and `AwsCrypto.decrypt(DecryptRequest)`.
 
-### Minor Changes
+### Major Changes
 * Introduce `Keyring` interface, built in Keyring implementations, and 
  methods in AwsCrypto that use keyrings [PR #173](https://github.com/aws/aws-encryption-sdk-java/pull/173)
+
+### Patches
 * Validate final frame length does not exceed the frame size in the message header [PR #166](https://github.com/aws/aws-encryption-sdk-java/pull/166)
 
 ### Maintenance
