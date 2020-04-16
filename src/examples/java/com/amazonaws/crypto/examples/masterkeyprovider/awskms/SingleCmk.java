@@ -18,20 +18,20 @@ import java.util.Map;
  * We recommend using keyrings rather than master key providers.
  * For examples using keyrings, see the 'examples/keyring' directory.
  * <p>
- * This example shows how to configure and use a KMS master key with a single KMS CMK.
+ * This example shows how to configure and use an AWS KMS master key with a single AWS KMS CMK.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#master-key-provider
  * <p>
- * For an example of how to use the KMS master key provider with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS master key provider with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For an example of how to use the KMS master key provider in discovery mode on decrypt,
+ * For an example of how to use the AWS KMS master key provider in discovery mode on decrypt,
  * see the {@link DiscoveryDecrypt} example.
  */
 public class SingleCmk {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS master key provider with a single CMK.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS master key provider with a single CMK.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt

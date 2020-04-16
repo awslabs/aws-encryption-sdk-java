@@ -24,15 +24,15 @@ import java.util.Map;
  * the ability to enjoy the benefits of AWS KMS during normal operation
  * but retain the ability to decrypt encrypted messages without access to AWS KMS.
  * This example shows how you can use the multi-keyring to achieve this
- * by combining a KMS keyring with a raw RSA keyring.
+ * by combining an AWS KMS keyring with a raw RSA keyring.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-multi-keyring
  * <p>
- * For more examples of how to use the KMS keyring, see the keyring/awskms examples.
+ * For more examples of how to use the AWS KMS keyring, see the keyring/awskms examples.
  * <p>
  * For more examples of how to use the raw RSA keyring, see the keyring/rawrsa examples.
  * <p>
- * In this example we generate a RSA keypair
+ * In this example we generate an RSA keypair
  * but in practice you would want to keep your private key in an HSM
  * or other key management system.
  * <p>
@@ -41,7 +41,7 @@ import java.util.Map;
 public class AwsKmsWithEscrow {
 
     /**
-     * Demonstrate configuring a keyring to use an AWS KMS CMK and a RSA wrapping key.
+     * Demonstrate configuring a keyring to use an AWS KMS CMK and an RSA wrapping key.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt
@@ -96,10 +96,10 @@ public class AwsKmsWithEscrow {
                 .paddingScheme(RsaPaddingScheme.OAEP_SHA256_MGF1)
                 .build();
 
-        // Create the KMS keyring that you will use from decryption during normal operations.
+        // Create the AWS KMS keyring that you will use from decryption during normal operations.
         final Keyring kmsKeyring = StandardKeyrings.awsKms(awsKmsCmk);
 
-        // Combine the KMS keyring and the escrow encrypt keyring using the multi-keyring.
+        // Combine the AWS KMS keyring and the escrow encrypt keyring using the multi-keyring.
         final Keyring encryptKeyring = StandardKeyrings.multi(kmsKeyring, escrowEncryptKeyring);
 
         // Encrypt your plaintext data using the multi-keyring.
@@ -111,13 +111,13 @@ public class AwsKmsWithEscrow {
         final byte[] ciphertext = encryptResult.getResult();
 
         // Verify that the header contains the expected number of encrypted data keys (EDKs).
-        // It should contain one EDK for KMS and one for the escrow key.
+        // It should contain one EDK for AWS KMS and one for the escrow key.
         assert encryptResult.getHeaders().getEncryptedKeyBlobCount() == 2;
 
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data separately using the KMS keyring and the escrow decrypt keyring.
+        // Decrypt your encrypted data separately using the AWS KMS keyring and the escrow decrypt keyring.
         //
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.

@@ -16,33 +16,33 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * When you give the KMS keyring specific key IDs it will use those CMKs and nothing else.
+ * When you give the AWS KMS keyring specific key IDs it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
  * especially when you don't know which CMKs were used to encrypt a message.
- * To address this need, you can use a KMS discovery keyring.
- * The KMS discovery keyring does nothing on encrypt
- * but attempts to decrypt *any* data keys that were encrypted under a KMS CMK.
+ * To address this need, you can use an AWS KMS discovery keyring.
+ * The AWS KMS discovery keyring does nothing on encrypt
+ * but attempts to decrypt *any* data keys that were encrypted under an AWS KMS CMK.
  * <p>
- * This example shows how to configure and use a KMS discovery keyring.
+ * This example shows how to configure and use an AWS KMS discovery keyring.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the KMS keyring with custom client configurations,
+ * For examples of how to use the AWS KMS keyring with custom client configurations,
  * see the {@link CustomClientSupplier}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the KMS discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS discovery keyring on decrypt,
  * see the {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class DiscoveryDecrypt {
 
     /**
-     * Demonstrate configuring a KMS discovery keyring for decryption.
+     * Demonstrate configuring an AWS KMS discovery keyring for decryption.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt
@@ -63,7 +63,7 @@ public class DiscoveryDecrypt {
         // Create the keyring that determines how your data keys are protected.
         final Keyring encryptKeyring = StandardKeyrings.awsKms(awsKmsCmk);
 
-        // Create a KMS discovery keyring to use on decrypt.
+        // Create an AWS KMS discovery keyring to use on decrypt.
         final Keyring decryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder().build();
 
         // Encrypt your plaintext data.
@@ -77,7 +77,7 @@ public class DiscoveryDecrypt {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data using the KMS discovery keyring.
+        // Decrypt your encrypted data using the AWS KMS discovery keyring.
         //
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.

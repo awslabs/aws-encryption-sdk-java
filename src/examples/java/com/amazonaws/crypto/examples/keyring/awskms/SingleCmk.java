@@ -16,18 +16,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This example shows how to configure and use a KMS keyring with a single KMS CMK.
+ * This example shows how to configure and use an AWS KMS keyring with a single KMS CMK.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the KMS keyring with custom client configurations,
+ * For examples of how to use the AWS KMS keyring with custom client configurations,
  * see the {@link CustomClientSupplier}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS Discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
@@ -35,7 +35,7 @@ import java.util.Map;
 public class SingleCmk {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS keyring with a single CMK.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with a single CMK.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt

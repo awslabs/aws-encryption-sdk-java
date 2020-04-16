@@ -28,11 +28,11 @@ import java.util.Map;
  * the ability to enjoy the benefits of AWS KMS during normal operation
  * but retain the ability to decrypt encrypted messages without access to AWS KMS.
  * This example shows how you can achieve this
- * by combining a KMS master key with a raw RSA master key.
+ * by combining an AWS KMS master key with a raw RSA master key.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#master-key-provider
  * <p>
- * For more examples of how to use the KMS master key provider, see the
+ * For more examples of how to use the AWS KMS master key provider, see the
  * 'masterkeyprovider/awskms' examples'
  * <p>
  * For more examples of how to use the raw RSA master key, see the
@@ -101,11 +101,11 @@ public class AwsKmsWithEscrow {
                 "RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
 
 
-        // Create the KMS master key that you will use for decryption during normal operations.
+        // Create the AWS KMS master key that you will use for decryption during normal operations.
         final KmsMasterKeyProvider kmsMasterKeyProvider = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(awsKmsCmk.toString()).build();
 
-        // Combine the KMS and escrow providers into a single master key provider.
+        // Combine the AWS KMS and escrow providers into a single master key provider.
         final MasterKeyProvider<?> masterKeyProvider = MultipleProviderFactory.buildMultiProvider(
                 kmsMasterKeyProvider, escrowEncryptMasterKey);
 
@@ -117,13 +117,13 @@ public class AwsKmsWithEscrow {
         final byte[] ciphertext = encryptResult.getResult();
 
         // Verify that the header contains the expected number of encrypted data keys (EDKs).
-        // It should contain one EDK for KMS and one for the escrow key.
+        // It should contain one EDK for AWS KMS and one for the escrow key.
         assert encryptResult.getHeaders().getEncryptedKeyBlobCount() == 2;
 
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data separately using the KMS master key provider
+        // Decrypt your encrypted data separately using the AWS KMS master key provider
         // and the escrow decrypt master key.
         //
         // You do not need to specify the encryption context on decrypt because

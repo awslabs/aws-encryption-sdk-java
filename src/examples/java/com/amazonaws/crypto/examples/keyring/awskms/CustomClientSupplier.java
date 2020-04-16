@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * By default, the KMS keyring uses a client supplier that
+ * By default, the AWS KMS keyring uses a client supplier that
  * supplies a client with the same configuration for every region.
  * If you need different behavior, you can write your own client supplier.
  * <p>
@@ -36,13 +36,13 @@ import java.util.Map;
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For another example of how to use the KMS keyring with a custom client configuration,
+ * For another example of how to use the AWS KMS keyring with a custom client configuration,
  * see the {@link CustomKmsClientConfig} example.
  * <p>
- * For examples of how to use the KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS Discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt}, {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
@@ -79,7 +79,7 @@ public class CustomClientSupplier {
     }
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS keyring with a custom client supplier.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with a custom client supplier.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt

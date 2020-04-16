@@ -22,23 +22,23 @@ import static java.util.stream.Collectors.toList;
  * We recommend using keyrings rather than master key providers.
  * For examples using keyrings, see the 'examples/keyring' directory.
  * <p>
- * This example shows how to configure and use a KMS master key provider with with CMKs in multiple regions.
+ * This example shows how to configure and use an AWS KMS master key provider with with CMKs in multiple regions.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#master-key-provider
  * <p>
- * For an example of how to use the KMS master key with a single CMK,
+ * For an example of how to use the AWS KMS master key with a single CMK,
  * see the {@link SingleCmk} example.
  * <p>
- * For an example of how to use the KMS master key provider in discovery mode on decrypt,
+ * For an example of how to use the AWS KMS master key provider in discovery mode on decrypt,
  * see the {@link DiscoveryDecrypt} example.
  */
 public class MultipleRegions {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS master key provider with CMKs in multiple regions.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS master key provider with CMKs in multiple regions.
      *
      * @param awsKmsGeneratorCmk   The ARN of an AWS KMS CMK that protects data keys
-     * @param awsKmsAdditionalCmks Additional ARNs of secondary KMS CMKs
+     * @param awsKmsAdditionalCmks Additional ARNs of secondary AWS KMS CMKs
      * @param sourcePlaintext      Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsGeneratorCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, final byte[] sourcePlaintext) {
@@ -56,7 +56,7 @@ public class MultipleRegions {
 
         // Create the master key provider that will encrypt your data keys under all requested CMKs.
         //
-        // The KMS master key provider generates the data key using the first key ID in the list.
+        // The AWS KMS master key provider generates the data key using the first key ID in the list.
         final List<String> awsKmsCmks = new ArrayList<>();
         awsKmsCmks.add(awsKmsGeneratorCmk.toString());
         awsKmsCmks.addAll(awsKmsAdditionalCmks.stream().map(AwsKmsCmkId::toString).collect(toList()));

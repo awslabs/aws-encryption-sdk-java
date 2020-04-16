@@ -18,18 +18,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This example shows how to configure and use a KMS keyring with CMKs in multiple regions.
+ * This example shows how to configure and use an AWS KMS keyring with CMKs in multiple regions.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the KMS keyring with a single CMK,
+ * For an example of how to use the AWS KMS keyring with a single CMK,
  * see the {@link SingleCmk} example.
  * <p>
- * For examples of how to use the KMS keyring with custom client configurations,
+ * For examples of how to use the AWS KMS keyring with custom client configurations,
  * see the {@link CustomClientSupplier}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS Discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
@@ -37,10 +37,10 @@ import java.util.Map;
 public class MultipleRegions {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using a KMS keyring with CMKs in multiple regions.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with CMKs in multiple regions.
      *
      * @param awsKmsGeneratorCmk   The ARN of an AWS KMS CMK that protects data keys
-     * @param awsKmsAdditionalCmks Additional ARNs of secondary KMS CMKs
+     * @param awsKmsAdditionalCmks Additional ARNs of secondary AWS KMS CMKs
      * @param sourcePlaintext      Plaintext to encrypt
      */
     public static void run(final AwsKmsCmkId awsKmsGeneratorCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, byte[] sourcePlaintext) {

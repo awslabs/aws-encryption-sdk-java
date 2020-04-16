@@ -20,35 +20,35 @@ import java.util.Map;
 import static java.util.Collections.singleton;
 
 /**
- * When you give the KMS keyring specific key IDs it will use those CMKs and nothing else.
+ * When you give the AWS KMS keyring specific key IDs it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
  * especially if you might not know beforehand which CMK was used to encrypt a message.
- * To address this need, you can use a KMS discovery keyring.
- * The KMS discovery keyring will do nothing on encrypt
- * but will attempt to decrypt *any* data keys that were encrypted under a KMS CMK.
+ * To address this need, you can use an AWS KMS discovery keyring.
+ * The AWS KMS discovery keyring will do nothing on encrypt
+ * but will attempt to decrypt *any* data keys that were encrypted under an AWS KMS CMK.
  * <p>
  * However, sometimes you need to be a *bit* more restrictive than that.
- * To address this need, you can use a client supplier to restrict what regions a KMS keyring can talk to.
+ * To address this need, you can use a client supplier to restrict what regions an AWS KMS keyring can talk to.
  * <p>
  * A more complex but more common use-case is that you would *prefer* to stay within a region,
  * but you would rather make calls to other regions than fail to decrypt the message.
  * In this case, you want a keyring that will try to decrypt data keys in this region first,
  * then try other regions.
  * <p>
- * This example shows how to configure and use a multi-keyring with the KMS keyring
+ * This example shows how to configure and use a multi-keyring with the AWS KMS keyring
  * to prefer the current AWS region while also failing over to other AWS regions.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the KMS keyring with custom client configurations,
+ * For examples of how to use the AWS KMS keyring with custom client configurations,
  * see the {@link CustomClientSupplier}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the KMS discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * and {@link DiscoveryDecryptInRegionOnly} examples.
  */
@@ -79,7 +79,7 @@ public class DiscoveryDecryptWithPreferredRegions {
         // To create our decrypt keyring, we need to know our current default AWS region.
         final String localRegion = AWSKMSClientBuilder.standard().getRegion();
 
-        // Now, use that region name to create two KMS discovery keyrings:
+        // Now, use that region name to create two AWS KMS discovery keyrings:
         //
         // One that only works in the local region
         final Keyring localRegionDecryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()

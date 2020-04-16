@@ -23,7 +23,7 @@ import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
  * <p>
  * Arguments:
  * <ol>
- * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your KMS customer master
+ * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your AWS KMS customer master
  *    key (CMK), see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
  * </ol>
  */

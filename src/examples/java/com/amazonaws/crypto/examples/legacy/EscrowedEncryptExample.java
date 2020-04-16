@@ -21,7 +21,7 @@ import com.amazonaws.util.IOUtils;
 
 /**
  * <p>
- * Encrypts a file using both KMS and an asymmetric key pair.
+ * Encrypts a file using both AWS KMS and an asymmetric key pair.
  * NOTE: Master key providers are deprecated and replaced by keyrings.
  *       We keep these older examples as reference material,
  *       but we recommend that you use the new examples in examples/keyring
@@ -30,21 +30,21 @@ import com.amazonaws.util.IOUtils;
  * <p>
  * Arguments:
  * <ol>
- * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your KMS customer master
+ * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your AWS KMS customer master
  *    key (CMK), see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
  *
  * <li>Name of file containing plaintext data to encrypt
  * </ol>
  *
- * You might use AWS Key Management Service (KMS) for most encryption and decryption operations, but
- * still want the option of decrypting your data offline independently of KMS. This sample
+ * You might use AWS Key Management Service (AWS KMS) for most encryption and decryption operations, but
+ * still want the option of decrypting your data offline independently of AWS KMS. This sample
  * demonstrates one way to do this.
  *
- * The sample encrypts data under both a KMS customer master key (CMK) and an "escrowed" RSA key pair
- * so that either key alone can decrypt it. You might commonly use the KMS CMK for decryption. However,
- * at any time, you can use the private RSA key to decrypt the ciphertext independent of KMS.
+ * The sample encrypts data under both an AWS KMS customer master key (CMK) and an "escrowed" RSA key pair
+ * so that either key alone can decrypt it. You might commonly use the AWS KMS CMK for decryption. However,
+ * at any time, you can use the private RSA key to decrypt the ciphertext independent of AWS KMS.
  *
- * This sample uses the JCEMasterKey class to generate a RSA public-private key pair
+ * This sample uses the JCEMasterKey class to generate an RSA public-private key pair
  * and saves the key pair in memory. In practice, you would store the private key in a secure offline
  * location, such as an offline HSM, and distribute the public key to your development team.
  *
@@ -69,7 +69,7 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
-        // Encrypt with the KMS CMK and the escrowed public key
+        // Encrypt with the AWS KMS CMK and the escrowed public key
         // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
 
@@ -98,7 +98,7 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardDecrypt(final String kmsArn, final String fileName) throws Exception {
-        // Decrypt with the KMS CMK and the escrow public key. You can use a combined provider,
+        // Decrypt with the AWS KMS CMK and the escrow public key. You can use a combined provider,
         // as shown here, or just the KMS master key provider.
 
         // 1. Instantiate the AWS Encryption SDK.
@@ -129,7 +129,7 @@ public class EscrowedEncryptExample {
 
     private static void escrowDecrypt(final String fileName) throws Exception {
         // You can decrypt the stream using only the private key.
-        // This method does not call KMS.
+        // This method does not call AWS KMS.
 
         // 1. Instantiate the AWS Encryption SDK.
         final AwsCrypto crypto = new AwsCrypto();
