@@ -17,21 +17,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Before there were keyrings, there were master key providers.
- * Master key providers were the original configuration structure
- * that we provided for defining how you want to protect your data keys.
+ * In earlier versions of the AWS Encryption SDK, you used master key providers to determine how your data keys are protected.
  * <p>
- * The AWS KMS master key provider was the tool that we provided for interacting with AWS KMS.
+ * The AWS Encryption SDK provided an AWS KMS master key provider for interacting with AWS Key Management Service (AWS KMS).
  * Like the AWS KMS keyring,
  * the AWS KMS master key provider encrypts with all CMKs that you identify,
  * but unlike the AWS KMS keyring,
  * the AWS KMS master key provider always attempts to decrypt
  * *any* data keys that were encrypted under an AWS KMS CMK.
  * We have found that separating these two behaviors
- * makes it more clear what behavior to expect,
+ * makes the expected behavior clearer,
  * so that is what we did with the AWS KMS keyring and the AWS KMS discovery keyring.
- * However, as you migrate away from master key providers to keyrings,
- * you might need to replicate the behavior of the AWS KMS master key provider.
+ * However, as you migrate from master key providers to keyrings,
+ * you might want a keyring that behaves like the AWS KMS master key provider.
  * <p>
  * This example shows how to configure a keyring that behaves like an AWS KMS master key provider.
  * <p>
@@ -59,15 +57,15 @@ public class ActLikeAwsKmsMasterKeyProvider {
         encryptionContext.put("that can help you", "be confident that");
         encryptionContext.put("the data you are handling", "is what you think it is");
 
-        // This is the master key provider whose behavior we want to replicate.
+        // This is the master key provider whose behavior we want to reproduce.
         //
-        // On encrypt, this master key provider only uses the single target AWS KMS CMK.
-        // However, on decrypt, this master key provider attempts to decrypt
+        // When encrypting, this master key provider uses only the specified `aws_kms_cmk`.
+        // However, when decrypting, this master key provider attempts to decrypt
         // any data keys that were encrypted under an AWS KMS CMK.
         final KmsMasterKeyProvider masterKeyProviderToReplicate = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(awsKmsCmk.toString()).build();
 
-        // Create a keyring that encrypts and decrypts using a single AWS KMS CMK.
+        // Create a single-CMK keyring that encrypts and decrypts using a single AWS KMS CMK.
         final Keyring singleCmkKeyring = StandardKeyrings.awsKms(awsKmsCmk);
 
         // Create an AWS KMS discovery keyring that will attempt to decrypt
