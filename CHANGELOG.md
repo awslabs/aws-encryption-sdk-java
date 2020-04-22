@@ -21,6 +21,7 @@ calls to `AwsCrypto.encrypt(EncryptRequest)` and `AwsCrypto.decrypt(DecryptReque
 * Update AWS Java SDK version from 1.11.561 to 1.11.677. [PR #147](https://github.com/aws/aws-encryption-sdk-java/pull/147)
 * Upgrade JUnit from 4.12 to 5.5.2 [PR #151](https://github.com/aws/aws-encryption-sdk-java/pull/151)
 * Upgrade Mockito from 2.28.1 to 3.1.0 [PR #142](https://github.com/aws/aws-encryption-sdk-java/pull/142)
+* Upgrade Bouncy Castle from 1.61 to 1.65 [PR #179](https://github.com/aws/aws-encryption-sdk-java/pull/179)
 
 ### Documentation
 * Added new examples demonstrating how to use
