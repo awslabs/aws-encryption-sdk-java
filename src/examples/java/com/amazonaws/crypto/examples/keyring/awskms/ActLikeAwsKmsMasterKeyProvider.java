@@ -12,26 +12,35 @@ import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static java.util.stream.Collectors.toList;
+
 /**
- * In earlier versions of the AWS Encryption SDK, you used master key providers to determine how your data keys are protected.
+ * You might have used master key providers to protect your data keys
+ * in an earlier version of the AWS Encryption SDK.
+ * This example shows how to configure a keyring that behaves like an AWS KMS master key provider.
  * <p>
- * The AWS Encryption SDK provided an AWS KMS master key provider for interacting with AWS Key Management Service (AWS KMS).
- * Like the AWS KMS keyring,
- * the AWS KMS master key provider encrypts with all CMKs that you identify,
- * but unlike the AWS KMS keyring,
- * the AWS KMS master key provider always attempts to decrypt
- * *any* data keys that were encrypted under an AWS KMS CMK.
+ * The AWS Encryption SDK provided an AWS KMS master key provider for
+ * interacting with AWS Key Management Service (AWS KMS).
+ * On encrypt, the AWS KMS master key provider behaves like the AWS KMS keyring
+ * and encrypts with all CMKs that you identify.
+ * However, on decrypt,
+ * the AWS KMS master key provider reviews each encrypted data key (EDK).
+ * If the EDK was encrypted under an AWS KMS CMK,
+ * the AWS KMS master key provider attempts to decrypt it.
+ * Whether decryption succeeds depends on permissions on the CMK.
+ * This continues until the AWS KMS master key provider either runs out of EDKs
+ * or succeeds in decrypting an EDK.
  * We have found that separating these two behaviors
  * makes the expected behavior clearer,
  * so that is what we did with the AWS KMS keyring and the AWS KMS discovery keyring.
  * However, as you migrate from master key providers to keyrings,
  * you might want a keyring that behaves like the AWS KMS master key provider.
- * <p>
- * This example shows how to configure a keyring that behaves like an AWS KMS master key provider.
  * <p>
  * For more examples of how to use the AWS KMS keyring,
  * see the 'keyring/awskms' directory.
@@ -41,10 +50,11 @@ public class ActLikeAwsKmsMasterKeyProvider {
     /**
      * Demonstrate how to create a keyring that behaves like an AWS KMS master key provider.
      *
-     * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
-     * @param sourcePlaintext Plaintext to encrypt
+     * @param awsKmsCmk             The ARN of an AWS KMS CMK that protects data keys
+     * @param awsKmsAdditionalCmks  Additional ARNs of secondary AWS KMS CMKs
+     * @param sourcePlaintext       Plaintext to encrypt
      */
-    public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
+    public static void run(final AwsKmsCmkId awsKmsCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
@@ -59,14 +69,26 @@ public class ActLikeAwsKmsMasterKeyProvider {
 
         // This is the master key provider whose behavior we want to reproduce.
         //
-        // When encrypting, this master key provider uses only the specified `aws_kms_cmk`.
+        // When encrypting, this master key provider generates the data key using the first CMK in the list
+        // and encrypts the data key using all specified CMKs.
         // However, when decrypting, this master key provider attempts to decrypt
         // any data keys that were encrypted under an AWS KMS CMK.
+        final List<String> masterKeyProviderCmks = new ArrayList<>();
+        masterKeyProviderCmks.add(awsKmsCmk.toString());
+        masterKeyProviderCmks.addAll(awsKmsAdditionalCmks.stream().map(AwsKmsCmkId::toString).collect(toList()));
         final KmsMasterKeyProvider masterKeyProviderToReplicate = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsCmk.toString()).build();
+                .withKeysForEncryption(masterKeyProviderCmks).build();
 
-        // Create a single-CMK keyring that encrypts and decrypts using a single AWS KMS CMK.
-        final Keyring singleCmkKeyring = StandardKeyrings.awsKms(awsKmsCmk);
+        // Create a CMK keyring that encrypts and decrypts using the specified AWS KMS CMKs.
+        //
+        // This keyring reproduces the encryption behavior of the AWS KMS master key provider.
+        //
+        // The AWS KMS keyring requires that you explicitly identify the CMK
+        // that you want the keyring to use to generate the data key.
+        final Keyring cmkKeyring = StandardKeyrings.awsKmsBuilder()
+                .generatorKeyId(awsKmsCmk)
+                .keyIds(awsKmsAdditionalCmks)
+                .build();
 
         // Create an AWS KMS discovery keyring that will attempt to decrypt
         // any data keys that were encrypted under an AWS KMS CMK.
@@ -74,7 +96,15 @@ public class ActLikeAwsKmsMasterKeyProvider {
 
         // Combine the single-CMK and discovery keyrings
         // to create a keyring that behaves like an AWS KMS master key provider.
-        final Keyring keyring = StandardKeyrings.multi(singleCmkKeyring, discoveryKeyring);
+        //
+        // The CMK keyring reproduces the encryption behavior
+        // and the discovery keyring reproduces the decryption behavior.
+        // This also means that it does not matter if the CMK keyring fails on decrypt,
+        // for example if you configured it with aliases which would work on encrypt
+        // but fail to match any encrypted data keys on decrypt,
+        // because the discovery keyring attempts to decrypt any AWS KMS-encrypted
+        // data keys that it finds.
+        final Keyring keyring = StandardKeyrings.multi(cmkKeyring, discoveryKeyring);
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(

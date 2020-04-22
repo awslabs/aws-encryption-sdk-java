@@ -25,8 +25,13 @@ import static java.util.Collections.singleton;
  * However, sometimes you need more flexibility on decrypt,
  * especially if you might not know beforehand which CMK was used to encrypt a message.
  * To address this need, you can use an AWS KMS discovery keyring.
- * The AWS KMS discovery keyring will do nothing on encrypt
- * but will attempt to decrypt *any* data keys that were encrypted under an AWS KMS CMK.
+ * The AWS KMS discovery keyring does nothing on encrypt.
+ * On decrypt it reviews each encrypted data key (EDK).
+ * If an EDK was encrypted under an AWS KMS CMK,
+ * the AWS KMS discovery keyring attempts to decrypt it.
+ * Whether decryption succeeds depends on permissions on the CMK.
+ * This continues until the AWS KMS discovery keyring either runs out of EDKs
+ * or succeeds in decrypting an EDK.
  * <p>
  * However, sometimes you need to be a *bit* more restrictive than that.
  * To address this need, you can use a client supplier to restrict what regions an AWS KMS keyring can talk to.
