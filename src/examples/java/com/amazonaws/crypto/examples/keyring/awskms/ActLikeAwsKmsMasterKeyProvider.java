@@ -99,11 +99,12 @@ public class ActLikeAwsKmsMasterKeyProvider {
         //
         // The CMK keyring reproduces the encryption behavior
         // and the discovery keyring reproduces the decryption behavior.
-        // This also means that it does not matter if the CMK keyring fails on decrypt,
-        // for example if you configured it with aliases which would work on encrypt
-        // but fail to match any encrypted data keys on decrypt,
-        // because the discovery keyring attempts to decrypt any AWS KMS-encrypted
-        // data keys that it finds.
+        // This also means that it does not matter if the CMK keyring fails to decrypt.
+        // For example, if you configured the CMK keyring with aliases,
+        // it works on encrypt but fails to match any encrypted data keys on decrypt
+        // because the serialized key name is the resulting CMK ARN rather than the alias name.
+        // However, because the discovery keyring attempts to decrypt any AWS KMS-encrypted
+        // data keys that it finds, the message still decrypts successfully.
         final Keyring keyring = StandardKeyrings.multi(cmkKeyring, discoveryKeyring);
 
         // Encrypt your plaintext data.
