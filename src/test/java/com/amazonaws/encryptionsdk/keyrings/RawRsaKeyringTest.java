@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
@@ -34,6 +35,7 @@ import static com.amazonaws.encryptionsdk.keyrings.RawKeyringTest.KEYNAMESPACE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RawRsaKeyringTest {
@@ -132,6 +134,49 @@ class RawRsaKeyringTest {
         assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
         assertEquals(1, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
         assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
+    }
+
+    @Test
+    void testEncryptWithNoPublicKey() throws Exception {
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        Keyring noPublicKey = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, null, keyPair.getPrivate(), PADDING_SCHEME);
+
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        assertThrows(AwsCryptoException.class, () -> noPublicKey.onEncrypt(encryptionMaterials));
+    }
+
+    @Test
+    void testDecryptWithNoPrivateKey() throws Exception {
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        Keyring noPrivateKey = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, keyPair.getPublic(), null, PADDING_SCHEME);
+
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        encryptionMaterials = noPrivateKey.onEncrypt(encryptionMaterials);
+
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        DecryptionMaterials resultDecryptionMaterials = noPrivateKey.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+
+        assertEquals(decryptionMaterials, resultDecryptionMaterials);
     }
 
 }
