@@ -153,4 +153,30 @@ class RawRsaKeyringTest {
         assertThrows(AwsCryptoException.class, () -> noPublicKey.onEncrypt(encryptionMaterials));
     }
 
+    @Test
+    void testDecryptWithNoPrivateKey() throws Exception {
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        Keyring noPrivateKey = new RawRsaKeyring(KEYNAMESPACE, KEYNAME, keyPair.getPublic(), null, PADDING_SCHEME);
+
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setCleartextDataKey(DATA_KEY)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        encryptionMaterials = noPrivateKey.onEncrypt(encryptionMaterials);
+
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+                .setAlgorithm(ALGORITHM)
+                .setEncryptionContext(ENCRYPTION_CONTEXT)
+                .build();
+
+        DecryptionMaterials resultDecryptionMaterials = noPrivateKey.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
+
+        assertEquals(decryptionMaterials, resultDecryptionMaterials);
+    }
+
 }
