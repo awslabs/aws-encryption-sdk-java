@@ -94,7 +94,7 @@ public class ActLikeAwsKmsMasterKeyProvider {
         // any data keys that were encrypted under an AWS KMS CMK.
         final Keyring discoveryKeyring = StandardKeyrings.awsKmsDiscoveryBuilder().build();
 
-        // Combine the single-CMK and discovery keyrings
+        // Combine the CMK and discovery keyrings
         // to create a keyring that behaves like an AWS KMS master key provider.
         //
         // The CMK keyring reproduces the encryption behavior
