@@ -14,8 +14,10 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.internal.JceKeyCipher;
 import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -29,8 +31,20 @@ import java.util.Arrays;
  */
 class RawRsaKeyring extends RawKeyring {
 
+    private final boolean validToEncrypt;
+
     RawRsaKeyring(String keyNamespace, String keyName, PublicKey publicKey, PrivateKey privateKey, RsaPaddingScheme rsaPaddingScheme) {
         super(keyNamespace, keyName, JceKeyCipher.rsa(publicKey, privateKey, rsaPaddingScheme.getTransformation()));
+        validToEncrypt = publicKey != null;
+    }
+
+    @Override
+    public EncryptionMaterials onEncrypt(EncryptionMaterials encryptionMaterials) {
+        if(!validToEncrypt) {
+            throw new AwsCryptoException("A public key is required to encrypt");
+        }
+
+        return super.onEncrypt(encryptionMaterials);
     }
 
     @Override

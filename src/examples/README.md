@@ -39,6 +39,8 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptInRegionOnly.java)
     * How to decrypt with a preferred region but failover to others
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptWithPreferredRegions.java)
+    * How to reproduce the behavior of an AWS KMS master key provider
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/ActLikeAwsKmsMasterKeyProvider.java)
 * Using raw wrapping keys
     * How to use a raw AES wrapping key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawaes/RawAes.java)
