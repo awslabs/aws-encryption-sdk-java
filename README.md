@@ -4,6 +4,8 @@ The AWS Encryption SDK is a client-side encryption library designed to make it e
 
 For details about the design, architecture and usage of the SDK, see the [official documentation](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/), [example code][examples] and the [Javadoc](https://aws.github.io/aws-encryption-sdk-java/javadoc/).
 
+[Security issue notifications](./CONTRIBUTING.md#security-issue-notifications)
+
 ## Getting Started
 
 ### Required Prerequisites
