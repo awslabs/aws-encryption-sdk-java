@@ -59,6 +59,7 @@ public class ActLikeAwsKmsMasterKeyProvider {
         final AwsCrypto awsEncryptionSdk = new AwsCrypto();
 
         // Prepare your encryption context.
+        // Remember that your encryption context is NOT SECRET.
         // https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
         final Map<String, String> encryptionContext = new HashMap<>();
         encryptionContext.put("encryption", "context");
