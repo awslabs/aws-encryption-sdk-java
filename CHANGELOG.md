@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.2 -- unreleased
+
+### Patches
+* Validate final frame length does not exceed the frame size in the message header [PR #166](https://github.com/aws/aws-encryption-sdk-java/pull/166)
+
+### Maintenance
+* Update AWS Java SDK version from 1.11.561 to 1.11.704. [PR #186](https://github.com/aws/aws-encryption-sdk-java/pull/186)
+* Upgrade Bouncy Castle from 1.61 to 1.65 [PR #179](https://github.com/aws/aws-encryption-sdk-java/pull/179)
+
 ## 1.6.1 -- 2019-10-29
 
 ### Deprecation Warnings
