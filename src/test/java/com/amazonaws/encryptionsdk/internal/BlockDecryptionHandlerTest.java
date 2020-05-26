@@ -13,7 +13,6 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
@@ -22,6 +21,7 @@ import java.security.SecureRandom;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,11 +58,9 @@ public class BlockDecryptionHandlerTest {
         assertTrue(outSize >= inLen);
     }
 
-    @Test
-    public void decryptWithoutHeaders() {
-        final byte[] out = new byte[1];
-        final int returnedLen = blockDecryptionHandler_.doFinal(out, 0);
-        assertEquals(0, returnedLen);
+    @Test(expected= BadCiphertextException.class)
+    public void doFinalCalledWhileNotComplete() {
+        blockDecryptionHandler_.doFinal(new byte[1], 0);
     }
 
     @Test(expected = AwsCryptoException.class)
@@ -89,5 +87,24 @@ public class BlockDecryptionHandlerTest {
         final int decryptedOutLen = blockDecryptionHandler_.estimateOutputSize(outLen);
         final byte[] decryptedOut = new byte[decryptedOutLen];
         blockDecryptionHandler_.processBytes(outBuff.array(), 0, outBuff.array().length, decryptedOut, 0);
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    public void processBytesCalledWhileComplete() {
+        final BlockEncryptionHandler blockEncryptionHandler = new BlockEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_);
+        final byte[] in = new byte[0];
+        final int outLen = blockEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        blockEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        blockEncryptionHandler.doFinal(out, 0);
+
+        final byte[] decryptedOut = new byte[outLen];
+        blockDecryptionHandler_.processBytes(out, 0, outLen, decryptedOut, 0);
+        blockDecryptionHandler_.processBytes(out, 0, outLen, decryptedOut, 0);
     }
 }

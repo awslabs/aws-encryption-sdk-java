@@ -89,4 +89,30 @@ public class FrameDecryptionHandlerTest {
 
         frameDecryptionHandler_.processBytes(in, 0, in.length, out, 0);
     }
+
+    @Test(expected = BadCiphertextException.class)
+    public void doFinalCalledWhileNotComplete() {
+        frameDecryptionHandler_.doFinal(new byte[1], 0);
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    public void processBytesCalledWhileComplete() {
+        final FrameEncryptionHandler frameEncryptionHandler = new FrameEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                frameSize_);
+        final byte[] in = new byte[0];
+        final int outLen = frameEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        frameEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        frameEncryptionHandler.doFinal(out, 0);
+
+        final byte[] decryptedOut = new byte[outLen];
+
+        frameDecryptionHandler_.processBytes(out, 0, out.length, decryptedOut, 0);
+        frameDecryptionHandler_.processBytes(out, 0, out.length, decryptedOut, 0);
+    }
 }
