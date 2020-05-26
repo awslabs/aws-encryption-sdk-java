@@ -16,6 +16,7 @@ package com.amazonaws.encryptionsdk.internal;
 import java.util.Collections;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -139,5 +140,19 @@ public class DecryptionHandlerTest {
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
         decryptionHandler.processBytes(in, -1, in.length, out, 0);
+    }
+
+    @Test(expected = BadCiphertextException.class)
+    public void incompleteCiphertext() {
+        byte[] ciphertext = getTestHeaders();
+
+        CiphertextHeaders h = new CiphertextHeaders();
+        h.deserialize(ciphertext, 0);
+
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final byte[] out = new byte[1];
+
+        decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
+        decryptionHandler.doFinal(out, 0);
     }
 }

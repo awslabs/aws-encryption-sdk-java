@@ -13,15 +13,14 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
-import java.util.Arrays;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.model.CipherBlockHeaders;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import java.util.Arrays;
 
 /**
  * The block decryption handler is an implementation of CryptoHandler that
@@ -97,6 +96,11 @@ class BlockDecryptionHandler implements CryptoHandler {
     synchronized public ProcessingSummary processBytes(final byte[] in, final int off, final int len,
             final byte[] out,
             final int outOff) throws AwsCryptoException {
+
+        if (complete_) {
+            throw new AwsCryptoException("Ciphertext has already been processed.");
+        }
+
         final byte[] bytesToParse = new byte[unparsedBytes_.length + len];
         // If there were previously unparsed bytes, add them as the first
         // set of bytes to be parsed in this call.
@@ -166,6 +170,9 @@ class BlockDecryptionHandler implements CryptoHandler {
      */
     @Override
     synchronized public int doFinal(final byte[] out, final int outOff) throws BadCiphertextException {
+        if (!complete_) {
+            throw new BadCiphertextException("Unable to process entire ciphertext.");
+        }
         return 0;
     }
 

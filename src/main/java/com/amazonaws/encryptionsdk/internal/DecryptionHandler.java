@@ -326,6 +326,10 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         } else {
             int result = contentCryptoHandler_.doFinal(out, outOff);
 
+            if (!ciphertextHeaders_.isComplete() || !contentCryptoHandler_.isComplete()) {
+                throw new BadCiphertextException("Unable to process entire ciphertext.");
+            }
+
             return result;
         }
     }
