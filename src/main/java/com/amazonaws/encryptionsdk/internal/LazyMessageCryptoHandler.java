@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 
 /**
@@ -91,6 +92,11 @@ public class LazyMessageCryptoHandler implements MessageCryptoHandler {
     @Override
     public List<? extends MasterKey<?>> getMasterKeys() {
         return getDelegate().getMasterKeys();
+    }
+
+    @Override
+    public KeyringTrace getKeyringTrace() {
+        return getDelegate().getKeyringTrace();
     }
 
     @Override

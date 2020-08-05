@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 
 /**
  * Represents the cryptographic key used to protect the {@link DataKey} (which, in turn, protects
@@ -31,7 +32,10 @@ import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
  *
  * @param <K>
  *            the concrete type of the {@link MasterKey}
+ *
+ * @deprecated Replaced by {@link Keyring}
  */
+@Deprecated
 public abstract class MasterKey<K extends MasterKey<K>> extends MasterKeyProvider<K> {
     public abstract String getProviderId();
 

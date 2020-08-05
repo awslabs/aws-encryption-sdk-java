@@ -30,7 +30,10 @@ import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
  *            the type of the underlying {@code result}
  * @param <K>
  *            the type of the {@link MasterKey}s used in production of this result
+ *
+ * @deprecated Replaced by {@link AwsCryptoResult}
  */
+@Deprecated
 public class CryptoResult<T, K extends MasterKey<K>> {
     private final T result_;
     private final List<K> masterKeys_;

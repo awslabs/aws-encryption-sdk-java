@@ -49,7 +49,10 @@ import com.amazonaws.encryptionsdk.internal.Utils;
  * 
  * @param <K>
  *            The type of {@link MasterKey}s used to manipulate the data.
+ *
+ * @deprecated Replaced by {@link AwsCryptoOutputStream}
  */
+@Deprecated
 public class CryptoOutputStream<K extends MasterKey<K>> extends OutputStream {
     private final OutputStream outputStream_;
 
@@ -179,6 +182,18 @@ public class CryptoOutputStream<K extends MasterKey<K>> extends OutputStream {
         return new CryptoResult<>(
                 this,
                 (List<K>) cryptoHandler_.getMasterKeys(),
+                cryptoHandler_.getHeaders());
+    }
+
+    AwsCryptoResult<AwsCryptoOutputStream> getAwsCryptoResult(AwsCryptoOutputStream awsCryptoOutputStream) {
+        if (!cryptoHandler_.getHeaders().isComplete()) {
+            throw new IllegalStateException("Ciphertext headers not yet written to stream");
+        }
+
+        return new AwsCryptoResult<>(
+                awsCryptoOutputStream,
+                cryptoHandler_.getKeyringTrace(),
+                cryptoHandler_.getMasterKeys(),
                 cryptoHandler_.getHeaders());
     }
 }

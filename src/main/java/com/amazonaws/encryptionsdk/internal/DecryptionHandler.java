@@ -34,6 +34,8 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextFooters;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
@@ -62,6 +64,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     private CryptoHandler contentCryptoHandler_;
 
     private DataKey<K> dataKey_;
+    private KeyringTrace keyringTrace_;
     private SecretKey decryptionKey_;
     private CryptoAlgorithm cryptoAlgo_;
     private Signature trailingSig_;
@@ -109,8 +112,11 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *            the key blobs encoded in the provided ciphertext.
      * @throws AwsCryptoException
      *             if the master key is null.
+     * @deprecated MasterKeyProviders have been deprecated in favor of {@link Keyring}s.
+     *             Use {@link #create(CryptoMaterialsManager)} instead.
      */
     @SuppressWarnings("unchecked")
+    @Deprecated
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
             final MasterKeyProvider<K> customerMasterKeyProvider
     ) throws AwsCryptoException {
@@ -134,8 +140,11 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *            {@link #processBytes(byte[], int, int, byte[], int)}
      * @throws AwsCryptoException
      *             if the master key is null.
+     * @deprecated MasterKeyProviders have been deprecated in favor of {@link Keyring}s.
+     *             Use {@link #create(CryptoMaterialsManager, CiphertextHeaders)} instead.
      */
     @SuppressWarnings("unchecked")
+    @Deprecated
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
             final MasterKeyProvider<K> customerMasterKeyProvider, final CiphertextHeaders headers
     ) throws AwsCryptoException {
@@ -460,6 +469,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
         //noinspection unchecked
         dataKey_ = (DataKey<K>)result.getDataKey();
+        keyringTrace_ = result.getKeyringTrace();
         PublicKey trailingPublicKey = result.getTrailingSignatureKey();
 
         try {
@@ -538,9 +548,26 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         return ciphertextHeaders_;
     }
 
+    /**
+     * The master key that was used to decrypt the encrypted data key. This returns an
+     * empty list if Keyrings are in use.
+     *
+     * @deprecated MasterKeys have been deprecated in favor of {@link Keyring}s.
+     *             Use {@link #getKeyringTrace()} to view which key was used in decryption.
+     */
     @Override
+    @Deprecated
     public List<K> getMasterKeys() {
+        if(dataKey_.getMasterKey() == null) {
+            return Collections.emptyList();
+        }
+
         return Collections.singletonList(dataKey_.getMasterKey());
+    }
+
+    @Override
+    public KeyringTrace getKeyringTrace() {
+        return keyringTrace_;
     }
 
     @Override

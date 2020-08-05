@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
+import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 
 public interface MessageCryptoHandler extends CryptoHandler {
@@ -48,6 +50,17 @@ public interface MessageCryptoHandler extends CryptoHandler {
      * All <em>used</em> {@link MasterKey}s. For encryption flows, these are all the
      * {@link MasterKey}s used to protect the data. In the decryption flow, it is the single
      * {@link MasterKey} actually used to decrypt the data.
+     *
+     * @deprecated MasterKeys and MasterKeyProviders have been deprecated in favor of {@link Keyring}s
      */
+    @Deprecated
     List<? extends MasterKey<?>> getMasterKeys();
+
+    /**
+     * Gets the KeyringTrace containing all actions {@link Keyring}s have taken as part of
+     * encryption or decryption.
+     *
+     * @return the KeyringTrace
+     */
+    KeyringTrace getKeyringTrace();
 }

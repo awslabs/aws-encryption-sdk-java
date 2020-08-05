@@ -2,12 +2,11 @@ package com.amazonaws.encryptionsdk;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
 import static java.util.Collections.singletonMap;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.same;
@@ -15,6 +14,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Signature;
@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import com.amazonaws.encryptionsdk.internal.TestKeyring;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
@@ -43,9 +45,10 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 public class DefaultCryptoMaterialsManagerTest {
     private static final MasterKey<?> mk1 = new StaticMasterKey("mk1");
     private static final MasterKey<?> mk2 = new StaticMasterKey("mk2");
+    private static final Keyring keyring1 = new TestKeyring("keyring1");
 
     @Test
-    public void encrypt_testBasicFunctionality() throws Exception {
+    public void encrypt_testBasicFunctionalityWithMkp() {
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
         EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
@@ -58,7 +61,20 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_noSignatureKeyOnUnsignedAlgo() throws Exception {
+    public void encrypt_testBasicFunctionalityWithKeyring() {
+        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
+        EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+        assertNotNull(result.getAlgorithm());
+        assertNotNull(result.getCleartextDataKey());
+        assertNotNull(result.getEncryptionContext());
+        assertNotNull(result.getKeyringTrace());
+        assertEquals(1, result.getEncryptedDataKeys().size());
+        assertEquals(0, result.getMasterKeys().size());
+    }
+
+    @Test
+    public void encrypt_noSignatureKeyOnUnsignedAlgoWithMkp() {
         CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256,
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF,
@@ -80,7 +96,29 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_hasSignatureKeyForSignedAlgo() throws Exception {
+    public void encrypt_noSignatureKeyOnUnsignedAlgoWithKeyring() {
+        CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_NO_KDF
+        };
+
+        for (CryptoAlgorithm algo : algorithms) {
+            EncryptionMaterialsRequest req
+                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+            assertNull(result.getTrailingSignatureKey());
+            assertEquals(0, result.getEncryptionContext().size());
+            assertEquals(algo, result.getAlgorithm());
+        }
+    }
+
+    @Test
+    public void encrypt_hasSignatureKeyForSignedAlgoWithMkp() {
         CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
                 CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
@@ -93,6 +131,7 @@ public class DefaultCryptoMaterialsManagerTest {
                     = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
             EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
+
             assertNotNull(result.getTrailingSignatureKey());
             assertEquals(1, result.getEncryptionContext().size());
             assertNotNull(result.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
@@ -101,7 +140,28 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_dispatchesMultipleMasterKeys() throws Exception {
+    public void encrypt_hasSignatureKeyForSignedAlgoWithKeyring() {
+        CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
+                CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+                CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
+        };
+
+        for (CryptoAlgorithm algo : algorithms) {
+
+            EncryptionMaterialsRequest req
+                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(req);
+
+            assertNotNull(result.getTrailingSignatureKey());
+            assertEquals(1, result.getEncryptionContext().size());
+            assertNotNull(result.getEncryptionContext().get(Constants.EC_PUBLIC_KEY_FIELD));
+            assertEquals(algo, result.getAlgorithm());
+        }
+    }
+
+    @Test
+    public void encrypt_dispatchesMultipleMasterKeys() {
         MasterKey<?> mk1_spy = spy(mk1);
         MasterKey<?> mk2_spy = spy(mk2);
 
@@ -145,7 +205,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_forwardsPlaintextWhenAvailable() throws Exception {
+    public void encrypt_forwardsPlaintextWhenAvailable() {
         MasterKey<?> mk1_spy = spy(mk1);
 
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
@@ -161,7 +221,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_forwardsPlaintextSizeWhenAvailable() throws Exception {
+    public void encrypt_forwardsPlaintextSizeWhenAvailable() {
         MasterKey<?> mk1_spy = spy(mk1);
 
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
@@ -177,7 +237,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test
-    public void encrypt_setsStreamingWhenNoSizeAvailable() throws Exception {
+    public void encrypt_setsStreamingWhenNoSizeAvailable() {
         MasterKey<?> mk1_spy = spy(mk1);
 
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder().build();
@@ -189,7 +249,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void encrypt_whenECContextKeyPresent_throws() throws Exception {
+    public void encrypt_whenECContextKeyPresent_throws() {
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
                                                                    .setRequestedAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)
                                                                    .setContext(singletonMap(Constants.EC_PUBLIC_KEY_FIELD, "some EC key"))
@@ -199,7 +259,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void encrypt_whenNoMasterKeys_throws() throws Exception {
+    public void encrypt_whenNoMasterKeys_throws() {
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
 
         new DefaultCryptoMaterialsManager(new MasterKeyProvider() {
@@ -218,7 +278,7 @@ public class DefaultCryptoMaterialsManagerTest {
 
             @Override public DataKey decryptDataKey(
                     CryptoAlgorithm algorithm, Collection encryptedDataKeys, Map encryptionContext
-            ) throws UnsupportedProviderException, AwsCryptoException {
+            ) throws AwsCryptoException {
                 return null;
             }
         }).getMaterialsForEncrypt(req);
@@ -230,6 +290,14 @@ public class DefaultCryptoMaterialsManagerTest {
         customizer.accept(request);
 
         return new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(request.build());
+    }
+
+    private EncryptionMaterials easyGenMaterialsForKeyring(Consumer<EncryptionMaterialsRequest.Builder> customizer) {
+        EncryptionMaterialsRequest.Builder request = EncryptionMaterialsRequest.newBuilder();
+
+        customizer.accept(request);
+
+        return new DefaultCryptoMaterialsManager(keyring1).getMaterialsForEncrypt(request.build());
     }
 
     private DecryptionMaterialsRequest decryptReqFromMaterials(EncryptionMaterials result) {
@@ -275,15 +343,62 @@ public class DefaultCryptoMaterialsManagerTest {
         }
     }
 
+    @Test
+    public void decrypt_testSimpleRoundTripWithKeyring() throws Exception {
+        for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
+            EncryptionMaterials encryptMaterials = easyGenMaterialsForKeyring(
+                    builder -> builder.setRequestedAlgorithm(algorithm)
+            );
+
+            DecryptionMaterials decryptMaterials
+                    = new DefaultCryptoMaterialsManager(keyring1).decryptMaterials(decryptReqFromMaterials(encryptMaterials));
+
+            assertArrayEquals(decryptMaterials.getDataKey().getKey().getEncoded(),
+                    encryptMaterials.getCleartextDataKey().getEncoded());
+
+            if (encryptMaterials.getTrailingSignatureKey() == null) {
+                assertNull(decryptMaterials.getTrailingSignatureKey());
+            } else {
+                Signature sig = Signature.getInstance(
+                        TrailingSignatureAlgorithm.forCryptoAlgorithm(algorithm).getHashAndSignAlgorithm()
+                );
+
+                sig.initSign(encryptMaterials.getTrailingSignatureKey());
+
+                byte[] data = "hello world".getBytes(StandardCharsets.UTF_8);
+
+                sig.update(data);
+                byte[] signature = sig.sign();
+
+                sig.initVerify(decryptMaterials.getTrailingSignatureKey());
+
+                sig.update(data);
+                sig.verify(signature);
+            }
+        }
+    }
+
     @Test(expected = CannotUnwrapDataKeyException.class)
-    public void decrypt_onDecryptFailure() throws Exception {
+    public void decrypt_onDecryptFailure() {
         new DefaultCryptoMaterialsManager(mock(MasterKeyProvider.class)).decryptMaterials(
                 decryptReqFromMaterials(easyGenMaterials(ignored -> {}))
         );
     }
 
+    @Test(expected = CannotUnwrapDataKeyException.class)
+    public void decrypt_onDecryptFailureForKeyring() {
+        Keyring keyring = mock(Keyring.class);
+        DecryptionMaterials decryptionMaterials = mock(DecryptionMaterials.class);
+        when(keyring.onDecrypt(any(), any())).thenReturn(decryptionMaterials);
+        when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false);
+
+        new DefaultCryptoMaterialsManager(keyring).decryptMaterials(
+                decryptReqFromMaterials(easyGenMaterials(ignored -> {}))
+        );
+    }
+
     @Test
-    public void decrypt_whenTrailingSigMissing_throwsException() throws Exception {
+    public void decrypt_whenTrailingSigMissing_throwsException() {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
             if (algorithm.getTrailingSignatureLength() == 0) {
                 continue;
@@ -299,13 +414,30 @@ public class DefaultCryptoMaterialsManagerTest {
                                                                            .setEncryptionContext(Collections.emptyMap())
                                                                            .build();
 
-            try {
-                new DefaultCryptoMaterialsManager(mk1).decryptMaterials(request);
-                fail("expected exception");
-            } catch (AwsCryptoException e) {
-                // ok
+            assertThrows(AwsCryptoException.class, () ->
+                    new DefaultCryptoMaterialsManager(mk1).decryptMaterials(request));
+        }
+    }
+
+    @Test
+    public void decrypt_whenTrailingSigMissingForKeyring_throwsException() {
+        for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
+            if (algorithm.getTrailingSignatureLength() == 0) {
                 continue;
             }
+
+            EncryptionMaterials encryptMaterials = easyGenMaterialsForKeyring(
+                    builder -> builder.setRequestedAlgorithm(algorithm)
+            );
+
+            DecryptionMaterialsRequest request = DecryptionMaterialsRequest.newBuilder()
+                    .setEncryptedDataKeys(encryptMaterials.getEncryptedDataKeys())
+                    .setAlgorithm(algorithm)
+                    .setEncryptionContext(Collections.emptyMap())
+                    .build();
+
+            assertThrows(AwsCryptoException.class, () ->
+                    new DefaultCryptoMaterialsManager(keyring1).decryptMaterials(request));
         }
     }
 }

@@ -32,7 +32,7 @@ class AesGcmJceKeyCipher extends JceKeyCipher {
     private static final int SPEC_LENGTH = Integer.BYTES + Integer.BYTES + NONCE_LENGTH;
 
     AesGcmJceKeyCipher(SecretKey key) {
-        super(key, key);
+        super(key, key, true);
     }
 
     private static byte[] specToBytes(final GCMParameterSpec spec) {

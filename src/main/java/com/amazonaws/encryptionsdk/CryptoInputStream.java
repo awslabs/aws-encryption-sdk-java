@@ -51,7 +51,10 @@ import com.amazonaws.encryptionsdk.internal.Utils;
  *
  * @param <K>
  *            The type of {@link MasterKey}s used to manipulate the data.
+ *
+ * @deprecated Replaced by {@link AwsCryptoInputStream}
  */
+@Deprecated
 public class CryptoInputStream<K extends MasterKey<K>> extends InputStream {
     private static final int MAX_READ_LEN = 4096;
 
@@ -252,6 +255,20 @@ public class CryptoInputStream<K extends MasterKey<K>> extends InputStream {
         return new CryptoResult<>(
                 this,
                 (List<K>) cryptoHandler_.getMasterKeys(),
+                cryptoHandler_.getHeaders());
+    }
+
+    AwsCryptoResult<AwsCryptoInputStream> getAwsCryptoResult(AwsCryptoInputStream awsCryptoInputStream) throws IOException {
+        while (!cryptoHandler_.getHeaders().isComplete()) {
+            if (fillOutBytes() == -1) {
+                throw new BadCiphertextException("No CiphertextHeaders found.");
+            }
+        }
+
+        return new AwsCryptoResult<>(
+                awsCryptoInputStream,
+                cryptoHandler_.getKeyringTrace(),
+                cryptoHandler_.getMasterKeys(),
                 cryptoHandler_.getHeaders());
     }
 }

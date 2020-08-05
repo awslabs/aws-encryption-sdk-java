@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.7.0 -- unreleased
+
+### Deprecation Warnings
+* Deprecated `MasterKey` and `MasterKeyProvider`. Replace your usage of these classes with `Keyring`. See `StandardKeyrings` 
+for the built-in keyrings that replace `KmsMasterKeyProvider`, `JceMasterKey`, and `MultiProviderFactory`. 
+We still support using master key providers and are not removing them yet. 
+When we decide to remove them, we will communicate that as defined in our versioning policy.
+* Deprecated `encryptData`, `decryptData` and related methods in `AwsCrypto`. Replace your calls to these methods with
+calls to `AwsCrypto.encrypt(EncryptRequest)` and `AwsCrypto.decrypt(DecryptRequest)`.
+
+### Major Changes
+* Introduce `Keyring` interface, built in Keyring implementations, and 
+ methods in AwsCrypto that use keyrings [PR #173](https://github.com/aws/aws-encryption-sdk-java/pull/173)
+
+### Patches
+* Validate final frame length does not exceed the frame size in the message header [PR #166](https://github.com/aws/aws-encryption-sdk-java/pull/166)
+
+### Maintenance
+* Update AWS Java SDK version from 1.11.561 to 1.11.677. [PR #147](https://github.com/aws/aws-encryption-sdk-java/pull/147)
+* Upgrade JUnit from 4.12 to 5.5.2 [PR #151](https://github.com/aws/aws-encryption-sdk-java/pull/151)
+* Upgrade Mockito from 2.28.1 to 3.1.0 [PR #142](https://github.com/aws/aws-encryption-sdk-java/pull/142)
+* Upgrade Bouncy Castle from 1.61 to 1.65 [PR #179](https://github.com/aws/aws-encryption-sdk-java/pull/179)
+
+### Documentation
+* Added new examples demonstrating how to use
+  APIs, keyrings, cryptographic materials managers, and master key providers. PRs
+   [#165](https://github.com/aws/aws-encryption-sdk-java/pull/165),
+   [#168](https://github.com/aws/aws-encryption-sdk-java/pull/168),
+   and [#170](https://github.com/aws/aws-encryption-sdk-java/pull/170).
+
 ## 1.6.2 -- 2020-05-26
 
 ### Patches

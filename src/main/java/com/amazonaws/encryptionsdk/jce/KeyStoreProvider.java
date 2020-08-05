@@ -38,13 +38,17 @@ import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 
 /**
  * This {@link MasterKeyProvider} provides keys backed by a JCE {@link KeyStore}. Please see
  * {@link #decryptDataKey(CryptoAlgorithm, Collection, Map)} for an of how decryption is managed and
  * see {@link #getMasterKeysForEncryption(MasterKeyRequest)} for an explanation of how encryption is
  * managed.
+ *
+ * @deprecated Replaced by {@code RawAesKeyring} and {@code RawRsaKeyring}. See {@link StandardKeyrings}.
  */
+@Deprecated
 public class KeyStoreProvider extends MasterKeyProvider<JceMasterKey> {
     private final String providerName_;
     private final KeyStore keystore_;

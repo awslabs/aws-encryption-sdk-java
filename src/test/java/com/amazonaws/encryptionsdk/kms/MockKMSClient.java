@@ -29,7 +29,7 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kms.AWSKMSClient;
+import com.amazonaws.services.kms.AbstractAWSKMS;
 import com.amazonaws.services.kms.model.CreateAliasRequest;
 import com.amazonaws.services.kms.model.CreateAliasResult;
 import com.amazonaws.services.kms.model.CreateGrantRequest;
@@ -85,7 +85,7 @@ import com.amazonaws.services.kms.model.RevokeGrantResult;
 import com.amazonaws.services.kms.model.UpdateKeyDescriptionRequest;
 import com.amazonaws.services.kms.model.UpdateKeyDescriptionResult;
 
-public class MockKMSClient extends AWSKMSClient {
+public class MockKMSClient extends AbstractAWSKMS {
     private static final SecureRandom rnd = new SecureRandom();
     private static final String ACCOUNT_ID = "01234567890";
     private final Map<DecryptMapKey, DecryptResult> results_ = new HashMap<>();

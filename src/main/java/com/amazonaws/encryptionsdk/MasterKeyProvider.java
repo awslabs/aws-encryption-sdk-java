@@ -22,6 +22,7 @@ import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 
 /**
  * Represents the logic necessary to select and construct {@link MasterKey}s for encrypting and
@@ -29,7 +30,10 @@ import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
  *
  * @param <K>
  *            the type of {@link MasterKey} returned by this provider
+ *
+ * @deprecated Replaced by {@link Keyring}
  */
+@Deprecated
 public abstract class MasterKeyProvider<K extends MasterKey<K>> {
     /**
      * ProviderId used by this instance when no other is specified.

@@ -17,12 +17,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Contains information which {@link MasterKeyProvider}s can use to select which {@link MasterKey}s
  * to use to protect a given plaintext. This class is immutable.
+ *
+ * @deprecated MasterKeys and MasterKeyProviders have been deprecated in favor of {@link Keyring}s
  */
+@Deprecated
 public final class MasterKeyRequest {
     private final Map<String, String> encryptionContext_;
     private final boolean isStreaming_;

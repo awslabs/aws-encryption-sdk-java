@@ -14,6 +14,7 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
 import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
@@ -22,16 +23,16 @@ import com.amazonaws.encryptionsdk.model.KeyBlob;
 
 /**
  * The CachingCryptoMaterialsManager wraps another {@link CryptoMaterialsManager}, and caches its results. This helps reduce
- * the number of calls made to the underlying {@link CryptoMaterialsManager} and/or {@link MasterKeyProvider}, which may
- * help reduce cost and/or improve performance.
+ * the number of calls made to the underlying {@link CryptoMaterialsManager}, {@link MasterKeyProvider} and/or
+ * {@link Keyring}, which may help reduce cost and/or improve performance.
  *
  * The CachingCryptoMaterialsManager helps enforce a number of usage limits on encrypt. Specifically, it limits the number of
  * individual messages encrypted with a particular data key, and the number of plaintext bytes encrypted with the same
  * data key. It also allows you to configure a maximum time-to-live for cache entries.
  *
  * Note that when performing streaming encryption operations, unless you set the stream size before writing any data
- * using {@link com.amazonaws.encryptionsdk.CryptoOutputStream#setMaxInputLength(long)} or
- * {@link com.amazonaws.encryptionsdk.CryptoInputStream#setMaxInputLength(long)}, the size of the message will not be
+ * using {@link com.amazonaws.encryptionsdk.AwsCryptoOutputStream#setMaxInputLength(long)} or
+ * {@link com.amazonaws.encryptionsdk.AwsCryptoInputStream#setMaxInputLength(long)}, the size of the message will not be
  * known, and to avoid exceeding byte use limits, caching will not be performed.
  *
  * By default, two different {@link CachingCryptoMaterialsManager}s will not share cached entries, even when using the same
@@ -79,8 +80,8 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
          * Sets the {@link CryptoMaterialsManager} that should be queried when the {@link CachingCryptoMaterialsManager}
          * incurs a cache miss.
          *
-         * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
-         * be used.
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
          *
          * @param backingCMM The CryptoMaterialsManager to invoke on cache misses
          * @return this builder
@@ -94,17 +95,37 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
          * Sets the {@link MasterKeyProvider} that should be queried when the {@link CachingCryptoMaterialsManager}
          * incurs a cache miss.
          *
-         * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
-         * be used.
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
          *
          * This method is equivalent to calling {@link #withBackingMaterialsManager(CryptoMaterialsManager)} passing a
          * {@link DefaultCryptoMaterialsManager} constructed using your {@link MasterKeyProvider}.
          *
+         * @deprecated {@link MasterKeyProvider}s have been deprecated in favor of {@link Keyring}s.
+         *
          * @param mkp The MasterKeyProvider to invoke on cache misses
          * @return this builder
          */
+        @Deprecated
         public Builder withMasterKeyProvider(MasterKeyProvider mkp) {
             return withBackingMaterialsManager(new DefaultCryptoMaterialsManager(mkp));
+        }
+
+        /**
+         * Sets the {@link Keyring} that should be queried when the {@link CachingCryptoMaterialsManager}
+         * incurs a cache miss.
+         *
+         * You can set either a MasterKeyProvider, a Keyring, or a CryptoMaterialsManager to back the CCMM - the last
+         * value set will be used.
+         *
+         * This method is equivalent to calling {@link #withBackingMaterialsManager(CryptoMaterialsManager)} passing a
+         * {@link DefaultCryptoMaterialsManager} constructed using your {@link Keyring}.
+         *
+         * @param keyring The Keyring to invoke on cache misses
+         * @return this builder
+         */
+        public Builder withKeyring(Keyring keyring) {
+            return withBackingMaterialsManager(new DefaultCryptoMaterialsManager(keyring));
         }
 
         /**

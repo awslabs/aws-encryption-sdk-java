@@ -36,6 +36,7 @@ public abstract class JceKeyCipher {
     private final Key wrappingKey;
     private final Key unwrappingKey;
     private static final Charset KEY_NAME_ENCODING = StandardCharsets.UTF_8;
+    private final boolean encryptionContextSigned;
 
     /**
      * Returns a new instance of a JceKeyCipher based on the
@@ -60,9 +61,10 @@ public abstract class JceKeyCipher {
         return new RsaJceKeyCipher(wrappingKey, unwrappingKey, transformation);
     }
 
-    JceKeyCipher(Key wrappingKey, Key unwrappingKey) {
+    JceKeyCipher(Key wrappingKey, Key unwrappingKey, boolean encryptionContextSigned) {
         this.wrappingKey = wrappingKey;
         this.unwrappingKey = unwrappingKey;
+        this.encryptionContextSigned = encryptionContextSigned;
     }
 
     abstract WrappingData buildWrappingCipher(Key key, Map<String, String> encryptionContext) throws GeneralSecurityException;
@@ -70,6 +72,15 @@ public abstract class JceKeyCipher {
     abstract Cipher buildUnwrappingCipher(Key key, byte[] extraInfo, int offset,
                                           Map<String, String> encryptionContext) throws GeneralSecurityException;
 
+    /**
+     * Returns true if this key cipher supports signing and verification
+     * of the encryption context.
+     *
+     * @return True if encryption context signing/verification is supported.
+     */
+    public boolean isEncryptionContextSigned() {
+        return encryptionContextSigned;
+    }
 
     /**
      * Encrypts the given key, incorporating the given keyName and encryptionContext.

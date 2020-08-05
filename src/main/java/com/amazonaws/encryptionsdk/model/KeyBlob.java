@@ -542,7 +542,7 @@ public final class KeyBlob implements EncryptedDataKey {
      */
     @Override
     public String getProviderId() {
-        String s = new String(keyProviderId_, StandardCharsets.UTF_8);
+        String s = new String(keyProviderId_, PROVIDER_ENCODING);
         // The following assume statement essentially says that different
         // calls to the String constructor above, with the same parameters,
         // result in strings with the same contents. The assumption is
@@ -627,7 +627,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   assignable \nothing;
     //@   signals_only AwsCryptoException;
     public void setKeyProviderId(final String keyProviderId) {
-        final byte[] keyProviderIdBytes = keyProviderId.getBytes(StandardCharsets.UTF_8);
+        final byte[] keyProviderIdBytes = keyProviderId.getBytes(PROVIDER_ENCODING);
         //@ assume Arrays.equalArrays(keyProviderIdBytes, EncryptedDataKey.s2ba(keyProviderId));
         if (keyProviderIdBytes.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(

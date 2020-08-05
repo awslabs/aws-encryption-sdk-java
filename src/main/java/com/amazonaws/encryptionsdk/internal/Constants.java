@@ -62,4 +62,9 @@ public final class Constants {
     public static final long MAX_FRAME_NUMBER = (1L << 32) - 1;
 
     public static final String EC_PUBLIC_KEY_FIELD = "aws-crypto-public-key";
+
+    /**
+     * The provider ID used for the AwsKmsKeyring
+     */
+    public static final String AWS_KMS_PROVIDER_ID = "aws-kms";
 }
