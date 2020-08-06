@@ -165,15 +165,10 @@ public class AwsCryptoTest {
                 plaintextBytes,
                 encryptionContext).getResult();
         final byte[] truncatedCipherText = Arrays.copyOf(cipherText, cipherText.length - 1);
-        try {
-            encryptionClient_.decryptData(
-                    masterKeyProvider,
-                    truncatedCipherText
-            ).getResult();
-            Assert.fail("Expected BadCiphertextException");
-        } catch (final BadCiphertextException ex) {
-            // Expected exception
-        }
+
+        assertThrows(BadCiphertextException.class, () -> encryptionClient_.decryptData(
+                masterKeyProvider,
+                truncatedCipherText));
     }
 
     private void doEncryptDecryptWithParsedCiphertext(final int byteSize, final int frameSize) {
