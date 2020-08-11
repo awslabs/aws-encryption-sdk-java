@@ -1,11 +1,11 @@
 /*
  * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
- * 
+ *
  * http://aws.amazon.com/apache2.0
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -487,8 +487,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     }
 
     /**
-     * Returns an instance of this object with the supplied client and region; the client will be 
-     * configured to use the provided region. All keys listed in {@code keyIds} will be used to 
+     * Returns an instance of this object with the supplied client and region; the client will be
+     * configured to use the provided region. All keys listed in {@code keyIds} will be used to
      * protect data.
      *
      * @deprecated This constructor modifies the passed-in KMS client by setting its region. This functionality may be

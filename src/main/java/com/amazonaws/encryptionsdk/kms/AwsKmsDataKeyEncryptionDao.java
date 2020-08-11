@@ -15,6 +15,8 @@ package com.amazonaws.encryptionsdk.kms;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
@@ -23,6 +25,7 @@ import com.amazonaws.encryptionsdk.exception.MismatchedDataKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedRegionException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
+import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
@@ -37,7 +40,6 @@ import java.util.Map;
 
 import static com.amazonaws.encryptionsdk.EncryptedDataKey.PROVIDER_ENCODING;
 import static com.amazonaws.encryptionsdk.internal.Constants.AWS_KMS_PROVIDER_ID;
-import static com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier.getClientByKeyId;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.Validate.isTrue;
 
@@ -48,13 +50,20 @@ import static org.apache.commons.lang3.Validate.isTrue;
  */
 class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
 
-    private final AwsKmsClientSupplier clientSupplier;
+    private final AWSKMS client;
+    private final boolean canAppendUserAgentString;
     private List<String> grantTokens;
 
-    AwsKmsDataKeyEncryptionDao(AwsKmsClientSupplier clientSupplier, List<String> grantTokens) {
-        requireNonNull(clientSupplier, "clientSupplier is required");
+    AwsKmsDataKeyEncryptionDao(AWSKMS client, List<String> grantTokens) {
+        // Assume the user agent string cannot be appended (default)
+        this(client, grantTokens, false);
+    }
 
-        this.clientSupplier = clientSupplier;
+    AwsKmsDataKeyEncryptionDao(AWSKMS client, List<String> grantTokens, boolean canAppendUserAgentString) {
+        requireNonNull(client, "client is required");
+
+        this.canAppendUserAgentString = canAppendUserAgentString;
+        this.client = client;
         this.grantTokens = grantTokens == null ? new ArrayList<>() : new ArrayList<>(grantTokens);
     }
 
@@ -67,13 +76,12 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
         final com.amazonaws.services.kms.model.GenerateDataKeyResult kmsResult;
 
         try {
-            kmsResult = getClientByKeyId(keyId, clientSupplier)
-                    .generateDataKey(updateUserAgent(
-                            new GenerateDataKeyRequest()
-                                    .withKeyId(keyId.toString())
-                                    .withNumberOfBytes(algorithmSuite.getDataKeyLength())
-                                    .withEncryptionContext(encryptionContext)
-                                    .withGrantTokens(grantTokens)));
+            kmsResult = client.generateDataKey(updateUserAgent(
+                new GenerateDataKeyRequest()
+                    .withKeyId(keyId.toString())
+                    .withNumberOfBytes(algorithmSuite.getDataKeyLength())
+                    .withEncryptionContext(encryptionContext)
+                    .withGrantTokens(grantTokens)));
         } catch (final AmazonServiceException ex) {
             throw new AwsCryptoException(ex);
         }
@@ -100,12 +108,12 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
         final com.amazonaws.services.kms.model.EncryptResult kmsResult;
 
         try {
-            kmsResult = getClientByKeyId(keyId, clientSupplier)
-                    .encrypt(updateUserAgent(new EncryptRequest()
-                            .withKeyId(keyId.toString())
-                            .withPlaintext(ByteBuffer.wrap(plaintextDataKey.getEncoded()))
-                            .withEncryptionContext(encryptionContext)
-                            .withGrantTokens(grantTokens)));
+            kmsResult = client.encrypt(updateUserAgent(
+                new EncryptRequest()
+                    .withKeyId(keyId.toString())
+                    .withPlaintext(ByteBuffer.wrap(plaintextDataKey.getEncoded()))
+                    .withEncryptionContext(encryptionContext)
+                    .withGrantTokens(grantTokens)));
         } catch (final AmazonServiceException ex) {
             throw new AwsCryptoException(ex);
         }
@@ -126,11 +134,13 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
         final com.amazonaws.services.kms.model.DecryptResult kmsResult;
 
         try {
-            kmsResult = getClientByKeyId(AwsKmsCmkId.fromString(providerInformation), clientSupplier)
-                    .decrypt(updateUserAgent(new DecryptRequest()
-                            .withCiphertextBlob(ByteBuffer.wrap(encryptedDataKey.getEncryptedDataKey()))
-                            .withEncryptionContext(encryptionContext)
-                            .withGrantTokens(grantTokens)));
+            kmsResult = client.decrypt(updateUserAgent(
+                new DecryptRequest()
+                    .withCiphertextBlob(ByteBuffer.wrap(encryptedDataKey.getEncryptedDataKey()))
+                    // provide the encrypted data key’s provider info as part of the AWS KMS Decrypt API call
+                    .withKeyId(providerInformation)
+                    .withEncryptionContext(encryptionContext)
+                    .withGrantTokens(grantTokens)));
         } catch (final AmazonServiceException | UnsupportedRegionException ex) {
             throw new CannotUnwrapDataKeyException(ex);
         }
@@ -150,8 +160,12 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
     }
 
     private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
-        request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
-
+        // Only append the user agent string if the user agent string is the AWS SDK default
+        // and if we are allowed to append it
+        String marker = request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT);
+        if (this.canAppendUserAgentString && ClientConfiguration.DEFAULT_USER_AGENT.equals(marker)) {
+            request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
+        }
         return request;
     }
 

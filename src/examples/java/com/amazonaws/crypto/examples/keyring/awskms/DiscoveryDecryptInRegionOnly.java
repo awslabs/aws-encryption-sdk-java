@@ -11,7 +11,7 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
+import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -85,7 +85,7 @@ public class DiscoveryDecryptInRegionOnly {
         // The keyring only attempts to decrypt data keys if it can get a client for that region,
         // so this keyring will now ignore any data keys that were encrypted under a CMK in another region.
         final Keyring decryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(StandardAwsKmsClientSuppliers.allowRegionsBuilder(singleton(decryptRegion)).build())
+                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.allowRegionsBuilder(singleton(decryptRegion)).build())
                 .build();
 
         // Encrypt your plaintext data.

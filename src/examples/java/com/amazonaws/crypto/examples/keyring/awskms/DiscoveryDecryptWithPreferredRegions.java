@@ -10,7 +10,7 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
+import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
 
 import java.util.Arrays;
@@ -89,11 +89,11 @@ public class DiscoveryDecryptWithPreferredRegions {
         //
         // One that only works in the local region
         final Keyring localRegionDecryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(StandardAwsKmsClientSuppliers.allowRegionsBuilder(singleton(localRegion)).build())
+                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.allowRegionsBuilder(singleton(localRegion)).build())
                 .build();
         // and one that will work in any other region but NOT the local region.
         final Keyring otherRegionsDecryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(StandardAwsKmsClientSuppliers.denyRegionsBuilder(singleton(localRegion)).build())
+                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.denyRegionsBuilder(singleton(localRegion)).build())
                 .build();
 
         // Finally, combine those two keyrings into a multi-keyring.

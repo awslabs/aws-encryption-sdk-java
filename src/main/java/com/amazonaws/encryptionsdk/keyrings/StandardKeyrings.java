@@ -14,7 +14,6 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -47,54 +46,59 @@ public class StandardKeyrings {
     public static RawRsaKeyringBuilder rawRsaBuilder() {
         return RawRsaKeyringBuilder.standard();
     }
-      
-    /**  
-     * Constructs a {@code Keyring} which interacts with AWS Key Management Service (KMS) to create,
-     * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Key (CMK).
-     * Use {@link #awsKmsBuilder()} for more advanced configuration using an {@link AwsKmsKeyringBuilder}
+
+    /**
+     * Constructs a {@code MultiKeyring} which interacts with AWS Key Management Service (KMS) to create,
+     * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Keys (CMKs).
      *
-     * @param generatorKeyId    An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies a
-     *                          AWS KMS CMK responsible for generating a data key, as well as encrypting and
-     *                          decrypting data keys .
+     * @param generatorKeyName An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies an
+     *                         AWS KMS CMK responsible for generating a data key, as well as encrypting and
+     *                         decrypting data keys.
+     * @param keyNames         A list of {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies
+     *                         AWS KMS CMKs responsible for encrypting and decrypting data keys.
      * @return The {@code Keyring}
      */
-    public static Keyring awsKms(AwsKmsCmkId generatorKeyId) {
-        return AwsKmsKeyringBuilder.standard()
-                .generatorKeyId(generatorKeyId)
-                .build();
+    public static Keyring awsKmsSymmetricMultiCmk(AwsKmsCmkId generatorKeyName, List<AwsKmsCmkId> keyNames) {
+        return AwsKmsSymmetricMultiCmkKeyringBuilder.standard()
+            .generator(generatorKeyName)
+            .keyNames(keyNames)
+            .build();
     }
 
     /**
-     * Returns a {@link AwsKmsKeyringBuilder} for use in constructing a keyring which interacts with
+     * Returns a {@link AwsKmsSymmetricMultiCmkKeyringBuilder} for use in constructing a keyring which interacts with
      * AWS Key Management Service (KMS) to create, encrypt, and decrypt data keys using AWS KMS defined
      * Customer Master Keys (CMKs).
      *
-     * @return The {@link AwsKmsKeyringBuilder}
+     * @return The {@link AwsKmsSymmetricMultiCmkKeyringBuilder}
      */
-    public static AwsKmsKeyringBuilder awsKmsBuilder() {
-        return AwsKmsKeyringBuilder.standard();
+    public static AwsKmsSymmetricMultiCmkKeyringBuilder awsKmsSymmetricMultiCmkBuilder() {
+        return AwsKmsSymmetricMultiCmkKeyringBuilder.standard();
     }
 
     /**
-     * Returns an {@link AwsKmsKeyringBuilder} for use in constructing an AWS KMS Discovery keyring.
-     * AWS KMS Discovery keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
-     * using any encrypted data key in an encrypted message. AWS KMS Discovery keyrings do not perform encryption.
-     * <p></p>
-     * To create an AWS KMS Regional Discovery Keyring, use {@link StandardAwsKmsClientSuppliers#allowRegionsBuilder} or
-     * {@link StandardAwsKmsClientSuppliers#denyRegionsBuilder} to specify which regions to include/exclude.
-     * <p></p>
-     * For example, to include only CMKs in the us-east-1 region:
-     * <pre>
-     * StandardKeyrings.awsKmsDiscovery()
-     *             .awsKmsClientSupplier(
-     *                     StandardAwsKmsClientSuppliers.allowRegionsBuilder(Collections.singleton("us-east-1")).build()
-     *             .build();
-     * </pre>
+     * Constructs a {@code MultiKeyring} which interacts with AWS Key Management Service (KMS) to decrypt data keys
+     * using in the specified AWS regions.
+     *
+     * @param regionIds    A list of strings representing AWS regions to attempt decryption in.
+     * @return The {@code Keyring}
+     */
+    public static Keyring awsKmsSymmetricMultiRegionDiscovery(List<String> regionIds) {
+        return AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder.standard()
+            .regions(regionIds)
+            .build();
+    }
+
+    /**
+     * Returns an {@link AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder}
+     * for use in constructing an AWS KMS multi-region discovery keyring.
+     * 'Discovery' keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
+     * using any encrypted data key in the specified region(s). 'Discovery' keyrings do not perform encryption.
      *
      * @return The {@code AwsKmsKeyringBuilder}
      */
-    public static AwsKmsKeyringBuilder awsKmsDiscoveryBuilder() {
-        return AwsKmsKeyringBuilder.discovery();
+    public static AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder awsKmsSymmetricMultiRegionDiscoveryKeyringBuilder() {
+        return AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder.standard();
     }
 
     /**

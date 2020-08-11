@@ -16,7 +16,7 @@ package com.amazonaws.encryptionsdk.kms;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.exception.UnsupportedRegionException;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers.DefaultAwsKmsClientSupplierBuilder;
+import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder.DefaultAwsKmsClientSupplierBuilder;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
 import com.amazonaws.services.kms.model.AWSKMSException;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class StandardAwsKmsClientSuppliersTest {
+class AwsKmsServiceClientBuilderTest {
 
     @Mock AWSKMSClientBuilder kmsClientBuilder;
     @Mock AWSKMS awskms;
@@ -141,7 +141,7 @@ class StandardAwsKmsClientSuppliersTest {
 
         assertNotNull(supplierWithDefaultValues.getClient(REGION_1));
 
-        AwsKmsClientSupplier supplierWithAllowed = StandardAwsKmsClientSuppliers
+        AwsKmsClientSupplier supplierWithAllowed = AwsKmsServiceClientBuilder
                 .allowRegionsBuilder(Collections.singleton(REGION_1))
                 .baseClientSupplier(new DefaultAwsKmsClientSupplierBuilder(kmsClientBuilder).build()).build();
 
@@ -162,7 +162,7 @@ class StandardAwsKmsClientSuppliersTest {
 
         assertNotNull(supplierWithDefaultValues.getClient(REGION_1));
 
-        AwsKmsClientSupplier supplierWithDenied = StandardAwsKmsClientSuppliers
+        AwsKmsClientSupplier supplierWithDenied = AwsKmsServiceClientBuilder
                 .denyRegionsBuilder(Collections.singleton(REGION_1))
                 .baseClientSupplier(new DefaultAwsKmsClientSupplierBuilder(kmsClientBuilder).build()).build();
 

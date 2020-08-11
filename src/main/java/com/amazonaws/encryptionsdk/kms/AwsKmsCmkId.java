@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A representation of an AWS KMS Customer Master Key Identifier, which may be one either a
@@ -106,6 +107,24 @@ public final class AwsKmsCmkId {
             return true;
         } catch (IllegalArgumentException e) {
             return false;
+        }
+    }
+
+    /**
+     * Returns the ARN from a provided keyName or null if the keyName is not an Amazon Resource Name (ARN)
+     *
+     * @param keyName The key ID, key Amazon Resource Name (ARN), alias name, or alias ARN
+     * @return ARN (or null))
+     */
+    public static Optional<Arn> getArnFromKeyName(String keyName) {
+        if (StringUtils.isBlank(keyName) || !keyName.startsWith(ARN_PREFIX)) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(Arn.fromString(keyName));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
         }
     }
 

@@ -17,7 +17,6 @@ import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 
 import javax.crypto.SecretKey;
-import java.util.List;
 import java.util.Map;
 
 public interface DataKeyEncryptionDao {
@@ -52,18 +51,6 @@ public interface DataKeyEncryptionDao {
      * @return DecryptDataKeyResult containing the plaintext data key and the ARN of the key that decrypted it.
      */
     DecryptDataKeyResult decryptDataKey(EncryptedDataKey encryptedDataKey, CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext);
-
-    /**
-     * Constructs an instance of DataKeyEncryptionDao that uses AWS Key Management Service (KMS) for
-     * generation, encryption, and decryption of data keys.
-     *
-     * @param clientSupplier A supplier of AWSKMS clients
-     * @param grantTokens A list of grant tokens to supply to KMS
-     * @return The DataKeyEncryptionDao
-     */
-    static DataKeyEncryptionDao awsKms(AwsKmsClientSupplier clientSupplier, List<String> grantTokens) {
-        return new AwsKmsDataKeyEncryptionDao(clientSupplier, grantTokens);
-    }
 
     class GenerateDataKeyResult {
         private final SecretKey plaintextDataKey;

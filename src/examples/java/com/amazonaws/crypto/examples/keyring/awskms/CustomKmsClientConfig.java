@@ -13,7 +13,7 @@ import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
+import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -72,7 +72,7 @@ public class CustomKmsClientConfig {
         // Use your custom configuration values to configure your client supplier.
         // For this example we will just use the default credentials provider
         // but if you need to, you can set a custom credentials provider as well.
-        final AwsKmsClientSupplier clientSupplier = StandardAwsKmsClientSuppliers.defaultBuilder()
+        final AwsKmsClientSupplier clientSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
                 .clientConfiguration(clientConfiguration)
                 .build();
 

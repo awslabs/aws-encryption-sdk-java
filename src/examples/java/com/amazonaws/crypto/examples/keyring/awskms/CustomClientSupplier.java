@@ -12,7 +12,7 @@ import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.StandardAwsKmsClientSuppliers;
+import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 import com.amazonaws.services.kms.AWSKMS;
 
 import java.util.Arrays;
@@ -50,13 +50,13 @@ public class CustomClientSupplier {
 
     static class MultiPartitionClientSupplier implements AwsKmsClientSupplier {
 
-        private final AwsKmsClientSupplier chinaSupplier = StandardAwsKmsClientSuppliers.defaultBuilder()
+        private final AwsKmsClientSupplier chinaSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
                 .credentialsProvider(new ProfileCredentialsProvider("china")).build();
-        private final AwsKmsClientSupplier middleEastSupplier = StandardAwsKmsClientSuppliers.defaultBuilder()
+        private final AwsKmsClientSupplier middleEastSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
                 .credentialsProvider(new ProfileCredentialsProvider("middle-east")).build();
-        private final AwsKmsClientSupplier hongKongSupplier = StandardAwsKmsClientSuppliers.defaultBuilder()
+        private final AwsKmsClientSupplier hongKongSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
                 .credentialsProvider(new ProfileCredentialsProvider("hong-kong")).build();
-        private final AwsKmsClientSupplier defaultSupplier = StandardAwsKmsClientSuppliers.defaultBuilder().build();
+        private final AwsKmsClientSupplier defaultSupplier = AwsKmsServiceClientBuilder.defaultBuilder().build();
 
         /**
          * Returns a client for the requested region.
