@@ -43,6 +43,7 @@ import static com.amazonaws.encryptionsdk.internal.Constants.AWS_KMS_PROVIDER_ID
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
@@ -56,6 +57,7 @@ import static org.mockito.Mockito.when;
 
 class AwsKmsDataKeyEncryptionDaoTest {
 
+    private static final boolean CAN_APPEND_USER_AGENT_STRING = true;
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
     private static final SecretKey DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static final List<String> GRANT_TOKENS = Collections.singletonList("testGrantToken");
@@ -65,12 +67,21 @@ class AwsKmsDataKeyEncryptionDaoTest {
 
     @Test
     void testEncryptAndDecrypt() {
+        encryptAndDecrypt(CAN_APPEND_USER_AGENT_STRING);
+    }
+
+    @Test
+    void testEncryptAndDecryptCannotAppendUserAgentString() {
+        encryptAndDecrypt(!CAN_APPEND_USER_AGENT_STRING);
+    }
+
+    void encryptAndDecrypt(boolean canAppendUserAgentString) {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS, canAppendUserAgentString);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         EncryptedDataKey encryptedDataKeyResult = dao.encryptDataKey(
-                AwsKmsCmkId.fromString(keyId), DATA_KEY, ENCRYPTION_CONTEXT);
+            AwsKmsCmkId.fromString(keyId), DATA_KEY, ENCRYPTION_CONTEXT);
 
         ArgumentCaptor<EncryptRequest> er = ArgumentCaptor.forClass(EncryptRequest.class);
         verify(client, times(1)).encrypt(er.capture());
@@ -81,7 +92,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertEquals(GRANT_TOKENS, actualRequest.getGrantTokens());
         assertEquals(ENCRYPTION_CONTEXT, actualRequest.getEncryptionContext());
         assertArrayEquals(DATA_KEY.getEncoded(), actualRequest.getPlaintext().array());
-        assertUserAgent(actualRequest);
+        assertUserAgent(actualRequest, canAppendUserAgentString);
 
         assertEquals(AWS_KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
         assertArrayEquals(keyId.getBytes(EncryptedDataKey.PROVIDER_ENCODING), encryptedDataKeyResult.getProviderInformation());
@@ -96,7 +107,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertEquals(GRANT_TOKENS, actualDecryptRequest.getGrantTokens());
         assertEquals(ENCRYPTION_CONTEXT, actualDecryptRequest.getEncryptionContext());
         assertArrayEquals(encryptedDataKeyResult.getEncryptedDataKey(), actualDecryptRequest.getCiphertextBlob().array());
-        assertUserAgent(actualDecryptRequest);
+        assertUserAgent(actualDecryptRequest, canAppendUserAgentString);
 
         assertEquals(DATA_KEY, decryptDataKeyResult.getPlaintextDataKey());
         assertEquals(keyId, decryptDataKeyResult.getKeyArn());
@@ -104,12 +115,21 @@ class AwsKmsDataKeyEncryptionDaoTest {
 
     @Test
     void testGenerateAndDecrypt() {
+        generateAndDecrypt(CAN_APPEND_USER_AGENT_STRING);
+    }
+
+    @Test
+    void testGenerateAndDecryptCannotAppendUserAgentString() {
+        generateAndDecrypt(!CAN_APPEND_USER_AGENT_STRING);
+    }
+
+    void generateAndDecrypt(boolean canAppendUserAgentString) {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS, canAppendUserAgentString);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         DataKeyEncryptionDao.GenerateDataKeyResult generateDataKeyResult = dao.generateDataKey(
-                AwsKmsCmkId.fromString(keyId), ALGORITHM_SUITE, ENCRYPTION_CONTEXT);
+            AwsKmsCmkId.fromString(keyId), ALGORITHM_SUITE, ENCRYPTION_CONTEXT);
 
         ArgumentCaptor<GenerateDataKeyRequest> gr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gr.capture());
@@ -120,7 +140,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertEquals(GRANT_TOKENS, actualRequest.getGrantTokens());
         assertEquals(ENCRYPTION_CONTEXT, actualRequest.getEncryptionContext());
         assertEquals(ALGORITHM_SUITE.getDataKeyLength(), actualRequest.getNumberOfBytes());
-        assertUserAgent(actualRequest);
+        assertUserAgent(actualRequest, canAppendUserAgentString);
 
         assertNotNull(generateDataKeyResult.getPlaintextDataKey());
         assertEquals(ALGORITHM_SUITE.getDataKeyLength(), generateDataKeyResult.getPlaintextDataKey().getEncoded().length);
@@ -136,7 +156,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertEquals(GRANT_TOKENS, actualDecryptRequest.getGrantTokens());
         assertEquals(ENCRYPTION_CONTEXT, actualDecryptRequest.getEncryptionContext());
         assertArrayEquals(generateDataKeyResult.getEncryptedDataKey().getEncryptedDataKey(), actualDecryptRequest.getCiphertextBlob().array());
-        assertUserAgent(actualDecryptRequest);
+        assertUserAgent(actualDecryptRequest, canAppendUserAgentString);
 
         assertEquals(generateDataKeyResult.getPlaintextDataKey(), decryptDataKeyResult.getPlaintextDataKey());
         assertEquals(keyId, decryptDataKeyResult.getKeyArn());
@@ -145,7 +165,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
     @Test
     void testEncryptWithRawKeyId() {
         AWSKMS client = spy(new MockKMSClient());
-        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS);
+        DataKeyEncryptionDao dao = new AwsKmsDataKeyEncryptionDao(client, GRANT_TOKENS, CAN_APPEND_USER_AGENT_STRING);
 
         String keyId = client.createKey().getKeyMetadata().getArn();
         String rawKeyId = keyId.split("/")[1];
@@ -161,7 +181,7 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertEquals(GRANT_TOKENS, actualRequest.getGrantTokens());
         assertEquals(ENCRYPTION_CONTEXT, actualRequest.getEncryptionContext());
         assertArrayEquals(DATA_KEY.getEncoded(), actualRequest.getPlaintext().array());
-        assertUserAgent(actualRequest);
+        assertUserAgent(actualRequest, CAN_APPEND_USER_AGENT_STRING);
 
         assertEquals(AWS_KMS_PROVIDER_ID, encryptedDataKeyResult.getProviderId());
         assertArrayEquals(keyId.getBytes(EncryptedDataKey.PROVIDER_ENCODING), encryptedDataKeyResult.getProviderInformation());
@@ -243,9 +263,13 @@ class AwsKmsDataKeyEncryptionDaoTest {
         assertThrows(IllegalStateException.class, () -> dao.decryptDataKey(ENCRYPTED_DATA_KEY, ALGORITHM_SUITE, ENCRYPTION_CONTEXT));
     }
 
-    private void assertUserAgent(AmazonWebServiceRequest request) {
-        assertTrue(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT)
+    private void assertUserAgent(AmazonWebServiceRequest request, boolean couldAppend) {
+        if (couldAppend) {
+            assertTrue(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT)
                 .contains(VersionInfo.USER_AGENT));
+        } else {
+            // In this case, we never appended anything to the user agent string, so it remains null
+            assertNull(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT));
+        }
     }
-
 }

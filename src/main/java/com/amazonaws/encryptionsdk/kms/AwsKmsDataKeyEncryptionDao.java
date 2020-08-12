@@ -29,6 +29,7 @@ import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -162,8 +163,8 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
     private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
         // Only append the user agent string if the user agent string is the AWS SDK default
         // and if we are allowed to append it
-        String marker = request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT);
-        if (this.canAppendUserAgentString && ClientConfiguration.DEFAULT_USER_AGENT.equals(marker)) {
+        final String marker = request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT);
+        if (this.canAppendUserAgentString && marker == null) {
             request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
         }
         return request;
