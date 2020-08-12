@@ -10,50 +10,51 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Collections.singleton;
-
 /**
- * When you give the AWS KMS keyring specific key IDs it will use those CMKs and nothing else.
+ * When you give the AWS KMS symmetric multi-CMK keyring specific key names it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
- * especially if you might not know beforehand which CMK was used to encrypt a message.
- * To address this need, you can use an AWS KMS discovery keyring.
- * The AWS KMS discovery keyring does nothing on encrypt.
- * On decrypt it reviews each encrypted data key (EDK).
+ * especially if you don't know which CMK was used to encrypt a message.
+ * To address this need, you can use an AWS KMS symmetric multi-region discovery keyring.
+ * The AWS KMS symmetric multi-region discovery keyring is a multi-keyring of AWS KMS symmetric region discovery keyrings.
+ * AWS KMS symmetric region discovery keyrings cannot encrypt.
+ * On decrypt each AWS KMS symmetric region discovery keyring reviews each encrypted data key (EDK).
  * If an EDK was encrypted under an AWS KMS CMK,
- * the AWS KMS discovery keyring attempts to decrypt it.
+ * the AWS KMS symmetric region discovery keyring attempts to decrypt it if the EDK's region matches the region associated
+ * with the AWS KMS symmetric region discovery keyring.
  * Whether decryption succeeds depends on permissions on the CMK.
- * This continues until the AWS KMS discovery keyring either runs out of EDKs
+ * This continues until the AWS KMS symmetric region discovery keyring either runs out of EDKs
  * or succeeds in decrypting an EDK.
  * <p>
- * However, sometimes you need to be a *bit* more restrictive than that.
- * To address this need, you can use a client supplier to restrict what regions an AWS KMS keyring can talk to.
+ * Each AWS KMS symmetric region discovery keyring is restricted to a single AWS region.
+ * Additionally, an AWS KMS symmetric multi-region discovery keyring restricts communication to the configured regions,
+ * in their configured order.
  * <p>
  * A more complex but more common use-case is that you would *prefer* to stay within a region,
  * but you would rather make calls to other regions than fail to decrypt the message.
  * In this case, you want a keyring that will try to decrypt data keys in this region first,
  * then try other regions.
  * <p>
- * This example shows how to configure and use a multi-keyring with the AWS KMS keyring
- * to prefer the current AWS region while also failing over to other AWS regions.
+ * This example shows how to configure and use an AWS KMS symmetric multi-region discovery keyring
+ * that prefers the current AWS region while also failing over to other AWS regions.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS symmetric multi-CMK keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the AWS KMS keyring with custom client configurations,
- * see the {@link CustomClientSupplier}
+ * For examples of how to use the AWS KMS symmetric multi-CMK keyring with custom client configurations,
+ * see the {@link CustomDataKeyEncryptionDao}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the AWS KMS discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * and {@link DiscoveryDecryptInRegionOnly} examples.
  */
@@ -80,29 +81,25 @@ public class DiscoveryDecryptWithPreferredRegions {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring encryptKeyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring encryptKeyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // To create our decrypt keyring, we need to know our current default AWS region.
+        // Please note that this *may* return a null region.
+        // As a result, we recommend specifying the region you are operating in directly.
         final String localRegion = AWSKMSClientBuilder.standard().getRegion();
 
-        // Now, use that region name to create two AWS KMS discovery keyrings:
-        //
-        // One that only works in the local region
-        final Keyring localRegionDecryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.allowRegionsBuilder(singleton(localRegion)).build())
-                .build();
-        // and one that will work in any other region but NOT the local region.
-        final Keyring otherRegionsDecryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.denyRegionsBuilder(singleton(localRegion)).build())
-                .build();
-
-        // Finally, combine those two keyrings into a multi-keyring.
+        // Now, use that region name to create an AWS KMS symmetric multi-region discovery keyring.
+        // The AWS KMS symmetric multi-region discovery keyring represents a multi-keying
+        // of child AWS KMS symmetric region discovery keyrings.
         //
         // The multi-keyring steps through its member keyrings in the order that you provide them,
         // attempting to decrypt every encrypted data key with each keyring before moving on to the next keyring.
         // Because of this, otherRegionsDecryptKeyring will not be called
         // unless localRegionDecryptKeyring fails to decrypt every encrypted data key.
-        final Keyring decryptKeyring = StandardKeyrings.multi(localRegionDecryptKeyring, otherRegionsDecryptKeyring);
+        //
+        // In this example, we first try our localRegion and then fall back to 'us-west-2'
+        final Keyring decryptKeyring = StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery(
+            Arrays.asList(localRegion, Regions.US_WEST_2.getName()));
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(

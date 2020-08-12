@@ -16,18 +16,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This example shows how to configure and use an AWS KMS keyring with a single KMS CMK.
+ * This example shows how to configure and use an AWS KMS symmetric multi-CMK keyring with a single AWS KMS CMK.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS symmetric multi-CMK keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the AWS KMS keyring with custom client configurations,
- * see the {@link CustomClientSupplier}
+ * For examples of how to use the AWS KMS symmetric keyring
+ * and the AWS KMS symmetric multi-CMK keyring with custom client configurations,
+ * see the {@link CustomDataKeyEncryptionDao}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the AWS KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
@@ -35,7 +36,7 @@ import java.util.Map;
 public class SingleCmk {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with a single CMK.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS symmetric multi-cmk keyring with a single CMK.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt
@@ -55,7 +56,7 @@ public class SingleCmk {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(

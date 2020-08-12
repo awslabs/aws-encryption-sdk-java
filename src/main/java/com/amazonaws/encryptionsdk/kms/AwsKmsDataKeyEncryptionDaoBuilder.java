@@ -16,6 +16,7 @@ package com.amazonaws.encryptionsdk.kms;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -113,7 +114,7 @@ public class AwsKmsDataKeyEncryptionDaoBuilder {
      * @return The AwsKmsDataKeyEncryptionDaoBuilder, for method chaining
      */
     public AwsKmsDataKeyEncryptionDaoBuilder regionId(String regionId) {
-        if (regionId != null) {
+        if (!StringUtils.isBlank(regionId)) {
             this.regionId = regionId;
         }
         return this;

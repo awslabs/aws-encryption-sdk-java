@@ -18,10 +18,8 @@ import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.RawRsaKeyringBuilder.RsaPaddingScheme;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
-import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.util.IOUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -65,12 +63,9 @@ class TestVectorRunner {
     // We save the files in memory to avoid repeatedly retrieving them.
     // This won't work if the plaintexts are too large or numerous
     private static final Map<String, byte[]> cachedData = new HashMap<>();
-    private static final AwsKmsClientSupplier awsKmsClientSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
-            .credentialsProvider(new DefaultAWSCredentialsProviderChain())
-            .build();
     private static final KmsMasterKeyProvider kmsProv = KmsMasterKeyProvider
             .builder()
-            .withCustomClientFactory(awsKmsClientSupplier::getClient)
+            .withCredentials(new DefaultAWSCredentialsProviderChain())
             .build();
 
     @ParameterizedTest(name = "Compatibility Test: {0}")
@@ -158,9 +153,9 @@ class TestVectorRunner {
             final KeyEntry key = keys.get(keyName);
 
             if ("aws-kms".equals(type)) {
-                keyrings.add(StandardKeyrings.awsKmsBuilder()
-                        .awsKmsClientSupplier(awsKmsClientSupplier)
-                        .generatorKeyId(AwsKmsCmkId.fromString(key.keyId))
+                keyrings.add(StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
+                        .credentialsProvider(new DefaultAWSCredentialsProviderChain())
+                        .generator(AwsKmsCmkId.fromString(key.keyId))
                         .build());
                 mks.add(kmsProv.getMasterKey(key.keyId));
             } else if ("raw".equals(type)) {

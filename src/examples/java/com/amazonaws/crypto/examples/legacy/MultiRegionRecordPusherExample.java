@@ -12,7 +12,7 @@ import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
+import com.amazonaws.encryptionsdk.kms.AwsKmsDataKeyEncryptionDaoBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
@@ -60,12 +60,13 @@ public class MultiRegionRecordPusherExample {
                     .withRegion(region.getName())
                     .build());
 
-            keyrings.add(StandardKeyrings.awsKmsBuilder()
-                    .awsKmsClientSupplier(AwsKmsServiceClientBuilder
-                            .allowRegionsBuilder(Collections.singleton(region.getName()))
-                            .baseClientSupplier(AwsKmsServiceClientBuilder.defaultBuilder()
-                                    .credentialsProvider(credentialsProvider).build()).build())
-                    .generatorKeyId(AwsKmsCmkId.fromString(kmsAliasName)).build());
+            // Here, we will use the base building blocks, since we want a custom client for each alias
+            keyrings.add(StandardKeyrings.awsKmsSymmetric(
+                    AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
+                        .regionId(region.getName())
+                        .credentialsProvider(credentialsProvider).
+                        build(),
+                    AwsKmsCmkId.fromString(kmsAliasName)));
         }
 
         // Collect keyrings into a single multi-keyring and add cache. In this example, the keyring for the

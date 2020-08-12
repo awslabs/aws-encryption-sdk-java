@@ -18,18 +18,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This example shows how to configure and use an AWS KMS keyring with CMKs in multiple regions.
+ * This example shows how to configure and use an AWS KMS symmetric multi-cmk keyring with CMKs in multiple regions.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the AWS KMS keyring with a single CMK,
+ * For an example of how to use the AWS KMS symmetric multi-cmk keyring with a single CMK,
  * see the {@link SingleCmk} example.
  * <p>
- * For examples of how to use the AWS KMS keyring with custom client configurations,
- * see the {@link CustomClientSupplier}
+ * For examples of how to use the AWS KMS symmetric keyring
+ * and the AWS KMS symmetric multi-CMK keyring with custom client configurations,
+ * see the {@link CustomDataKeyEncryptionDao}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the AWS KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
  * {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
@@ -37,7 +38,7 @@ import java.util.Map;
 public class MultipleRegions {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with CMKs in multiple regions.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS symmetric multi-cmk keyring with CMKs in multiple regions.
      *
      * @param awsKmsGeneratorCmk   The ARN of an AWS KMS CMK that protects data keys
      * @param awsKmsAdditionalCmks Additional ARNs of secondary AWS KMS CMKs
@@ -58,22 +59,22 @@ public class MultipleRegions {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that will encrypt your data keys under all requested CMKs.
-        final Keyring manyCmksKeyring = StandardKeyrings.awsKmsBuilder()
-                .generatorKeyId(awsKmsGeneratorCmk)
-                .keyIds(awsKmsAdditionalCmks)
+        final Keyring manyCmksKeyring = StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
+                .generator(awsKmsGeneratorCmk)
+                .keyNames(awsKmsAdditionalCmks)
                 .build();
 
         // Create keyrings that each only use one of the CMKs.
         // We will use these later to demonstrate that any of the CMKs can be used to decrypt the message.
         //
-        // We provide these in "keyIds" rather than "generatorKeyId"
+        // We provide these in "keyNames" rather than "generator"
         // so that these keyrings cannot be used to generate a new data key.
         // We will only be using them on decrypt.
-        final Keyring singleCmkKeyringThatGenerated = StandardKeyrings.awsKmsBuilder()
-                .keyIds(Collections.singletonList(awsKmsGeneratorCmk))
+        final Keyring singleCmkKeyringThatGenerated = StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
+                .keyNames(Collections.singletonList(awsKmsGeneratorCmk))
                 .build();
-        final Keyring singleCmkKeyringThatEncrypted = StandardKeyrings.awsKmsBuilder()
-                .keyIds(Collections.singletonList(awsKmsAdditionalCmks.get(0)))
+        final Keyring singleCmkKeyringThatEncrypted = StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
+                .keyNames(Collections.singletonList(awsKmsAdditionalCmks.get(0)))
                 .build();
 
         // Encrypt your plaintext data using the keyring that uses all requests CMKs.

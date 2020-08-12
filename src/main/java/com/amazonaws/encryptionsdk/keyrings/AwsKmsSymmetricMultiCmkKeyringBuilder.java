@@ -19,6 +19,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.AwsKmsDataKeyEncryptionDaoBuilder;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -143,7 +144,7 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilder {
                 // If we have an ARN, obtain the region from the ARN (to specify the region of the AWS SDK KMS service client)
                 final Optional<Arn> childArn = AwsKmsCmkId.getArnFromKeyName(keyName.toString());
                 final String childRegion = childArn.isPresent() ? childArn.get().getRegion() : null;
-                final String childKey = childRegion == null ? NULL_REGION : childRegion;
+                final String childKey = StringUtils.isBlank(childRegion) ? NULL_REGION : childRegion;
 
                 // Check if a client already exists for the given region
                 // and use the existing dao or construct a new one

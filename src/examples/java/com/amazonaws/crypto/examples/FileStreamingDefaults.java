@@ -64,7 +64,7 @@ public class FileStreamingDefaults {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // Create the encrypting input stream with the keyring and encryption context.
         // Because the file might be too large to load into memory,

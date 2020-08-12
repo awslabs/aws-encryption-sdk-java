@@ -113,7 +113,7 @@ public class RequiringEncryptionContextFields {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // Create the classification requiring cryptographic materials manager using your keyring.
         final CryptoMaterialsManager cmm = new ClassificationRequiringCryptoMaterialsManager(keyring);

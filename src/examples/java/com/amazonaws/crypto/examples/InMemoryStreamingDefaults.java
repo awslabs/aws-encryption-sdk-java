@@ -54,7 +54,7 @@ public class InMemoryStreamingDefaults {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream(sourcePlaintext);
 

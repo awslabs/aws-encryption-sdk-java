@@ -64,7 +64,7 @@ public class SimpleCache {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // Create the caching cryptographic materials manager using your keyring.
         final CryptoMaterialsManager cmm = CachingCryptoMaterialsManager.newBuilder()

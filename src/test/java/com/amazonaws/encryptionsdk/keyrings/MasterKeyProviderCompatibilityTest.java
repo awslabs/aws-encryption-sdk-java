@@ -54,7 +54,7 @@ class MasterKeyProviderCompatibilityTest {
     void testAwsKmsKeyringCompatibility() {
         MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
                 .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
-        Keyring keyring = StandardKeyrings.awsKms(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
+        Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
 
         testCompatibility(keyring, mkp);
     }
@@ -103,7 +103,7 @@ class MasterKeyProviderCompatibilityTest {
 
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
 
-        Keyring keyring1 = StandardKeyrings.awsKms(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
+        Keyring keyring1 = StandardKeyrings.awsKmsSymmetricMultiCmk(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
         Keyring keyring2 = StandardKeyrings.rawAesBuilder()
                 .keyNamespace(KEY_NAMESPACE)
                 .keyName(KEY_NAME)

@@ -68,7 +68,7 @@ public class SimpleDataKeyCachingExample {
         final Map<String, String> encryptionContext = Collections.singletonMap("purpose", "test");
 
         // Create a keyring.
-        final Keyring keyring = StandardKeyrings.awsKms(kmsCmkArn);
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(kmsCmkArn);
 
         // Create a cache.
         final CryptoMaterialsCache cache = new LocalCryptoMaterialsCache(CAPACITY);

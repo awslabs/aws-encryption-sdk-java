@@ -56,7 +56,7 @@ import com.amazonaws.services.kms.AWSKMSClientBuilder;
  * Provides {@link MasterKey}s backed by the AWS Key Management Service. This object is regional and
  * if you want to use keys from multiple regions, you'll need multiple copies of this object.
  *
- * @deprecated Replaced by {@code KmsKeyring}. See {@link StandardKeyrings}.
+ * @deprecated Replaced by {@code AwsKmsSymmetricKeyring} and {@code AwsKmsSymmetricRegionDiscoveryKeyring}. See {@link StandardKeyrings}.
  */
 @Deprecated
 public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implements KmsMethods {

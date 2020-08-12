@@ -17,6 +17,7 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.kms.AwsKmsDataKeyEncryptionDaoBuilder;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
-
-    private static final String NULL_REGION = "null-region";
 
     private List<String> regionIds;
     private String awsAccountId;
@@ -119,16 +118,18 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
         List<Keyring> discoveryKeyrings = new ArrayList<>();
         if (this.regionIds != null) {
             for (final String region : this.regionIds) {
-                final String regionKey = region == null ? NULL_REGION : region;
+                if (StringUtils.isBlank(region)) {
+                    continue;
+                }
 
                 // Check if a client already exists for the given region
                 // and use the existing dao or construct a new one
-                if (clientMapping.containsKey(regionKey)) {
-                    final Keyring discoveryKeyring = new AwsKmsSymmetricRegionDiscoveryKeyring(clientMapping.get(regionKey), region, this.awsAccountId);
+                if (clientMapping.containsKey(region)) {
+                    final Keyring discoveryKeyring = new AwsKmsSymmetricRegionDiscoveryKeyring(clientMapping.get(region), region, this.awsAccountId);
                     discoveryKeyrings.add(discoveryKeyring);
                 } else {
                     final DataKeyEncryptionDao discoveryDao = constructDataKeyEncryptionDao(region);
-                    clientMapping.put(regionKey, discoveryDao);
+                    clientMapping.put(region, discoveryDao);
                     final Keyring discoveryKeyring = new AwsKmsSymmetricRegionDiscoveryKeyring(discoveryDao, region, this.awsAccountId);
                     discoveryKeyrings.add(discoveryKeyring);
                 }

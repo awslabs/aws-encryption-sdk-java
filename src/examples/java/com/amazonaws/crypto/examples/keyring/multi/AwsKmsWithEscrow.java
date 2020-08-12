@@ -24,11 +24,11 @@ import java.util.Map;
  * the ability to enjoy the benefits of AWS KMS during normal operation
  * but retain the ability to decrypt encrypted messages without access to AWS KMS.
  * This example shows how you can use the multi-keyring to achieve this
- * by combining an AWS KMS keyring with a raw RSA keyring.
+ * by combining an AWS KMS symmetric multi-CMK keyring with a raw RSA keyring.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-multi-keyring
  * <p>
- * For more examples of how to use the AWS KMS keyring, see the keyring/awskms examples.
+ * For more examples of how to use the AWS KMS keyrings, see the keyring/awskms examples.
  * <p>
  * For more examples of how to use the raw RSA keyring, see the keyring/rawrsa examples.
  * <p>
@@ -97,10 +97,10 @@ public class AwsKmsWithEscrow {
                 .paddingScheme(RsaPaddingScheme.OAEP_SHA256_MGF1)
                 .build();
 
-        // Create the AWS KMS keyring that you will use from decryption during normal operations.
-        final Keyring kmsKeyring = StandardKeyrings.awsKms(awsKmsCmk);
+        // Create the AWS KMS symmetric multi-CMK keyring that you will use from decryption during normal operations.
+        final Keyring kmsKeyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
-        // Combine the AWS KMS keyring and the escrow encrypt keyring using the multi-keyring.
+        // Combine the AWS KMS symmetric multi-CMK keyring and the escrow encrypt keyring using the multi-keyring.
         final Keyring encryptKeyring = StandardKeyrings.multi(kmsKeyring, escrowEncryptKeyring);
 
         // Encrypt your plaintext data using the multi-keyring.
@@ -118,7 +118,7 @@ public class AwsKmsWithEscrow {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data separately using the AWS KMS keyring and the escrow decrypt keyring.
+        // Decrypt your encrypted data separately using the AWS KMS symmetric multi-CMK keyring and the escrow decrypt keyring.
         //
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.

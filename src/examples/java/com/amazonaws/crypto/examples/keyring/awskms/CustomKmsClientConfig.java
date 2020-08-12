@@ -11,38 +11,36 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
-import com.amazonaws.encryptionsdk.kms.AwsKmsClientSupplier;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * By default, the AWS KMS keyring uses the default configurations
- * for all KMS clients and uses the default discoverable credentials.
+ * By default, the AWS KMS keyrings use the default configuration
+ * for all AWS KMS clients and use the default discoverable credentials.
  * If you need to change this configuration,
- * you can configure the client supplier.
+ * you can configure the keyring builder.
  * <p>
- * This example shows how to use custom-configured clients with the AWS KMS keyring.
+ * This example shows how to use custom-configured clients with the AWS KMS symmetric multi-CMK keyring.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS symmetric multi-CMK keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For another example of how to use the AWS KMS keyring with a custom client configuration,
+ * For another example of how to use the AWS KMS symmetric multi-CMK keyring with a custom client configuration,
  * see the {@link CustomKmsClientConfig} example.
  * <p>
- * For examples of how to use the AWS KMS Discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt}, {@link DiscoveryDecryptInRegionOnly},
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class CustomKmsClientConfig {
 
     /**
-     * Demonstrate an encrypt/decrypt cycle using an AWS KMS keyring with custom KMS client configuration.
+     * Demonstrate an encrypt/decrypt cycle using an AWS KMS symmetric multi-cmk keyring with custom KMS client configuration.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt
@@ -69,18 +67,15 @@ public class CustomKmsClientConfig {
                 .withConnectionTimeout(10000)   // 10,000 milliseconds
                 .withUserAgentSuffix(VersionInfo.USER_AGENT);
 
-        // Use your custom configuration values to configure your client supplier.
+        // Use your custom configuration values to configure your keyring.
         // For this example we will just use the default credentials provider
         // but if you need to, you can set a custom credentials provider as well.
-        final AwsKmsClientSupplier clientSupplier = AwsKmsServiceClientBuilder.defaultBuilder()
-                .clientConfiguration(clientConfiguration)
-                .build();
 
         // Create the keyring that determines how your data keys are protected,
         // providing the client supplier that you created.
-        final Keyring keyring = StandardKeyrings.awsKmsBuilder()
-                .generatorKeyId(awsKmsCmk)
-                .awsKmsClientSupplier(clientSupplier)
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
+                .generator(awsKmsCmk)
+                .clientConfiguration(clientConfiguration)
                 .build();
 
         // Encrypt your plaintext data.

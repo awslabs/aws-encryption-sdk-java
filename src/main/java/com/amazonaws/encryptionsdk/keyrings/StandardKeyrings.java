@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
+import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +49,39 @@ public class StandardKeyrings {
     }
 
     /**
-     * Constructs a {@code MultiKeyring} which interacts with AWS Key Management Service (KMS) to create,
+     * Constructs an {@code AwsKmsSymmetricKeyring} which interacts with AWS Key Management Service (KMS) to create,
+     * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Key (CMK)
+     * and DataKeyEncryptionDao.
+     *
+     * @param dataKeyEncryptionDao A {@link DataKeyEncryptionDao} used to make calls to AWS KMS.
+     * @param keyName              An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies an
+     *                             AWS KMS CMK responsible for generating a data key, as well as encrypting and
+     *                             decrypting data keys.
+     * @return The {@code Keyring}
+     */
+    public static Keyring awsKmsSymmetric(DataKeyEncryptionDao dataKeyEncryptionDao, AwsKmsCmkId keyName) {
+        return new AwsKmsSymmetricKeyring(dataKeyEncryptionDao, keyName);
+    }
+
+    /**
+     * Constructs a {@code MultiKeyring} of {@code AwsKmsSymmetricKeyring}(s),
+     * which interacts with AWS Key Management Service (KMS) to create,
+     * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Keys (CMKs).
+     *
+     * @param generatorKeyName An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies an
+     *                         AWS KMS CMK responsible for generating a data key, as well as encrypting and
+     *                         decrypting data keys.
+     * @return The {@code Keyring}
+     */
+    public static Keyring awsKmsSymmetricMultiCmk(AwsKmsCmkId generatorKeyName) {
+        return AwsKmsSymmetricMultiCmkKeyringBuilder.standard()
+            .generator(generatorKeyName)
+            .build();
+    }
+
+    /**
+     * Constructs a {@code MultiKeyring} of {@code AwsKmsSymmetricKeyring}(s),
+     * which interacts with AWS Key Management Service (KMS) to create,
      * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Keys (CMKs).
      *
      * @param generatorKeyName An {@link AwsKmsCmkId} in ARN, CMK Alias, ARN Alias or Key Id format that identifies an
@@ -66,21 +99,50 @@ public class StandardKeyrings {
     }
 
     /**
-     * Returns a {@link AwsKmsSymmetricMultiCmkKeyringBuilder} for use in constructing a keyring which interacts with
+     * Construct an {@code AwsKmsSymmetricMultiCmkKeyringBuilder} for use in constructing a keyring which interacts with
      * AWS Key Management Service (KMS) to create, encrypt, and decrypt data keys using AWS KMS defined
      * Customer Master Keys (CMKs).
      *
-     * @return The {@link AwsKmsSymmetricMultiCmkKeyringBuilder}
+     * @return The {@code AwsKmsSymmetricMultiCmkKeyringBuilder}
      */
     public static AwsKmsSymmetricMultiCmkKeyringBuilder awsKmsSymmetricMultiCmkBuilder() {
         return AwsKmsSymmetricMultiCmkKeyringBuilder.standard();
     }
 
     /**
-     * Constructs a {@code MultiKeyring} which interacts with AWS Key Management Service (KMS) to decrypt data keys
-     * using in the specified AWS regions.
+     * Constructs an {@code AwsKmsSymmetricRegionDiscoveryKeyring} which interacts with AWS Key Management Service (KMS)
+     * in the specified AWS region using the provided DataKeyEncryptionDao.
      *
-     * @param regionIds    A list of strings representing AWS regions to attempt decryption in.
+     * @param dataKeyEncryptionDao A {@link DataKeyEncryptionDao} used to make calls to AWS KMS.
+     * @param regionId             A string representing the AWS region to attempt decryption in.
+     * @return The {@code Keyring}
+     */
+    public static Keyring awsKmsSymmetricRegionDiscovery(DataKeyEncryptionDao dataKeyEncryptionDao, String regionId) {
+        return new AwsKmsSymmetricRegionDiscoveryKeyring(dataKeyEncryptionDao, regionId, null);
+    }
+
+    /**
+     * Constructs an {@code AwsKmsSymmetricRegionDiscoveryKeyring} which interacts with AWS Key Management Service (KMS)
+     * in the specified AWS region using the provided DataKeyEncryptionDao.
+     * If an {@code awsAccountId} is provided,
+     * the {@code AwsKmsSymmetricRegionDiscoveryKeyring} will only attempt to decrypt encrypted data keys
+     * associated with that AWS account.
+     *
+     * @param dataKeyEncryptionDao A {@link DataKeyEncryptionDao} used to make calls to AWS KMS.
+     * @param regionId             A string representing the AWS region to attempt decryption in.
+     * @param awsAccountId         An optional string representing an AWS account Id.
+     * @return The {@code Keyring}
+     */
+    public static Keyring awsKmsSymmetricRegionDiscovery(DataKeyEncryptionDao dataKeyEncryptionDao, String regionId, String awsAccountId) {
+        return new AwsKmsSymmetricRegionDiscoveryKeyring(dataKeyEncryptionDao, regionId, awsAccountId);
+    }
+
+    /**
+     * Constructs a {@code MultiKeyring} of {@code AwsKmsSymmetricRegionDiscoveryKeyring}(s)
+     * which interacts with AWS Key Management Service (KMS) to decrypt data keys
+     * in the specified AWS regions.
+     *
+     * @param regionIds A list of strings representing AWS regions to attempt decryption in.
      * @return The {@code Keyring}
      */
     public static Keyring awsKmsSymmetricMultiRegionDiscovery(List<String> regionIds) {
@@ -90,8 +152,8 @@ public class StandardKeyrings {
     }
 
     /**
-     * Returns an {@link AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder}
-     * for use in constructing an AWS KMS multi-region discovery keyring.
+     * Constructs an {@code AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder}
+     * for use in constructing an AWS KMS symmetric multi-region discovery keyring.
      * 'Discovery' keyrings do not specify any CMKs to decrypt with, and thus will attempt to decrypt
      * using any encrypted data key in the specified region(s). 'Discovery' keyrings do not perform encryption.
      *

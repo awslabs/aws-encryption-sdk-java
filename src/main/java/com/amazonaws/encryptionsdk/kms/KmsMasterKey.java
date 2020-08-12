@@ -49,7 +49,7 @@ import com.amazonaws.services.kms.model.GenerateDataKeyResult;
  * Represents a single Customer Master Key (CMK) and is used to encrypt/decrypt data with
  * {@link AwsCrypto}.
  *
- * @deprecated Replaced by {@code KmsKeyring}. See {@link StandardKeyrings}.
+ * @deprecated Replaced by {@code AwsKmsSymmetricKeyring} and {@code AwsKmsSymmetricRegionDiscoveryKeyring}. See {@link StandardKeyrings}.
  */
 @Deprecated
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {

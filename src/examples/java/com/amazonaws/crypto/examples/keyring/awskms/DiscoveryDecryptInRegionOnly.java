@@ -11,50 +11,51 @@ import com.amazonaws.encryptionsdk.EncryptRequest;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
-import com.amazonaws.encryptionsdk.kms.AwsKmsServiceClientBuilder;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Collections.singleton;
-
 /**
- * When you give the AWS KMS keyring specific key IDs it will use those CMKs and nothing else.
+ * When you give the AWS KMS symmetric multi-CMK keyring specific key names it will use those CMKs and nothing else.
  * This is true both on encrypt and on decrypt.
  * However, sometimes you need more flexibility on decrypt,
  * especially if you don't know which CMK was used to encrypt a message.
- * To address this need, you can use an AWS KMS discovery keyring.
- * The AWS KMS discovery keyring does nothing on encrypt.
- * On decrypt it reviews each encrypted data key (EDK).
+ * To address this need, you can use an AWS KMS symmetric multi-region discovery keyring.
+ * The AWS KMS symmetric multi-region discovery keyring is a multi-keyring of AWS KMS symmetric region discovery keyrings.
+ * AWS KMS symmetric region discovery keyrings cannot encrypt.
+ * On decrypt each AWS KMS symmetric region discovery keyring reviews each encrypted data key (EDK).
  * If an EDK was encrypted under an AWS KMS CMK,
- * the AWS KMS discovery keyring attempts to decrypt it.
+ * the AWS KMS symmetric region discovery keyring attempts to decrypt it if the EDK's region matches the region associated
+ * with the AWS KMS symmetric region discovery keyring.
  * Whether decryption succeeds depends on permissions on the CMK.
- * This continues until the AWS KMS discovery keyring either runs out of EDKs
+ * This continues until the AWS KMS symmetric region discovery keyring either runs out of EDKs
  * or succeeds in decrypting an EDK.
  * <p>
- * However, sometimes you need to be a *bit* more restrictive than that.
- * To address this need, you can use a client supplier that restricts the regions an AWS KMS keyring can talk to.
+ * Each AWS KMS symmetric region discovery keyring is restricted to a single AWS region.
+ * Additionally, an AWS KMS symmetric multi-region discovery keyring restricts communication to the configured regions,
+ * in their configured order.
  * <p>
- * This example shows how to configure and use an AWS KMS regional discovery keyring that is restricted to one region.
+ * This example shows how to configure and use an AWS KMS symmetric multi-region discovery keyring that is restricted to one region.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
  * <p>
- * For an example of how to use the AWS KMS keyring with CMKs in multiple regions,
+ * For an example of how to use the AWS KMS symmetric multi-CMK keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For examples of how to use the AWS KMS keyring with custom client configurations,
- * see the {@link CustomClientSupplier}
+ * For examples of how to use the AWS KMS symmetric multi-CMK keyring with custom client configurations,
+ * see the {@link CustomDataKeyEncryptionDao}
  * and {@link CustomKmsClientConfig} examples.
  * <p>
- * For examples of how to use the AWS KMS discovery keyring on decrypt,
+ * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
  * see the {@link DiscoveryDecrypt},
- * and {@link DiscoveryDecryptWithPreferredRegions} examples.
+ * and {@link DiscoveryDecryptInRegionOnly} examples.
  */
 public class DiscoveryDecryptInRegionOnly {
 
     /**
-     * Demonstrate configuring an AWS KMS keyring to only work within a single region.
+     * Demonstrate configuring an AWS KMS symmetric multi-region keyring to only work within a single region.
      *
      * @param awsKmsCmk       The ARN of an AWS KMS CMK that protects data keys
      * @param sourcePlaintext Plaintext to encrypt
@@ -74,19 +75,17 @@ public class DiscoveryDecryptInRegionOnly {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the keyring that determines how your data keys are protected.
-        final Keyring encryptKeyring = StandardKeyrings.awsKms(awsKmsCmk);
+        final Keyring encryptKeyring = StandardKeyrings.awsKmsSymmetricMultiCmk(awsKmsCmk);
 
         // Extract the region from the CMK ARN.
         final String decryptRegion = Arn.fromString(awsKmsCmk.toString()).getRegion();
 
-        // Create the AWS KMS discovery keyring that we will use on decrypt.
+        // Create the AWS KMS symmetric multi-region discovery keyring that we will use on decrypt.
         //
         // The client supplier that we specify here will only supply clients for the specified region.
         // The keyring only attempts to decrypt data keys if it can get a client for that region,
         // so this keyring will now ignore any data keys that were encrypted under a CMK in another region.
-        final Keyring decryptKeyring = StandardKeyrings.awsKmsDiscoveryBuilder()
-                .awsKmsClientSupplier(AwsKmsServiceClientBuilder.allowRegionsBuilder(singleton(decryptRegion)).build())
-                .build();
+        final Keyring decryptKeyring = StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery(Collections.singletonList(decryptRegion));
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(
@@ -99,7 +98,7 @@ public class DiscoveryDecryptInRegionOnly {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data using the AWS KMS discovery keyring.
+        // Decrypt your encrypted data using the AWS KMS symmetric multi-region discovery keyring.
         //
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.
