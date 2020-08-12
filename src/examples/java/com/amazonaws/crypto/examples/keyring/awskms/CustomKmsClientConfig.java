@@ -31,10 +31,10 @@ import java.util.Map;
  * see the {@link MultipleRegions} example.
  * <p>
  * For another example of how to use the AWS KMS symmetric multi-CMK keyring with a custom client configuration,
- * see the {@link CustomKmsClientConfig} example.
+ * see the {@link CustomDataKeyEncryptionDao} example.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
- * see the {@link DiscoveryDecrypt}, {@link DiscoveryDecryptInRegionOnly},
+ * see the {@link DiscoveryDecryptInRegionOnly}
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class CustomKmsClientConfig {
@@ -72,7 +72,7 @@ public class CustomKmsClientConfig {
         // but if you need to, you can set a custom credentials provider as well.
 
         // Create the keyring that determines how your data keys are protected,
-        // providing the client supplier that you created.
+        // providing the client configuration that you created.
         final Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmkBuilder()
                 .generator(awsKmsCmk)
                 .clientConfiguration(clientConfiguration)

@@ -31,8 +31,7 @@ import java.util.Map;
  * and {@link CustomKmsClientConfig} examples.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
- * see the {@link DiscoveryDecrypt},
- * {@link DiscoveryDecryptInRegionOnly},
+ * see the {@link DiscoveryDecryptInRegionOnly}
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class MultipleRegions {

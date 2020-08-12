@@ -49,7 +49,7 @@ import java.util.Map;
  * see the {@link CustomKmsClientConfig} example.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
- * see the {@link DiscoveryDecrypt}, {@link DiscoveryDecryptInRegionOnly},
+ * see the {@link DiscoveryDecryptInRegionOnly}
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class CustomDataKeyEncryptionDao {

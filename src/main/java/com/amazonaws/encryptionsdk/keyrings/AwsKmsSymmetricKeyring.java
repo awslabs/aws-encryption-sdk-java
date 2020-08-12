@@ -59,40 +59,39 @@ public class AwsKmsSymmetricKeyring implements Keyring {
 
         // Given a plaintext data key in the encryption materials, OnEncrypt MUST attempt
         // to encrypt the plaintext data key using the provided key name
-        final AwsKmsCmkId keyNameToEncrypt = AwsKmsCmkId.fromString(keyName.toString());
-        resultMaterials = encryptDataKey(keyNameToEncrypt, resultMaterials);
+        resultMaterials = encryptDataKey(resultMaterials);
         return resultMaterials;
     }
 
     private EncryptionMaterials generateDataKey(final EncryptionMaterials encryptionMaterials) {
-        final DataKeyEncryptionDao.GenerateDataKeyResult result = dataKeyEncryptionDao.generateDataKey(
-            keyName, encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
+        final DataKeyEncryptionDao.GenerateDataKeyResult result = this.dataKeyEncryptionDao.generateDataKey(
+            this.keyName, encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
 
         return encryptionMaterials
             .withCleartextDataKey(
                 result.getPlaintextDataKey(),
                 new KeyringTraceEntry(
                     AWS_KMS_PROVIDER_ID,
-                    keyName.toString(),
+                    this.keyName.toString(),
                     KeyringTraceFlag.GENERATED_DATA_KEY))
             .withEncryptedDataKey(
                 new KeyBlob(result.getEncryptedDataKey()),
                 new KeyringTraceEntry(
                     AWS_KMS_PROVIDER_ID,
-                    keyName.toString(),
+                    this.keyName.toString(),
                     KeyringTraceFlag.ENCRYPTED_DATA_KEY,
                     KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
 
-    private EncryptionMaterials encryptDataKey(final AwsKmsCmkId keyId, final EncryptionMaterials encryptionMaterials) {
-        final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao.encryptDataKey(
-            keyId, encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
+    private EncryptionMaterials encryptDataKey(final EncryptionMaterials encryptionMaterials) {
+        final EncryptedDataKey encryptedDataKey = this.dataKeyEncryptionDao.encryptDataKey(
+            this.keyName, encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
 
         return encryptionMaterials.withEncryptedDataKey(
             new KeyBlob(encryptedDataKey),
             new KeyringTraceEntry(
                 AWS_KMS_PROVIDER_ID,
-                keyId.toString(),
+                this.keyName.toString(),
                 KeyringTraceFlag.ENCRYPTED_DATA_KEY,
                 KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
     }
@@ -106,11 +105,10 @@ public class AwsKmsSymmetricKeyring implements Keyring {
             return decryptionMaterials;
         }
 
-        final AwsKmsCmkId configuredKeyName = AwsKmsCmkId.fromString(keyName.toString());
         for (EncryptedDataKey encryptedDataKey : encryptedDataKeys) {
-            if (okToDecrypt(encryptedDataKey, configuredKeyName)) {
+            if (okToDecrypt(encryptedDataKey)) {
                 try {
-                    final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(
+                    final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
                         encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
                     return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
@@ -128,20 +126,20 @@ public class AwsKmsSymmetricKeyring implements Keyring {
         return decryptionMaterials;
     }
 
-    private boolean okToDecrypt(EncryptedDataKey encryptedDataKey, AwsKmsCmkId configuredKeyName) {
+    private boolean okToDecrypt(EncryptedDataKey encryptedDataKey) {
         // Only attempt to decrypt keys provided by KMS
-        if (!encryptedDataKey.getProviderId().equals(AWS_KMS_PROVIDER_ID)) {
+        if (encryptedDataKey == null || !encryptedDataKey.getProviderId().equals(AWS_KMS_PROVIDER_ID)) {
             return false;
         }
 
         // If the key name cannot be parsed, skip it
-        final String keyName = new String(encryptedDataKey.getProviderInformation(), PROVIDER_ENCODING);
-        if (!AwsKmsCmkId.isKeyIdWellFormed(keyName)) {
+        final String edkKeyName = new String(encryptedDataKey.getProviderInformation(), PROVIDER_ENCODING);
+        if (!AwsKmsCmkId.isKeyIdWellFormed(edkKeyName)) {
             return false;
         }
 
         // OnDecrypt MUST attempt to decrypt each input encrypted data key in the input encrypted data key list
         // where the key provider info has a value equal to the keyring's key name
-        return configuredKeyName.equals(AwsKmsCmkId.fromString(keyName));
+        return this.keyName.equals(AwsKmsCmkId.fromString(edkKeyName));
     }
 }

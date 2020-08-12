@@ -141,6 +141,10 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilder {
         List<Keyring> childKeyrings = new ArrayList<>();
         if (this.childKeyNames != null) {
             for (final AwsKmsCmkId keyName : this.childKeyNames) {
+                if (keyName == null) {
+                    continue;
+                }
+
                 // If we have an ARN, obtain the region from the ARN (to specify the region of the AWS SDK KMS service client)
                 final Optional<Arn> childArn = AwsKmsCmkId.getArnFromKeyName(keyName.toString());
                 final String childRegion = childArn.isPresent() ? childArn.get().getRegion() : null;

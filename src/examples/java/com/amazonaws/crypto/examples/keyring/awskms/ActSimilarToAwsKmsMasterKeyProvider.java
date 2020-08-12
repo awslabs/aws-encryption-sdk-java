@@ -3,6 +3,7 @@
 
 package com.amazonaws.crypto.examples.keyring.awskms;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.AwsCryptoResult;
 import com.amazonaws.encryptionsdk.DecryptRequest;
@@ -11,7 +12,6 @@ import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
-import com.amazonaws.regions.Regions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,12 +24,14 @@ import static java.util.stream.Collectors.toList;
 /**
  * You might have used master key providers to protect your data keys
  * in an earlier version of the AWS Encryption SDK.
- * This example shows how to configure a keyring that behaves like an AWS KMS master key provider.
+ * This example shows how to configure a keyring that behaves similarly to an AWS KMS master key provider.
  * <p>
  * The AWS Encryption SDK provided an AWS KMS master key provider for
  * interacting with AWS Key Management Service (AWS KMS).
+ *
  * On encrypt, the AWS KMS master key provider behaves like the AWS KMS symmetric multi-CMK keyring
  * and encrypts with all CMKs that you identify.
+ *
  * However, on decrypt,
  * the AWS KMS master key provider reviews each encrypted data key (EDK).
  * If the EDK was encrypted under an AWS KMS CMK,
@@ -37,16 +39,27 @@ import static java.util.stream.Collectors.toList;
  * Whether decryption succeeds depends on permissions on the CMK.
  * This continues until the AWS KMS master key provider either runs out of EDKs
  * or succeeds in decrypting an EDK.
+ * In order to maintain a similar behavior,
+ * we use an AWS KMS symmetric multi-region keyring
+ * that has a list of regions it will attempt decryption in.
+ *
  * We have found that separating these two behaviors
  * makes the expected behavior clearer,
  * so that is what we did with the AWS KMS symmetric keyring and the AWS KMS region discovery keyring.
  * However, as you migrate from master key providers to keyrings,
- * you might want a keyring that behaves like the AWS KMS master key provider.
+ * you might want a keyring that behaves similarly the AWS KMS master key provider.
+ *
+ * Since the AWS KMS symmetric multi-region keyring cannot perform encryption,
+ * it cannot be combined with an AWS KMS symmetric multi-CMK in a multi-keyring,
+ * if the encrypt operation is ever called.
+ * Therefore, we have two separate keyrings.
+ * One for encrypting with a specific list of CMKs
+ * and one for decrypting with a specific list of regions.
  * <p>
  * For more examples of how to use the AWS KMS keyrings,
  * see the 'keyring/awskms' directory.
  */
-public class ActLikeAwsKmsMasterKeyProvider {
+public class ActSimilarToAwsKmsMasterKeyProvider {
 
     /**
      * Demonstrate how to create a keyring that behaves like an AWS KMS master key provider.
@@ -93,7 +106,7 @@ public class ActLikeAwsKmsMasterKeyProvider {
                 .build();
 
         // Create an AWS KMS symmetric multi-region discovery keyring that will attempt to decrypt
-        // any data keys that were encrypted under an AWS KMS CMK.
+        // any data keys that were encrypted under an AWS KMS CMK in a specific list of AWS regions.
         //
         // Please note that the multi-region discovery keyring requires the specific list of AWS regions
         // it may communicate with.
@@ -103,13 +116,15 @@ public class ActLikeAwsKmsMasterKeyProvider {
         // This will prevent any AWS SDK-derived region-lists from potentially becoming stale over time.
         //
         // In most cases, you should simply call StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery
-        // with the specific regions you need.
+        // with the specific regions you need,
+        // and not attempt decryption in any AWS region.
         //
         // This will provide flexibility for adding more regions over time,
         // without allowing unnecessary access to regions that are not currently required.
         final List<String> allRegionIds = new ArrayList<>();
-        for (final Regions region: Regions.values()) {
-            allRegionIds.add(region.getName());
+        allRegionIds.add(Arn.fromString(awsKmsCmk.toString()).getRegion());
+        for (final AwsKmsCmkId additionalKeyName : awsKmsAdditionalCmks) {
+            allRegionIds.add(Arn.fromString(additionalKeyName.toString()).getRegion());
         }
         final Keyring discoveryKeyring = StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery(allRegionIds);
 

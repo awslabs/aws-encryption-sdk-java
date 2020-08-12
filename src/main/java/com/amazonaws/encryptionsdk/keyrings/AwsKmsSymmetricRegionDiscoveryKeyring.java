@@ -65,7 +65,7 @@ public class AwsKmsSymmetricRegionDiscoveryKeyring implements Keyring {
         for (EncryptedDataKey encryptedDataKey : encryptedDataKeys) {
             if (okToDecrypt(encryptedDataKey)) {
                 try {
-                    final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(
+                    final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
                         encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
                     return decryptionMaterials.withCleartextDataKey(
@@ -86,7 +86,7 @@ public class AwsKmsSymmetricRegionDiscoveryKeyring implements Keyring {
 
     private boolean okToDecrypt(EncryptedDataKey encryptedDataKey) {
         // Only attempt to decrypt keys provided by KMS
-        if (!encryptedDataKey.getProviderId().equals(AWS_KMS_PROVIDER_ID)) {
+        if (encryptedDataKey == null || !encryptedDataKey.getProviderId().equals(AWS_KMS_PROVIDER_ID)) {
             return false;
         }
 
@@ -105,11 +105,11 @@ public class AwsKmsSymmetricRegionDiscoveryKeyring implements Keyring {
         // If an AWS account ID is provided,
         // this keyring must only decrypt encrypted data keys
         // that were encrypted using an AWS KMS CMK in that AWS account
-        if (awsAccountId.isPresent() && !awsAccountId.get().equals(arn.get().getAccountId())) {
+        if (this.awsAccountId.isPresent() && !this.awsAccountId.get().equals(arn.get().getAccountId())) {
             return false;
         }
 
         // Finally, determine if the region matches the keyring's client's region
-        return arn.get().getRegion().equalsIgnoreCase(awsRegion);
+        return this.awsRegion.equals(arn.get().getRegion());
     }
 }
