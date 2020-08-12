@@ -58,10 +58,11 @@ public class AwsKmsDataKeyEncryptionDaoBuilder {
         }
 
         if (clientConfiguration != null) {
+            canAppendUserAgentString = false;
             awsKmsClientBuilder = awsKmsClientBuilder.withClientConfiguration(clientConfiguration);
         }
 
-        if (regionId != null) {
+        if (StringUtils.isNotBlank(regionId)) {
             awsKmsClientBuilder = awsKmsClientBuilder.withRegion(regionId);
         }
 
@@ -80,43 +81,35 @@ public class AwsKmsDataKeyEncryptionDaoBuilder {
     }
 
     /**
-     * Sets a non-null AWSCredentialsProvider to be used by the client.
+     * Sets an AWSCredentialsProvider to be used by the client.
      *
-     * @param credentialsProvider New AWSCredentialsProvider to use.
+     * @param credentialsProvider Custom AWSCredentialsProvider to use.
      * @return The AwsKmsDataKeyEncryptionDaoBuilder, for method chaining
      */
     public AwsKmsDataKeyEncryptionDaoBuilder credentialsProvider(AWSCredentialsProvider credentialsProvider) {
-        if (credentialsProvider != null) {
-            this.credentialsProvider = credentialsProvider;
-        }
+        this.credentialsProvider = credentialsProvider;
         return this;
     }
 
     /**
-     * Sets a non-null ClientConfiguration to be used by the client.
+     * Sets a ClientConfiguration to be used by the client.
      *
      * @param clientConfiguration Custom configuration to use.
      * @return The AwsKmsDataKeyEncryptionDaoBuilder, for method chaining
      */
     public AwsKmsDataKeyEncryptionDaoBuilder clientConfiguration(ClientConfiguration clientConfiguration) {
-        if (clientConfiguration != null) {
-            this.clientConfiguration = clientConfiguration;
-            // If a client configuration is provided, we must not modify the user agent string
-            this.canAppendUserAgentString = false;
-        }
+        this.clientConfiguration = clientConfiguration;
         return this;
     }
 
     /**
-     * Sets a non-null AWS region string to be used by the client.
+     * Sets an AWS region string to be used by the client.
      *
      * @param regionId AWS region for the client.
      * @return The AwsKmsDataKeyEncryptionDaoBuilder, for method chaining
      */
     public AwsKmsDataKeyEncryptionDaoBuilder regionId(String regionId) {
-        if (!StringUtils.isBlank(regionId)) {
-            this.regionId = regionId;
-        }
+        this.regionId = regionId;
         return this;
     }
 }

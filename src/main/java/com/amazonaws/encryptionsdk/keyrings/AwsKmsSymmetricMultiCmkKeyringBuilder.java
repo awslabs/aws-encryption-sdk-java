@@ -22,10 +22,10 @@ import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AwsKmsSymmetricMultiCmkKeyringBuilder {
 
@@ -121,23 +121,27 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilder {
      */
     public Keyring build() {
         // A mapping of AWS region to DataKeyEncryptionDao
-        final Map<String, DataKeyEncryptionDao> clientMapping = new ConcurrentHashMap<>();
+        final Map<String, DataKeyEncryptionDao> clientMapping = new HashMap<>();
 
         // First construct the generator keyring
         Keyring generatorKeyring = null;
         if (this.generatorKeyName != null) {
-            // If we have an ARN, obtain the region from the ARN (to specify the region of the AWS SDK KMS service client)
+            // If we have an ARN, obtain the region from the ARN
+            // to specify the region of the AWS SDK KMS service client
             final Optional<Arn> generatorArn = AwsKmsCmkId.getArnFromKeyName(this.generatorKeyName.toString());
             final String generatorRegion = generatorArn.isPresent() ? generatorArn.get().getRegion() : null;
             final DataKeyEncryptionDao generatorDao = constructDataKeyEncryptionDao(generatorRegion);
-            // Add the client to the mapping with the region key if available
+
+            // Add the client to the mapping with the region key
             // This prevents re-creating multiple clients for the same region during a single build call
-            clientMapping.put(generatorRegion == null ? NULL_REGION : generatorRegion, generatorDao);
+            final String generatorRegionKey = StringUtils.isBlank(generatorRegion) ? NULL_REGION : generatorRegion;
+            clientMapping.put(generatorRegionKey, generatorDao);
+
             // Construct the generator keyring
             generatorKeyring = new AwsKmsSymmetricKeyring(generatorDao, this.generatorKeyName);
         }
 
-        // Next, construct the child keyrings
+        // Next, construct the child (non-generator) keyrings
         List<Keyring> childKeyrings = new ArrayList<>();
         if (this.childKeyNames != null) {
             for (final AwsKmsCmkId keyName : this.childKeyNames) {
@@ -150,30 +154,28 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilder {
                 final String childRegion = childArn.isPresent() ? childArn.get().getRegion() : null;
                 final String childKey = StringUtils.isBlank(childRegion) ? NULL_REGION : childRegion;
 
-                // Check if a client already exists for the given region
-                // and use the existing dao or construct a new one
-                if (clientMapping.containsKey(childKey)) {
-                    final Keyring childKeyring = new AwsKmsSymmetricKeyring(clientMapping.get(childKey), keyName);
-                    childKeyrings.add(childKeyring);
-                } else {
-                    final DataKeyEncryptionDao childDao = constructDataKeyEncryptionDao(childRegion);
+                // Check if a dao already exists for the given region
+                // and use the existing dao or construct a new one and save it
+                final boolean daoExists = clientMapping.containsKey(childKey);
+                final DataKeyEncryptionDao childDao = daoExists ? clientMapping.get(childKey) : constructDataKeyEncryptionDao(childRegion);
+                if (!daoExists) {
                     clientMapping.put(childKey, childDao);
-                    final Keyring childKeyring = new AwsKmsSymmetricKeyring(childDao, keyName);
-                    childKeyrings.add(childKeyring);
                 }
+                final Keyring childKeyring = new AwsKmsSymmetricKeyring(childDao, keyName);
+                childKeyrings.add(childKeyring);
             }
         }
 
         // Finally, construct a multi-keyring
-        return new MultiKeyring(generatorKeyring, childKeyrings);
+        return StandardKeyrings.multi(generatorKeyring, childKeyrings);
     }
 
     private DataKeyEncryptionDao constructDataKeyEncryptionDao(String regionId) {
         return AwsKmsDataKeyEncryptionDaoBuilder
             .defaultBuilder()
-            .clientConfiguration(clientConfiguration)
-            .credentialsProvider(credentialsProvider)
-            .grantTokens(grantTokens)
+            .clientConfiguration(this.clientConfiguration)
+            .credentialsProvider(this.credentialsProvider)
+            .grantTokens(this.grantTokens)
             .regionId(regionId)
             .build();
     }
