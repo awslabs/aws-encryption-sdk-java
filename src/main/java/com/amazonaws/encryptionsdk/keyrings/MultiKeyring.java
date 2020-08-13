@@ -34,14 +34,14 @@ import static org.apache.commons.lang3.Validate.isTrue;
 class MultiKeyring implements Keyring {
 
     final Keyring generatorKeyring;
-    final List<Keyring> childrenKeyrings;
+    final List<Keyring> childKeyrings;
 
-    MultiKeyring(Keyring generatorKeyring, List<Keyring> childrenKeyrings) {
+    MultiKeyring(Keyring generatorKeyring, List<Keyring> childKeyrings) {
         this.generatorKeyring = generatorKeyring;
-        this.childrenKeyrings = childrenKeyrings == null ? emptyList() : unmodifiableList(new ArrayList<>(childrenKeyrings));
+        this.childKeyrings = childKeyrings == null ? emptyList() : unmodifiableList(new ArrayList<>(childKeyrings));
 
-        isTrue(this.generatorKeyring != null || !this.childrenKeyrings.isEmpty(),
-                "At least a generator keyring or children keyrings must be defined");
+        isTrue(this.generatorKeyring != null || !this.childKeyrings.isEmpty(),
+                "At least a generator keyring or child keyrings must be defined");
     }
 
     @Override
@@ -59,7 +59,7 @@ class MultiKeyring implements Keyring {
                     "data key or a cleartext data key must already be present in the encryption materials.");
         }
 
-        for (Keyring keyring : childrenKeyrings) {
+        for (Keyring keyring : childKeyrings) {
             resultMaterials = keyring.onEncrypt(resultMaterials);
         }
 
@@ -81,7 +81,7 @@ class MultiKeyring implements Keyring {
             keyringsToDecryptWith.add(generatorKeyring);
         }
 
-        keyringsToDecryptWith.addAll(childrenKeyrings);
+        keyringsToDecryptWith.addAll(childKeyrings);
 
         final List<Exception> exceptions = new ArrayList<>();
 

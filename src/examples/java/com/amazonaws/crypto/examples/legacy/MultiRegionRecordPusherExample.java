@@ -70,8 +70,8 @@ public class MultiRegionRecordPusherExample {
 
         // Collect keyrings into a single multi-keyring and add cache. In this example, the keyring for the
         // first region is used as the generatorKeyring to generate a data key.
-        final List<Keyring> childrenKeyrings = keyrings.size() > 1 ? keyrings.subList(1, keyrings.size()) : emptyList();
-        final Keyring keyring = StandardKeyrings.multi(keyrings.get(0), childrenKeyrings);
+        final List<Keyring> childKeyrings = keyrings.size() > 1 ? keyrings.subList(1, keyrings.size()) : emptyList();
+        final Keyring keyring = StandardKeyrings.multi(keyrings.get(0), childKeyrings);
 
         cachingMaterialsManager_ = CachingCryptoMaterialsManager.newBuilder()
                 .withKeyring(keyring)

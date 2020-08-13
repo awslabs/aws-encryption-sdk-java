@@ -46,12 +46,12 @@ class MultiKeyringTest {
     @Mock EncryptionMaterials encryptionMaterials;
     @Mock DecryptionMaterials decryptionMaterials;
     @Mock List<EncryptedDataKey> encryptedDataKeys;
-    final List<Keyring> childrenKeyrings = new ArrayList<>();
+    final List<Keyring> childKeyrings = new ArrayList<>();
 
     @BeforeEach
     void setup() {
-        childrenKeyrings.add(keyring1);
-        childrenKeyrings.add(keyring2);
+        childKeyrings.add(keyring1);
+        childKeyrings.add(keyring2);
     }
 
     @Test
@@ -64,7 +64,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnEncryptWithGenerator() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
         when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
         when(generatorKeyring.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
         when(keyring1.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
@@ -79,7 +79,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnEncryptWithoutGenerator() {
-        MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(null, childKeyrings);
         when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
         when(keyring1.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
         when(keyring2.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
@@ -93,7 +93,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnEncryptNoPlaintextDataKey() {
-        MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(null, childKeyrings);
         when(encryptionMaterials.hasCleartextDataKey()).thenReturn(false);
 
         assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
@@ -101,7 +101,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptWithPlaintextDataKey() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(true);
         keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
@@ -111,7 +111,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptWithGenerator() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
         when(generatorKeyring.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
@@ -126,7 +126,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptWithoutGenerator() {
-        MultiKeyring keyring = new MultiKeyring(null, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(null, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(false).thenReturn(true);
         when(keyring1.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);
@@ -141,7 +141,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptFailureThenSuccess() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(true);
         doThrow(new IllegalStateException()).when(generatorKeyring).onDecrypt(decryptionMaterials, encryptedDataKeys);
@@ -157,7 +157,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptFailure() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false);
         doThrow(new AwsCryptoException()).when(generatorKeyring).onDecrypt(decryptionMaterials, encryptedDataKeys);
@@ -182,7 +182,7 @@ class MultiKeyringTest {
 
     @Test
     void testOnDecryptNoFailuresNoPlaintextDataKeys() {
-        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childrenKeyrings);
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
 
         when(decryptionMaterials.hasCleartextDataKey()).thenReturn(false, false, false, false);
         when(generatorKeyring.onDecrypt(decryptionMaterials, encryptedDataKeys)).thenReturn(decryptionMaterials);

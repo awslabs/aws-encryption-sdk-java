@@ -101,25 +101,25 @@ public class StandardKeyrings {
      * Constructs a {@code Keyring} which combines other keyrings, allowing one OnEncrypt or OnDecrypt call
      * to modify the encryption or decryption materials using more than one keyring.
      *
-     * @param generatorKeyring A keyring that can generate data keys. Required if childrenKeyrings is empty.
-     * @param childrenKeyrings A list of keyrings to be used to modify the encryption or decryption materials.
+     * @param generatorKeyring A keyring that can generate data keys. Required if childKeyrings is empty.
+     * @param childKeyrings A list of keyrings to be used to modify the encryption or decryption materials.
      *                         At least one is required if generatorKeyring is null.
      * @return The {@link Keyring}
      */
-    public static Keyring multi(Keyring generatorKeyring, List<Keyring> childrenKeyrings) {
-        return new MultiKeyring(generatorKeyring, childrenKeyrings);
+    public static Keyring multi(Keyring generatorKeyring, List<Keyring> childKeyrings) {
+        return new MultiKeyring(generatorKeyring, childKeyrings);
     }
 
     /**
      * Constructs a {@code Keyring} which combines other keyrings, allowing one OnEncrypt or OnDecrypt call
      * to modify the encryption or decryption materials using more than one keyring.
      *
-     * @param generatorKeyring A keyring that can generate data keys. Required if childrenKeyrings is empty.
-     * @param childrenKeyrings Keyrings to be used to modify the encryption or decryption materials.
+     * @param generatorKeyring A keyring that can generate data keys. Required if childKeyrings is empty.
+     * @param childKeyrings Keyrings to be used to modify the encryption or decryption materials.
      *                         At least one is required if generatorKeyring is null.
      * @return The {@link Keyring}
      */
-    public static Keyring multi(Keyring generatorKeyring, Keyring... childrenKeyrings) {
-        return new MultiKeyring(generatorKeyring, Arrays.asList(childrenKeyrings));
+    public static Keyring multi(Keyring generatorKeyring, Keyring... childKeyrings) {
+        return new MultiKeyring(generatorKeyring, Arrays.asList(childKeyrings));
     }
 }
