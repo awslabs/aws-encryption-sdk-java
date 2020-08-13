@@ -1,11 +1,11 @@
 /*
  * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
- * 
+ *
  * http://aws.amazon.com/apache2.0
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -47,7 +47,7 @@ import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
  * This class implements the CryptoHandler interface by providing methods for
  * the decryption of ciphertext produced by the methods in
  * {@link EncryptionHandler}.
- * 
+ *
  * <p>
  * This class reads and parses the values in the ciphertext headers and
  * delegates the decryption of the ciphertext to the
@@ -60,6 +60,10 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     private final CiphertextHeaders ciphertextHeaders_;
     private final CiphertextFooters ciphertextFooters_;
     private boolean ciphertextHeadersParsed_;
+
+    private final Integer maxBodySize_;
+    private final Integer maxHeaderSize_;
+    private long headerBytesParsed_ = 0;
 
     private CryptoHandler contentCryptoHandler_;
 
@@ -84,11 +88,31 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         Utils.assertNonNull(materialsManager, "materialsManager");
 
         this.materialsManager_ = materialsManager;
+        maxBodySize_ = null;
+        maxHeaderSize_ = null;
         ciphertextHeaders_ = new CiphertextHeaders();
         ciphertextFooters_ = new CiphertextFooters();
     }
 
-    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers)
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager,
+            final Integer maxBodySize,
+            final Integer maxHeaderSize) {
+        Utils.assertNonNull(materialsManager, "materialsManager");
+        if (maxBodySize != null && maxBodySize < 0) {
+            throw new IllegalArgumentException("maxBodySize must be null or non-negative.");
+        } else if (maxHeaderSize != null && maxHeaderSize <= 0) {
+            throw new IllegalArgumentException("maxHeaderSize must be null or positive.");
+        }
+
+        this.materialsManager_ = materialsManager;
+        maxBodySize_ = maxBodySize;
+        maxHeaderSize_ = maxHeaderSize;
+        ciphertextHeaders_ = new CiphertextHeaders();
+        ciphertextFooters_ = new CiphertextFooters();
+    }
+
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager,
+            final CiphertextHeaders headers)
             throws AwsCryptoException
     {
         Utils.assertNonNull(materialsManager, "materialsManager");
@@ -98,6 +122,8 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         ciphertextFooters_ = new CiphertextFooters();
         readHeaderFields(headers);
         updateTrailingSignature(headers);
+        maxBodySize_ = null;
+        maxHeaderSize_ = null;
     }
 
     /**
@@ -173,6 +199,27 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     }
 
     /**
+     * Create a decryption handler using the provided materials manager.
+     *
+     * <p>
+     * Note the methods in the provided materials manager are used in decrypting the encrypted data key
+     * parsed from the ciphertext headers.
+     *
+     * @param materialsManager
+     *            the materials manager to use in decrypting the data key from the key blobs encoded
+     *            in the provided ciphertext.
+     * @throws AwsCryptoException
+     *             if the master key is null.
+     */
+    public static DecryptionHandler<?> create(
+            final CryptoMaterialsManager materialsManager,
+            final Integer maxBodySize,
+            final Integer maxHeaderSize
+    ) throws AwsCryptoException {
+        return new DecryptionHandler(materialsManager, maxBodySize, maxHeaderSize);
+    }
+
+    /**
      * Create a decryption handler using the provided materials manager and already parsed {@code headers}.
      *
      * <p>
@@ -189,7 +236,8 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *             if the master key is null.
      */
     public static DecryptionHandler<?> create(
-            final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers
+            final CryptoMaterialsManager materialsManager,
+            final CiphertextHeaders headers
     ) throws AwsCryptoException {
         return new DecryptionHandler(materialsManager, headers);
     }
@@ -197,12 +245,12 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     /**
      * Decrypt the ciphertext bytes provided in {@code in} and copy the plaintext bytes to
      * {@code out}.
-     * 
+     *
      * <p>
      * This method consumes and parses the ciphertext headers. The decryption of the actual content
      * is delegated to {@link BlockDecryptionHandler} or {@link FrameDecryptionHandler} based on the
      * content type parsed in the ciphertext header.
-     * 
+     *
      * @param in
      *            the input byte array.
      * @param off
@@ -214,7 +262,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * @param outOff
      *            the offset into the output byte array the decrypted data starts at.
      * @return the number of bytes written to {@code out} and processed.
-     * 
+     *
      * @throws BadCiphertextException
      *             if the ciphertext header contains invalid entries or if the header integrity
      *             check fails.
@@ -255,7 +303,27 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
         int totalParsedBytes = 0;
         if (ciphertextHeadersParsed_ == false) {
-            totalParsedBytes += ciphertextHeaders_.deserialize(bytesToParse, 0);
+            // if maxHeaderSize_ is set, we MUST NOT parse a header with length greater than that value.
+            byte[] headerBytesToParse = maxHeaderSize_ == null || headerBytesParsed_ + bytesToParse.length < maxHeaderSize_
+                    ? bytesToParse
+                    : Arrays.copyOfRange(bytesToParse, 0, maxHeaderSize_ - (int)headerBytesParsed_); // TODO it should be safe to convert this to int, but we might want a stronger assurance
+
+            int bytesParsed = ciphertextHeaders_.deserialize(headerBytesToParse, 0);
+            // If we attempted to parse up to maxHeaderSize_ bytes and a valid header has still not
+            // been parsed, then the header's length exceeds maxHeaderSize_.
+            if (maxHeaderSize_ != null && headerBytesToParse.length >= maxHeaderSize_ && !ciphertextHeaders_.isComplete()) {
+                throw new IllegalStateException(
+                        "Size of the total header bytes to parse exceeded set maxBodySize:" + maxBodySize_);
+            }
+
+            totalParsedBytes += bytesParsed;
+            headerBytesParsed_ += bytesParsed;
+            if (maxHeaderSize_ != null && headerBytesParsed_ > maxHeaderSize_) {
+                // TODO This should never happen.
+                throw new IllegalStateException(
+                        "Size of the total header bytes to parse exceeded set maxBodySize:" + maxBodySize_);
+            }
+
             // When ciphertext headers are complete, we have the data
             // key and cipher mode to initialize the underlying cipher
             if (ciphertextHeaders_.isComplete() == true) {
@@ -273,6 +341,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
             }
         }
 
+
         int actualOutLen = 0;
         if (!contentCryptoHandler_.isComplete()) {
             // if there are bytes to parse further, pass it off to underlying
@@ -284,7 +353,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
                 updateTrailingSignature(bytesToParse, totalParsedBytes, contentResult.getBytesProcessed());
                 actualOutLen = contentResult.getBytesWritten();
                 totalParsedBytes += contentResult.getBytesProcessed();
-                
+
             }
             if (contentCryptoHandler_.isComplete()) {
                 actualOutLen += contentCryptoHandler_.doFinal(out, outOff + actualOutLen);
@@ -315,7 +384,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     /**
      * Finish processing of the bytes.
-     * 
+     *
      * @param out
      *            space for any resulting output data.
      * @param outOff
@@ -347,7 +416,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * Return the size of the output buffer required for a
      * <code>processBytes</code> plus a <code>doFinal</code> with an input of
      * inLen bytes.
-     * 
+     *
      * @param inLen
      *            the length of the input.
      * @return
@@ -383,7 +452,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
 
     /**
      * Return the encryption context. This value is parsed from the ciphertext.
-     * 
+     *
      * @return
      *         the key-value map containing the encryption client.
      */
@@ -415,7 +484,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     /**
      * Check integrity of the header bytes by processing the parsed MAC tag in
      * the headers through the cipher.
-     * 
+     *
      * @param ciphertextHeaders
      *            the ciphertext headers object whose integrity needs to be
      *            checked.
@@ -438,7 +507,7 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     /**
      * Read the fields in the ciphertext headers to populate the corresponding
      * instance variables used during decryption.
-     * 
+     *
      * @param ciphertextHeaders
      *            the ciphertext headers object to read.
      */
@@ -511,11 +580,11 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         switch (contentType) {
             case FRAME:
                 contentCryptoHandler_ = new FrameDecryptionHandler(decryptionKey_, (byte) nonceLen, cryptoAlgo_,
-                        messageId, frameLen);
+                        messageId, frameLen, maxBodySize_);
                 break;
             case SINGLEBLOCK:
                 contentCryptoHandler_ = new BlockDecryptionHandler(decryptionKey_, (byte) nonceLen, cryptoAlgo_,
-                        messageId);
+                        messageId, maxBodySize_);
                 break;
             default:
                 // should never get here because an invalid content type is

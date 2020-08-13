@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -114,5 +115,61 @@ public class FrameDecryptionHandlerTest {
 
         frameDecryptionHandler_.processBytes(out, 0, out.length, decryptedOut, 0);
         frameDecryptionHandler_.processBytes(out, 0, out.length, decryptedOut, 0);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void messageExceedsMaxBodySize() {
+        final FrameEncryptionHandler frameEncryptionHandler = new FrameEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                frameSize_);
+        final byte[] in = new byte[1];
+        final int outLen = frameEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        frameEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        frameEncryptionHandler.doFinal(out, 0);
+
+        final FrameDecryptionHandler frameDecryptionHandler = new FrameDecryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                frameSize_,
+                0);
+
+        final int decryptedOutLen = frameDecryptionHandler.estimateOutputSize(outLen);
+        final byte[] decryptedOut = new byte[decryptedOutLen];
+        frameDecryptionHandler.processBytes(out, 0, out.length, decryptedOut, 0);
+    }
+
+    public void messageAtMaxBodySize() {
+        final FrameEncryptionHandler frameEncryptionHandler = new FrameEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                frameSize_);
+        final byte[] in = new byte[1];
+        final int outLen = frameEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        frameEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        frameEncryptionHandler.doFinal(out, 0);
+
+        final FrameDecryptionHandler frameDecryptionHandler = new FrameDecryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                frameSize_,
+                1);
+
+        final int decryptedOutLen = frameDecryptionHandler.estimateOutputSize(outLen);
+        final byte[] decryptedOut = new byte[decryptedOutLen];
+        ProcessingSummary summary = frameDecryptionHandler.processBytes(out, 0, out.length, decryptedOut, 0);
+        assertEquals(out.length, summary.getBytesProcessed());
     }
 }

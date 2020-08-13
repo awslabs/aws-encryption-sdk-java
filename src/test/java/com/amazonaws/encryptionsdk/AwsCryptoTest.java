@@ -867,6 +867,50 @@ public class AwsCryptoTest {
     }
 
     @Test
+    public void setInvalidMaxBodySize() throws IOException {
+        CryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
+        InputStream is = new ByteArrayInputStream(new byte[0]);
+        OutputStream os = new ByteArrayOutputStream();
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingInputStream(CreateDecryptingInputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .inputStream(is)
+                        .maxBodySize(-1).build()));
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingOutputStream(CreateDecryptingOutputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .outputStream(os)
+                        .maxBodySize(-1).build()));
+    }
+
+    @Test
+    public void setInvalidMaxHeaderSize() throws IOException {
+        CryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
+        InputStream is = new ByteArrayInputStream(new byte[0]);
+        OutputStream os = new ByteArrayOutputStream();
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingInputStream(CreateDecryptingInputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .inputStream(is)
+                        .maxHeaderSize(-1).build()));
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingInputStream(CreateDecryptingInputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .inputStream(is)
+                        .maxHeaderSize(0).build()));
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingOutputStream(CreateDecryptingOutputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .outputStream(os)
+                        .maxHeaderSize(-1).build()));
+        assertThrows(IllegalArgumentException.class,
+                () -> encryptionClient_.createDecryptingOutputStream(CreateDecryptingOutputStreamRequest.builder()
+                        .cryptoMaterialsManager(cmm)
+                        .outputStream(os)
+                        .maxHeaderSize(0).build()));
+    }
+
+    @Test
     public void setCryptoAlgorithm() throws IOException {
         final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF;
         encryptionClient_.setEncryptionAlgorithm(setCryptoAlgorithm);

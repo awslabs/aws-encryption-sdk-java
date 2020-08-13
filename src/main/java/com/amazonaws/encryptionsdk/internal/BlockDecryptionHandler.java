@@ -36,6 +36,7 @@ class BlockDecryptionHandler implements CryptoHandler {
     private final CryptoAlgorithm cryptoAlgo_;
     private final byte[] messageId_;
     private final CipherBlockHeaders blockHeaders_;
+    private final Integer maxBodySize_;
 
     private final byte[] bytesToDecrypt_ = new byte[0];
     private byte[] unparsedBytes_ = new byte[0];
@@ -63,6 +64,36 @@ class BlockDecryptionHandler implements CryptoHandler {
         cryptoAlgo_ = cryptoAlgo;
         messageId_ = messageId;
         blockHeaders_ = new CipherBlockHeaders();
+        maxBodySize_ = null;
+    }
+
+    /**
+     * Construct a decryption handler for decrypting bytes stored in a single
+     * block.
+     * 
+     * @param decryptionKey
+     *            the key to use for decrypting the ciphertext
+     * @param nonceLen
+     *            the length to use when parsing the nonce in the block headers.
+     * @param cryptoAlgo
+     *            the crypto algorithm to use for decrypting the ciphertext
+     * @param messageId
+     *            the byte array containing the message identifier that is used
+     *            in binding the encrypted content to the headers in the
+     *            ciphertext.
+     * @param maxBodySize
+     *            the maximum encrypted content length allowed to be decrypted
+     *            by this handler. This handler will fail if it encounters
+     *            a message with encrypted content length greater than this value.
+     */
+    public BlockDecryptionHandler(final SecretKey decryptionKey, final short nonceLen,
+            final CryptoAlgorithm cryptoAlgo, final byte[] messageId, final Integer maxBodySize) {
+        decryptionKey_ = decryptionKey;
+        nonceLen_ = nonceLen;
+        cryptoAlgo_ = cryptoAlgo;
+        messageId_ = messageId;
+        blockHeaders_ = new CipherBlockHeaders();
+        maxBodySize_ = maxBodySize;
     }
 
     /**
@@ -126,6 +157,9 @@ class BlockDecryptionHandler implements CryptoHandler {
             if (blockHeaders_.isComplete() == true) {
                 if (blockHeaders_.getContentLength() > Integer.MAX_VALUE) {
                     throw new AwsCryptoException("Content length exceeds the maximum allowed value.");
+                }
+                if (maxBodySize_ != null && blockHeaders_.getContentLength() > maxBodySize_) {
+                    throw new IllegalStateException("Content length exceeds the set maxBodySize.");
                 }
                 int protectedContentLen = (int) blockHeaders_.getContentLength();
 

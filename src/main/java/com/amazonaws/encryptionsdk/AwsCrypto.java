@@ -884,7 +884,7 @@ public class AwsCrypto {
      * @see javax.crypto.CipherOutputStream
      */
     public AwsCryptoOutputStream createDecryptingOutputStream(final CreateDecryptingOutputStreamRequest request) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(request.cryptoMaterialsManager());
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(request.cryptoMaterialsManager(), request.maxBodySize(), request.maxHeaderSize());
         return new AwsCryptoOutputStream(request.outputStream(), cryptoHandler);
     }
 
@@ -932,7 +932,7 @@ public class AwsCrypto {
     public AwsCryptoInputStream createDecryptingInputStream(final CreateDecryptingInputStreamRequest request) {
         requireNonNull(request, "request is required");
 
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(request.cryptoMaterialsManager());
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(request.cryptoMaterialsManager(), request.maxBodySize(), request.maxHeaderSize());
         return new AwsCryptoInputStream(request.inputStream(), cryptoHandler);
     }
 

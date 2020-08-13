@@ -20,12 +20,22 @@ import static java.util.Objects.requireNonNull;
 public class CreateDecryptingOutputStreamRequest extends AwsCryptoRequest {
 
     private final OutputStream outputStream;
+    private final Integer maxBodySize;
+    private final Integer maxHeaderSize;
 
     private CreateDecryptingOutputStreamRequest(Builder builder) {
         super(builder);
 
         requireNonNull(builder.outputStream, "outputStream is required");
+        if (builder.maxBodySize != null && builder.maxBodySize < 0) {
+            throw new IllegalArgumentException("maxBodySize must be null or non-negative.");
+        }
+        if (builder.maxHeaderSize != null && builder.maxHeaderSize < 0) {
+            throw new IllegalArgumentException("maxHeaderSize must be null or positive.");
+        }
         this.outputStream = builder.outputStream;
+        this.maxBodySize = builder.maxBodySize;
+        this.maxHeaderSize = builder.maxHeaderSize;
     }
 
     /**
@@ -35,6 +45,14 @@ public class CreateDecryptingOutputStreamRequest extends AwsCryptoRequest {
      */
     public OutputStream outputStream() {
         return this.outputStream;
+    }
+
+    public Integer maxBodySize() {
+        return maxBodySize;
+    }
+
+    public Integer maxHeaderSize() {
+        return maxHeaderSize;
     }
 
     /**
@@ -49,6 +67,8 @@ public class CreateDecryptingOutputStreamRequest extends AwsCryptoRequest {
     public static class Builder extends AwsCryptoRequest.Builder<Builder> {
 
         private OutputStream outputStream;
+        private Integer maxBodySize;
+        private Integer maxHeaderSize;
 
         /**
          * Sets the {@link OutputStream}
@@ -59,6 +79,39 @@ public class CreateDecryptingOutputStreamRequest extends AwsCryptoRequest {
         public Builder outputStream(OutputStream outputStream) {
             requireNonNull(outputStream, "outputStream is required");
             this.outputStream = outputStream;
+            return this;
+        }
+
+        /**
+         * Sets the maxBodySize
+         *
+         * @param maxBodySize The maximum length of encrypted content that is
+         *   allowed to be decrypted at once. Decryption will fail on any encrypted message
+         *   that requires performing one decryption operation on a length greater
+         *   than this value.
+         * @return The Builder, for method chaining
+         */
+        public Builder maxBodySize(Integer maxBodySize) {
+            if (maxBodySize < 0) {
+                throw new IllegalArgumentException("maxBodySize must be null or non-negative");
+            }
+            this.maxBodySize = maxBodySize;
+            return this;
+        }
+
+        /**
+         * Sets the maxHeaderSize
+         *
+         * @param maxHeaderSize The maximum length of message header that is
+         *   allowed to be deserialized. Decryption will fail on any encrypted message
+         *   with a message header length greater than this value.
+         * @return The Builder, for method chaining
+         */
+        public Builder maxHeaderSize(Integer maxHeaderSize) {
+            if (maxHeaderSize < 0) {
+                throw new IllegalArgumentException("maxHeaderSize must be null or positive");
+            }
+            this.maxHeaderSize = maxHeaderSize;
             return this;
         }
 

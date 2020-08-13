@@ -169,4 +169,20 @@ public class DecryptionHandlerTest {
         decryptionHandler.processBytes(getTestHeaders(), 0, testHeaders.length, out, 0);
         assertEquals(0, decryptionHandler.getMasterKeys().size());
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void messageExceedsMaxHeaderSize() {
+        final byte[] out = new byte[1];
+        final byte[] testHeaders = getTestHeaders();
+        final DecryptionHandler decryptionHandler = DecryptionHandler.create(new DefaultCryptoMaterialsManager(keyring), null, 1);
+        decryptionHandler.processBytes(testHeaders, 0, testHeaders.length, out, 0);
+    }
+
+    public void messageAtMaxHeaderSize() {
+        final byte[] out = new byte[1];
+        final byte[] testHeaders = getTestHeaders();
+        final DecryptionHandler decryptionHandler = DecryptionHandler.create(new DefaultCryptoMaterialsManager(keyring), null, testHeaders.length);
+        ProcessingSummary summary = decryptionHandler.processBytes(testHeaders, 0, testHeaders.length, out, 0);
+        assertEquals(testHeaders.length, summary.getBytesProcessed());
+    }
 }

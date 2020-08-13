@@ -41,6 +41,7 @@ class FrameDecryptionHandler implements CryptoHandler {
 
     private CipherFrameHeaders currentFrameHeaders_;
     private final int frameSize_;
+    private final Integer maxBodySize_;
     private long frameNumber_ = 1;
 
     boolean complete_ = false;
@@ -61,6 +62,25 @@ class FrameDecryptionHandler implements CryptoHandler {
         messageId_ = messageId;
         frameSize_ = frameLen;
         cipherHandler_ = new CipherHandler(decryptionKey_, Cipher.DECRYPT_MODE, cryptoAlgo_);
+        maxBodySize_ = null;
+    }
+
+    /**
+     * Construct a decryption handler for decrypting bytes stored in frames.
+     * 
+     * @param customerMasterKey
+     *            the master key to use when unwrapping the data key encoded in
+     *            the ciphertext.
+     */
+    public FrameDecryptionHandler(final SecretKey decryptionKey, final short nonceLen,
+            final CryptoAlgorithm cryptoAlgo, final byte[] messageId, final int frameLen, final Integer maxBodySize) {
+        decryptionKey_ = decryptionKey;
+        nonceLen_ = nonceLen;
+        cryptoAlgo_ = cryptoAlgo;
+        messageId_ = messageId;
+        frameSize_ = frameLen;
+        cipherHandler_ = new CipherHandler(decryptionKey_, Cipher.DECRYPT_MODE, cryptoAlgo_);
+        maxBodySize_ = maxBodySize;
     }
 
     /**
@@ -137,6 +157,9 @@ class FrameDecryptionHandler implements CryptoHandler {
             if (currentFrameHeaders_.isComplete() == true) {
                 int protectedContentLen = -1;
                 if (currentFrameHeaders_.isFinalFrame()) {
+                    if (maxBodySize_ != null && currentFrameHeaders_.getFrameContentLength() > maxBodySize_) {
+                        throw new IllegalStateException("Frame content length exceeds the set maxBodySize.");
+                    }
                     protectedContentLen = currentFrameHeaders_.getFrameContentLength();
 
                     // The final frame should not be able to exceed the frameLength
@@ -144,6 +167,9 @@ class FrameDecryptionHandler implements CryptoHandler {
                         throw new BadCiphertextException("Final frame length exceeds frame length.");
                     }
                 } else {
+                    if (maxBodySize_ != null && frameSize_ > maxBodySize_) {
+                        throw new IllegalStateException("Frame content length exceeds the set maxBodySize.");
+                    }
                     protectedContentLen = frameSize_;
                 }
 

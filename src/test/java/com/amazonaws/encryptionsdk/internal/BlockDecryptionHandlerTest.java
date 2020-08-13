@@ -14,6 +14,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -106,5 +107,57 @@ public class BlockDecryptionHandlerTest {
         final byte[] decryptedOut = new byte[outLen];
         blockDecryptionHandler_.processBytes(out, 0, outLen, decryptedOut, 0);
         blockDecryptionHandler_.processBytes(out, 0, outLen, decryptedOut, 0);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void messageExceedsMaxBodySize() {
+        final BlockEncryptionHandler blockEncryptionHandler = new BlockEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_);
+        final byte[] in = new byte[1];
+        final int outLen = blockEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        blockEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        blockEncryptionHandler.doFinal(out, 0);
+
+        final BlockDecryptionHandler blockDecryptionHandler = new BlockDecryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                0);
+
+        final int decryptedOutLen = blockDecryptionHandler.estimateOutputSize(outLen);
+        final byte[] decryptedOut = new byte[decryptedOutLen];
+        blockDecryptionHandler.processBytes(out, 0, out.length, decryptedOut, 0);
+    }
+
+    public void messageAtMaxBodySize() {
+        final BlockEncryptionHandler blockEncryptionHandler = new BlockEncryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_);
+        final byte[] in = new byte[1];
+        final int outLen = blockEncryptionHandler.estimateOutputSize(in.length);
+        final byte[] out = new byte[outLen];
+
+        blockEncryptionHandler.processBytes(in, 0, in.length, out, 0);
+        blockEncryptionHandler.doFinal(out, 0);
+
+        final BlockDecryptionHandler blockDecryptionHandler = new BlockDecryptionHandler(
+                dataKey_,
+                nonceLen_,
+                cryptoAlgorithm_,
+                messageId_,
+                1);
+
+        final int decryptedOutLen = blockDecryptionHandler.estimateOutputSize(outLen);
+        final byte[] decryptedOut = new byte[decryptedOutLen];
+        ProcessingSummary summary = blockDecryptionHandler.processBytes(out, 0, out.length, decryptedOut, 0);
+        assertEquals(out.length, summary.getBytesProcessed());
     }
 }
