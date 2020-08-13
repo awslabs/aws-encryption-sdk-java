@@ -21,7 +21,7 @@ import java.util.*;
  * Builders are provided to allow for quick generation of a multi-keyring of AWS KMS symmetric keyrings,
  * where each AWS KMS symmetric keyring is initialized with a DataKeyEncryptionDao that encapsulates an AWS KMS service client.
  * Builders are additionally provided to allow for customization of all required AWS KMS service clients.
- *
+ * <p>
  * However, if you need different behavior,
  * such as having each AWS KMS service client using a different AWS KMS client configuration,
  * you can utilize the base AWS KMS symmetric keyring directly and provide it a custom DataKeyEncryptionDao.
@@ -65,7 +65,7 @@ public class CustomDataKeyEncryptionDao {
 
         private final DataKeyEncryptionDao usableDao;
 
-        private CustomMultiPartitionDao(DataKeyEncryptionDao usableDao){
+        private CustomMultiPartitionDao(DataKeyEncryptionDao usableDao) {
             this.usableDao = usableDao;
         }
 
@@ -126,10 +126,10 @@ public class CustomDataKeyEncryptionDao {
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(
-                EncryptRequest.builder()
-                        .keyring(keyring)
-                        .encryptionContext(encryptionContext)
-                        .plaintext(sourcePlaintext).build());
+            EncryptRequest.builder()
+                .keyring(keyring)
+                .encryptionContext(encryptionContext)
+                .plaintext(sourcePlaintext).build());
         final byte[] ciphertext = encryptResult.getResult();
 
         // Demonstrate that the ciphertext and plaintext are different.
@@ -140,9 +140,9 @@ public class CustomDataKeyEncryptionDao {
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.
         final AwsCryptoResult<byte[]> decryptResult = awsEncryptionSdk.decrypt(
-                DecryptRequest.builder()
-                        .keyring(keyring)
-                        .ciphertext(ciphertext).build());
+            DecryptRequest.builder()
+                .keyring(keyring)
+                .ciphertext(ciphertext).build());
         final byte[] decrypted = decryptResult.getResult();
 
         // Demonstrate that the decrypted plaintext is identical to the original plaintext.

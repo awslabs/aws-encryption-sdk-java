@@ -94,7 +94,7 @@ class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
         kmsResult.getCiphertextBlob().get(encryptedKey);
 
         return new GenerateDataKeyResult(new SecretKeySpec(rawKey, algorithmSuite.getDataKeyAlgo()),
-                new KeyBlob(AWS_KMS_PROVIDER_ID, kmsResult.getKeyId().getBytes(PROVIDER_ENCODING), encryptedKey));
+            new KeyBlob(AWS_KMS_PROVIDER_ID, kmsResult.getKeyId().getBytes(PROVIDER_ENCODING), encryptedKey));
     }
 
     @Override

@@ -48,7 +48,6 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     private final String id_;
 
     /**
-     *
      * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
      */
     @Deprecated
@@ -57,7 +56,6 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     }
 
     /**
-     *
      * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
      */
     @Deprecated
