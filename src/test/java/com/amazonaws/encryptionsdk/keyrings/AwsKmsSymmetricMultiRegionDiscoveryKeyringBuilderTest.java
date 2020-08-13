@@ -57,8 +57,8 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(2, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(2, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(REGIONS.size())).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(REGIONS.size())).credentialsProvider(credentialsProvider);
@@ -78,9 +78,9 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
+        assertNotNull(keyring.childKeyrings);
         // Regions are not de-duplicated
-        assertEquals(3, keyring.childrenKeyrings.size());
+        assertEquals(3, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(2)).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(2)).credentialsProvider(credentialsProvider);
@@ -99,8 +99,8 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(2, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(2, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(2)).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(2)).credentialsProvider(credentialsProvider);
@@ -130,8 +130,8 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(2, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(2, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(REGIONS.size())).clientConfiguration(null);
         verify(daoBuilder, times(REGIONS.size())).credentialsProvider(null);

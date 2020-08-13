@@ -75,8 +75,8 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
             .build();
 
         assertNotNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(4, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(4, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(REGIONS.size())).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(REGIONS.size())).credentialsProvider(credentialsProvider);
@@ -96,8 +96,8 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(4, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(4, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(REGIONS.size())).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(REGIONS.size())).credentialsProvider(credentialsProvider);
@@ -117,8 +117,8 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
             .build();
 
         assertNotNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(0, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(0, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(1)).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(1)).credentialsProvider(credentialsProvider);
@@ -139,8 +139,8 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
             .build();
 
         assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(1, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(1, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(1)).clientConfiguration(clientConfiguration);
         verify(daoBuilder, times(1)).credentialsProvider(credentialsProvider);
@@ -166,8 +166,8 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
             .build();
 
         assertNotNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childrenKeyrings);
-        assertEquals(4, keyring.childrenKeyrings.size());
+        assertNotNull(keyring.childKeyrings);
+        assertEquals(4, keyring.childKeyrings.size());
 
         verify(daoBuilder, times(REGIONS.size())).clientConfiguration(null);
         verify(daoBuilder, times(REGIONS.size())).credentialsProvider(null);
