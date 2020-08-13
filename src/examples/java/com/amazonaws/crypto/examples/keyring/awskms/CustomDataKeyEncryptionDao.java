@@ -3,11 +3,9 @@
 
 package com.amazonaws.crypto.examples.keyring.awskms;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCryptoResult;
-import com.amazonaws.encryptionsdk.DecryptRequest;
-import com.amazonaws.encryptionsdk.EncryptRequest;
+import com.amazonaws.encryptionsdk.*;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
@@ -15,9 +13,8 @@ import com.amazonaws.encryptionsdk.kms.AwsKmsDataKeyEncryptionDaoBuilder;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 import com.amazonaws.regions.Regions;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import javax.crypto.SecretKey;
+import java.util.*;
 
 /**
  * The AWS KMS symmetric keyring is associated with a single DataKeyEncryptionDao and a single key name.
@@ -36,8 +33,8 @@ import java.util.Map;
  * or if you are working with regions that have separate authentication silos
  * like "ap-east-1" and "me-south-1".
  * <p>
- * This example shows how to create a multi-keyring of AWS KMS symmetric keyrings
- * that will supply AWS KMS clients with valid credentials for the target region
+ * This example shows how to create an AWS KMS symmetric keyring
+ * that is configured with AWS KMS clients that have valid credentials for the target region,
  * even when working with regions that need different credentials.
  * <p>
  * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/choose-keyring.html#use-kms-keyring
@@ -53,6 +50,52 @@ import java.util.Map;
  * and {@link DiscoveryDecryptWithPreferredRegions} examples.
  */
 public class CustomDataKeyEncryptionDao {
+
+    static class CustomMultiPartitionDao implements DataKeyEncryptionDao {
+
+        private static final AwsKmsDataKeyEncryptionDaoBuilder CHINA_BUILDER = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
+            .credentialsProvider(new ProfileCredentialsProvider("china"))
+            .regionId(Regions.CN_NORTH_1.getName());
+        private static final AwsKmsDataKeyEncryptionDaoBuilder MIDDLE_EAST_BUILDER = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
+            .credentialsProvider(new ProfileCredentialsProvider("middle-east"))
+            .regionId(Regions.ME_SOUTH_1.getName());
+        private static final AwsKmsDataKeyEncryptionDaoBuilder HONG_KONG_BUILDER = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
+            .credentialsProvider(new ProfileCredentialsProvider("hong-kong"))
+            .regionId(Regions.AP_EAST_1.getName());
+
+        private final DataKeyEncryptionDao usableDao;
+
+        private CustomMultiPartitionDao(DataKeyEncryptionDao usableDao){
+            this.usableDao = usableDao;
+        }
+
+        static CustomMultiPartitionDao daoGivenRegionId(String regionId) {
+            if (regionId.startsWith("cn-")) {
+                return new CustomMultiPartitionDao(CHINA_BUILDER.build());
+            } else if (regionId.startsWith("me-")) {
+                return new CustomMultiPartitionDao(MIDDLE_EAST_BUILDER.build());
+            } else if (regionId.equals("ap-east-1")) {
+                return new CustomMultiPartitionDao(HONG_KONG_BUILDER.build());
+            } else {
+                return new CustomMultiPartitionDao(AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder().build());
+            }
+        }
+
+        @Override
+        public GenerateDataKeyResult generateDataKey(AwsKmsCmkId keyId, CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext) {
+            return this.usableDao.generateDataKey(keyId, algorithmSuite, encryptionContext);
+        }
+
+        @Override
+        public EncryptedDataKey encryptDataKey(final AwsKmsCmkId keyId, SecretKey plaintextDataKey, Map<String, String> encryptionContext) {
+            return this.usableDao.encryptDataKey(keyId, plaintextDataKey, encryptionContext);
+        }
+
+        @Override
+        public DecryptDataKeyResult decryptDataKey(EncryptedDataKey encryptedDataKey, CryptoAlgorithm algorithmSuite, Map<String, String> encryptionContext) {
+            return this.usableDao.decryptDataKey(encryptedDataKey, algorithmSuite, encryptionContext);
+        }
+    }
 
     /**
      * Demonstrate an encrypt/decrypt cycle using multiple AWS KMS symmetric keyrings, each with a unique dao.
@@ -74,30 +117,11 @@ public class CustomDataKeyEncryptionDao {
         encryptionContext.put("that can help you", "be confident that");
         encryptionContext.put("the data you are handling", "is what you think it is");
 
-        // Create a keyring per region
-        final DataKeyEncryptionDao chinaDao = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
-            .credentialsProvider(new ProfileCredentialsProvider("china"))
-            .regionId(Regions.CN_NORTH_1.getName())
-            .build();
-        final Keyring chinaKeyring = StandardKeyrings.awsKmsSymmetric(chinaDao, awsKmsCmk);
-
-        final DataKeyEncryptionDao middleEastDao = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
-            .credentialsProvider(new ProfileCredentialsProvider("middle-east"))
-            .regionId(Regions.ME_SOUTH_1.getName())
-            .build();
-        final Keyring middleEasyKeyring = StandardKeyrings.awsKmsSymmetric(middleEastDao, awsKmsCmk);
-
-        final DataKeyEncryptionDao hongKongDao = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder()
-            .credentialsProvider(new ProfileCredentialsProvider("hong-kong"))
-            .regionId(Regions.AP_EAST_1.getName())
-            .build();
-        final Keyring hongKongKeyring = StandardKeyrings.awsKmsSymmetric(hongKongDao, awsKmsCmk);
-
-        final DataKeyEncryptionDao defaultDao = AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder().build();
-        final Keyring defaultKeyring = StandardKeyrings.awsKmsSymmetric(defaultDao, awsKmsCmk);
-
         // Create the keyring that determines how your data keys are protected.
-        final Keyring keyring = StandardKeyrings.multi(defaultKeyring, chinaKeyring, middleEasyKeyring, hongKongKeyring);
+        final String region = Arn.fromString(awsKmsCmk.toString()).getRegion();
+        final Keyring keyring = StandardKeyrings.awsKmsSymmetric(
+            CustomMultiPartitionDao.daoGivenRegionId(region),
+            awsKmsCmk);
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(

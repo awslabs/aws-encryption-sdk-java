@@ -54,7 +54,7 @@ public class AwsKmsSymmetricKeyring implements Keyring {
         // onEncrypt MUST attempt to generate a new plaintext data key
         // and encrypt that data key by calling KMS GenerateDataKey.
         if (!encryptionMaterials.hasCleartextDataKey()) {
-            resultMaterials = generateDataKey(encryptionMaterials);
+            return generateDataKey(encryptionMaterials);
         }
 
         // Given a plaintext data key in the encryption materials, OnEncrypt MUST attempt

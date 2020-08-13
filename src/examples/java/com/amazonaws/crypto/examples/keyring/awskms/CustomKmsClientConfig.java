@@ -30,7 +30,7 @@ import java.util.Map;
  * For an example of how to use the AWS KMS symmetric multi-CMK keyring with CMKs in multiple regions,
  * see the {@link MultipleRegions} example.
  * <p>
- * For another example of how to use the AWS KMS symmetric multi-CMK keyring with a custom client configuration,
+ * For another example of how to use the AWS KMS symmetric keyring with a custom client configuration,
  * see the {@link CustomDataKeyEncryptionDao} example.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
