@@ -77,7 +77,8 @@ public class CustomDataKeyEncryptionDao {
             } else if (regionId.equals("ap-east-1")) {
                 return new CustomMultiPartitionDao(HONG_KONG_BUILDER.build());
             } else {
-                return new CustomMultiPartitionDao(AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder().build());
+                return new CustomMultiPartitionDao(
+                    AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder().regionId(regionId).build());
             }
         }
 
