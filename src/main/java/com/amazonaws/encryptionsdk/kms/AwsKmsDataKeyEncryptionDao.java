@@ -47,7 +47,7 @@ import static org.apache.commons.lang3.Validate.isTrue;
  * generation, encryption, and decryption of data keys. The KmsMethods interface is implemented
  * to allow usage in KmsMasterKey.
  */
-class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
+public class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMethods {
 
     private final AWSKMS client;
     private final boolean canAppendUserAgentString;

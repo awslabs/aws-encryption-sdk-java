@@ -22,6 +22,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +35,9 @@ class AwsKmsDataKeyEncryptionDaoBuilderTest {
     @Mock AWSKMS awskms;
     @Mock AWSCredentialsProvider credentialsProvider;
     @Mock ClientConfiguration clientConfiguration;
+
     private static final String REGION = "us-east-1";
+    private static final List<String> GRANT_TOKENS = Arrays.asList("some", "grant", "tokens");
 
     @Test
     void testCredentialsClientAndRegionConfiguration() {
@@ -45,6 +50,7 @@ class AwsKmsDataKeyEncryptionDaoBuilderTest {
                 .credentialsProvider(credentialsProvider)
                 .clientConfiguration(clientConfiguration)
                 .regionId(REGION)
+                .grantTokens(GRANT_TOKENS)
                 .build();
 
         verify(kmsClientBuilder).withCredentials(credentialsProvider);

@@ -62,7 +62,8 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         DIFFERENT_REGION_KEY_NAME.getBytes(PROVIDER_ENCODING), generate(ALGORITHM_SUITE.getDataKeyLength()));
     private static final EncryptedDataKey ENCRYPTED_DIFFERENT_AWS_ACCOUNT_ID_KEY = new KeyBlob(AWS_KMS_PROVIDER_ID,
         DIFFERENT_AWS_ACCOUNT_ID_KEY_NAME.getBytes(PROVIDER_ENCODING), generate(ALGORITHM_SUITE.getDataKeyLength()));
-    @Mock(lenient = true) private DataKeyEncryptionDao dataKeyEncryptionDao;
+    @Mock(lenient = true)
+    private DataKeyEncryptionDao dataKeyEncryptionDao;
     private Keyring keyring;
 
     @BeforeEach

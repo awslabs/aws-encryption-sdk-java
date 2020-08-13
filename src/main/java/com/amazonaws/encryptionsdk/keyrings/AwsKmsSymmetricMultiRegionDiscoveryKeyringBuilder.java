@@ -32,13 +32,16 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
     private AWSCredentialsProvider credentialsProvider;
     private ClientConfiguration clientConfiguration;
 
-    private AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder() {
+    private AwsKmsDataKeyEncryptionDaoBuilder daoBuilder;
+
+    AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder(AwsKmsDataKeyEncryptionDaoBuilder daoBuilder) {
         // Use AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder.standard()
         // or StandardKeyrings.awsKmsSymmetricMultiRegionDiscoveryKeyringBuilder()
         // to instantiate a standard AWS KMS symmetric multi-region discovery keyring Builder.
         // If an AWS KMS symmetric multi-CMK keyring builder is needed use
         // AwsKmsSymmetricMultiCmkKeyringBuilder.standard() or
         // StandardKeyrings.awsKmsSymmetricMultiCmkBuilder().
+        this.daoBuilder = daoBuilder;
     }
 
     /**
@@ -47,7 +50,7 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
      * @return The {@code AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder}
      */
     public static AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder standard() {
-        return new AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder();
+        return new AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder(AwsKmsDataKeyEncryptionDaoBuilder.defaultBuilder());
     }
 
     /**
@@ -106,11 +109,11 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
     }
 
     /**
-     * Constructs the {@link Keyring} instance.
+     * Constructs the {@code MultiKeyring} of {@code AwsKmsSymmetricRegionDiscoveryKeyring}s.
      *
      * @return The {@link Keyring} instance
      */
-    public Keyring build() {
+    public MultiKeyring build() {
         // A mapping of AWS region to DataKeyEncryptionDao
         final Map<String, DataKeyEncryptionDao> clientMapping = new HashMap<>();
 
@@ -136,12 +139,11 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
         }
 
         // Finally, construct a multi-keyring
-        return StandardKeyrings.multi(null, discoveryKeyrings);
+        return new MultiKeyring(null, discoveryKeyrings);
     }
 
     private DataKeyEncryptionDao constructDataKeyEncryptionDao(String regionId) {
-        return AwsKmsDataKeyEncryptionDaoBuilder
-            .defaultBuilder()
+        return this.daoBuilder
             .clientConfiguration(clientConfiguration)
             .credentialsProvider(credentialsProvider)
             .grantTokens(grantTokens)
