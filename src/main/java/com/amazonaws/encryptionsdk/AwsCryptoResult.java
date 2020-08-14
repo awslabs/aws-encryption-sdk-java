@@ -13,7 +13,6 @@
 
 package com.amazonaws.encryptionsdk;
 
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 
 import java.util.Collections;
@@ -23,7 +22,7 @@ import java.util.Map;
 /**
  * Represents the result of an operation by {@link AwsCrypto}. It not only captures the
  * {@code result} of the operation but also additional metadata such as the
- * {@code encryptionContext}, {@code algorithm}, {@link KeyringTrace}, and any other information
+ * {@code encryptionContext}, {@code algorithm}, and any other information
  * captured in the {@link CiphertextHeaders}.
  *
  * @param <T>
@@ -31,7 +30,6 @@ import java.util.Map;
  */
 public class AwsCryptoResult<T> {
     private final T result;
-    private final KeyringTrace keyringTrace;
     private final List<MasterKey> masterKeys;
     private final Map<String, String> encryptionContext;
     private final CiphertextHeaders headers;
@@ -39,9 +37,8 @@ public class AwsCryptoResult<T> {
     /**
      * Note, does not make a defensive copy of any of the data.
      */
-    AwsCryptoResult(final T result, final KeyringTrace keyringTrace, final List<? extends MasterKey> masterKeys, final CiphertextHeaders headers) {
+    AwsCryptoResult(final T result, final List<? extends MasterKey> masterKeys, final CiphertextHeaders headers) {
         this.result = result;
-        this.keyringTrace = keyringTrace;
         this.masterKeys = Collections.unmodifiableList(masterKeys);
         this.headers = headers;
         encryptionContext = this.headers.getEncryptionContextMap();
@@ -55,15 +52,6 @@ public class AwsCryptoResult<T> {
      */
     public T getResult() {
         return result;
-    }
-
-    /**
-     * The {@link KeyringTrace} containing all of the actions that keyrings have taken.
-     *
-     * @return The {@link KeyringTrace}
-     */
-    public KeyringTrace getKeyringTrace() {
-        return keyringTrace;
     }
 
     /**

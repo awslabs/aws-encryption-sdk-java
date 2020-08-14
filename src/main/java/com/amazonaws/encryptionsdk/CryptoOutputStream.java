@@ -192,7 +192,6 @@ public class CryptoOutputStream<K extends MasterKey<K>> extends OutputStream {
 
         return new AwsCryptoResult<>(
                 awsCryptoOutputStream,
-                cryptoHandler_.getKeyringTrace(),
                 cryptoHandler_.getMasterKeys(),
                 cryptoHandler_.getHeaders());
     }

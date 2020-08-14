@@ -29,7 +29,6 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -61,7 +60,6 @@ public class EncryptionHandler implements MessageCryptoHandler {
     private final Map<String, String> encryptionContext_;
     private final CryptoAlgorithm cryptoAlgo_;
     private final List<MasterKey> masterKeys_;
-    private final KeyringTrace keyringTrace_;
     private final List<KeyBlob> keyBlobs_;
     private final SecretKey encryptionKey_;
     private final byte version_;
@@ -94,7 +92,6 @@ public class EncryptionHandler implements MessageCryptoHandler {
         this.encryptionContext_ = result.getEncryptionContext();
         this.cryptoAlgo_ = result.getAlgorithm();
         this.masterKeys_ = result.getMasterKeys();
-        this.keyringTrace_ = result.getKeyringTrace();
         this.keyBlobs_ = result.getEncryptedDataKeys();
         this.trailingSignaturePrivateKey_ = result.getTrailingSignatureKey();
 
@@ -415,7 +412,6 @@ public class EncryptionHandler implements MessageCryptoHandler {
      * empty list if Keyrings are in use.
      *
      * @deprecated MasterKeys have been deprecated in favor of {@link Keyring}s.
-     *             Use {@link #getKeyringTrace()} to view which keys were used in encryption.
      */
     @Override
     @Deprecated
@@ -425,11 +421,6 @@ public class EncryptionHandler implements MessageCryptoHandler {
         }
         //noinspection unchecked
         return (List)masterKeys_; // This is unmodifiable
-    }
-
-    @Override
-    public KeyringTrace getKeyringTrace() {
-        return keyringTrace_;
     }
 
     private void updateTrailingSignature(byte[] input, int offset, int len) {

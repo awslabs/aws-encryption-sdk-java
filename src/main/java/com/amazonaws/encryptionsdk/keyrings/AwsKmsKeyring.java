@@ -111,21 +111,15 @@ class AwsKmsKeyring implements Keyring {
                 encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
 
         return encryptionMaterials
-                .withCleartextDataKey(result.getPlaintextDataKey(),
-                        new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, generatorKeyId.toString(),
-                                KeyringTraceFlag.GENERATED_DATA_KEY))
-                .withEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()),
-                        new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, generatorKeyId.toString(),
-                                KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
+                .withCleartextDataKey(result.getPlaintextDataKey())
+                .withEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()));
     }
 
     private EncryptionMaterials encryptDataKey(final AwsKmsCmkId keyId, final EncryptionMaterials encryptionMaterials) {
         final EncryptedDataKey encryptedDataKey = dataKeyEncryptionDao.encryptDataKey(keyId,
                 encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
 
-        return encryptionMaterials.withEncryptedDataKey(new KeyBlob(encryptedDataKey),
-                new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, keyId.toString(),
-                        KeyringTraceFlag.ENCRYPTED_DATA_KEY, KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
+        return encryptionMaterials.withEncryptedDataKey(new KeyBlob(encryptedDataKey));
     }
 
     @Override
@@ -149,9 +143,7 @@ class AwsKmsKeyring implements Keyring {
                     final DecryptDataKeyResult result = dataKeyEncryptionDao.decryptDataKey(encryptedDataKey,
                             decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
-                    return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
-                            new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, result.getKeyArn(),
-                                    KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
+                    return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey());
                 } catch (CannotUnwrapDataKeyException e) {
                     continue;
                 }

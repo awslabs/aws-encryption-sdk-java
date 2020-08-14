@@ -2,8 +2,6 @@ package com.amazonaws.encryptionsdk.model;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceEntry;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
@@ -21,14 +19,12 @@ public final class DecryptionMaterials {
     private final Map<String, String> encryptionContext;
     private final DataKey<?> dataKey;
     private final PublicKey trailingSignatureKey;
-    private final KeyringTrace keyringTrace;
 
     private DecryptionMaterials(Builder b) {
         algorithm = b.algorithm;
         encryptionContext = b.encryptionContext;
         dataKey = b.getDataKey();
         trailingSignatureKey = b.getTrailingSignatureKey();
-        keyringTrace = b.keyringTrace;
     }
 
     /**
@@ -55,23 +51,20 @@ public final class DecryptionMaterials {
 
     /**
      * Creates a new {@code DecryptionMaterials} instance based on this instance with the addition of the
-     * provided cleartext data key and keyring trace entry. The cleartext data key must not already be populated.
+     * provided cleartext data key. The cleartext data key must not already be populated.
      *
      * @param cleartextDataKey  The cleartext data key.
-     * @param keyringTraceEntry The keyring trace entry recording this action.
      * @return The new {@code DecryptionMaterials} instance.
      */
-    public DecryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public DecryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey) {
         if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
-        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validateCleartextDataKey(algorithm, cleartextDataKey);
 
         return toBuilder()
                 .setCleartextDataKey(cleartextDataKey)
-                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
                 .build();
     }
 
@@ -92,10 +85,6 @@ public final class DecryptionMaterials {
         return trailingSignatureKey;
     }
 
-    public KeyringTrace getKeyringTrace() {
-        return keyringTrace;
-    }
-
     public static Builder newBuilder() {
         return new Builder();
     }
@@ -113,13 +102,12 @@ public final class DecryptionMaterials {
         return algorithm == that.algorithm &&
                 Objects.equals(getCleartextDataKey(), that.getCleartextDataKey()) &&
                 Objects.equals(trailingSignatureKey, that.trailingSignatureKey) &&
-                Objects.equals(encryptionContext, that.encryptionContext) &&
-                Objects.equals(keyringTrace, that.keyringTrace);
+                Objects.equals(encryptionContext, that.encryptionContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(algorithm, getCleartextDataKey(), trailingSignatureKey, encryptionContext, keyringTrace);
+        return Objects.hash(algorithm, getCleartextDataKey(), trailingSignatureKey, encryptionContext);
     }
 
     private void validateCleartextDataKey(CryptoAlgorithm algorithm, SecretKey cleartextDataKey) throws IllegalArgumentException {
@@ -138,14 +126,12 @@ public final class DecryptionMaterials {
         private Map<String, String> encryptionContext = Collections.emptyMap();
         private DataKey<?> dataKey;
         private PublicKey trailingSignatureKey;
-        private KeyringTrace keyringTrace = KeyringTrace.EMPTY_TRACE;
 
         private Builder(DecryptionMaterials result) {
             this.algorithm = result.getAlgorithm();
             this.encryptionContext = result.getEncryptionContext();
             this.dataKey = result.getDataKey();
             this.trailingSignatureKey = result.getTrailingSignatureKey();
-            this.keyringTrace = result.getKeyringTrace();
         }
 
         private Builder() {}
@@ -198,16 +184,6 @@ public final class DecryptionMaterials {
 
         public Builder setTrailingSignatureKey(PublicKey trailingSignatureKey) {
             this.trailingSignatureKey = trailingSignatureKey;
-            return this;
-        }
-
-        public KeyringTrace getKeyringTrace() {
-            return keyringTrace;
-        }
-
-        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
-            requireNonNull(keyringTrace, "keyringTrace is required");
-            this.keyringTrace = keyringTrace;
             return this;
         }
 

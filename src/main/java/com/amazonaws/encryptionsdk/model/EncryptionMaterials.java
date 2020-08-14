@@ -3,8 +3,6 @@ package com.amazonaws.encryptionsdk.model;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceEntry;
 
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
@@ -32,7 +30,6 @@ public final class EncryptionMaterials {
     private final SecretKey cleartextDataKey;
     private final PrivateKey trailingSignatureKey;
     private final List<MasterKey> masterKeys;
-    private final KeyringTrace keyringTrace;
 
     private EncryptionMaterials(Builder b) {
         this.algorithm = b.algorithm;
@@ -41,7 +38,6 @@ public final class EncryptionMaterials {
         this.cleartextDataKey = b.cleartextDataKey;
         this.trailingSignatureKey = b.trailingSignatureKey;
         this.masterKeys = b.getMasterKeys();
-        this.keyringTrace = b.keyringTrace;
     }
 
     public Builder toBuilder() {
@@ -76,22 +72,19 @@ public final class EncryptionMaterials {
 
     /**
      * Creates a new {@code EncryptionMaterials} instance based on this instance with the addition of the
-     * provided encrypted data key and keyring trace entry.
+     * provided encrypted data key.
      *
      * @param encryptedDataKey  The encrypted data key to add.
-     * @param keyringTraceEntry The keyring trace entry recording this action.
      * @return The new {@code EncryptionMaterials} instance.
      */
-    public EncryptionMaterials withEncryptedDataKey(KeyBlob encryptedDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public EncryptionMaterials withEncryptedDataKey(KeyBlob encryptedDataKey) {
         requireNonNull(encryptedDataKey, "encryptedDataKey is required");
-        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
 
         final List<KeyBlob> encryptedDataKeys = new ArrayList<>(getEncryptedDataKeys());
         encryptedDataKeys.add(encryptedDataKey);
 
         return toBuilder()
                 .setEncryptedDataKeys(encryptedDataKeys)
-                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
                 .build();
     }
 
@@ -105,23 +98,20 @@ public final class EncryptionMaterials {
 
     /**
      * Creates a new {@code EncryptionMaterials} instance based on this instance with the addition of the
-     * provided cleartext data key and keyring trace entry. The cleartext data key must not already be populated.
+     * provided cleartext data key. The cleartext data key must not already be populated.
      *
      * @param cleartextDataKey  The cleartext data key.
-     * @param keyringTraceEntry The keyring trace entry recording this action.
      * @return The new {@code EncryptionMaterials} instance.
      */
-    public EncryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey, KeyringTraceEntry keyringTraceEntry) {
+    public EncryptionMaterials withCleartextDataKey(SecretKey cleartextDataKey) {
         if (hasCleartextDataKey()) {
             throw new IllegalStateException("cleartextDataKey was already populated");
         }
         requireNonNull(cleartextDataKey, "cleartextDataKey is required");
-        requireNonNull(keyringTraceEntry, "keyringTraceEntry is required");
         validateCleartextDataKey(algorithm, cleartextDataKey);
 
         return toBuilder()
                 .setCleartextDataKey(cleartextDataKey)
-                .setKeyringTrace(keyringTrace.with(keyringTraceEntry))
                 .build();
     }
 
@@ -157,13 +147,6 @@ public final class EncryptionMaterials {
     }
 
     /**
-     * A keyring trace containing all of the actions that keyrings have taken on this set of encryption materials.
-     */
-    public KeyringTrace getKeyringTrace() {
-        return keyringTrace;
-    }
-
-    /**
      * Validates that the given plaintext data key fits the specification
      * for the data key algorithm specified in the given algorithm suite.
      */
@@ -187,13 +170,12 @@ public final class EncryptionMaterials {
                 Objects.equals(encryptedDataKeys, that.encryptedDataKeys) &&
                 Objects.equals(cleartextDataKey, that.cleartextDataKey) &&
                 Objects.equals(trailingSignatureKey, that.trailingSignatureKey) &&
-                Objects.equals(masterKeys, that.masterKeys) &&
-                Objects.equals(keyringTrace, that.keyringTrace);
+                Objects.equals(masterKeys, that.masterKeys);
     }
 
     @Override public int hashCode() {
         return Objects.hash(algorithm, encryptionContext, encryptedDataKeys, cleartextDataKey, trailingSignatureKey,
-                masterKeys, keyringTrace);
+                masterKeys);
     }
 
     public static class Builder {
@@ -203,7 +185,6 @@ public final class EncryptionMaterials {
         private SecretKey cleartextDataKey;
         private PrivateKey trailingSignatureKey;
         private List<MasterKey> masterKeys = Collections.emptyList();
-        private KeyringTrace keyringTrace = KeyringTrace.EMPTY_TRACE;
 
         private Builder() {}
 
@@ -214,7 +195,6 @@ public final class EncryptionMaterials {
             cleartextDataKey = r.cleartextDataKey;
             trailingSignatureKey = r.trailingSignatureKey;
             setMasterKeys(r.masterKeys);
-            keyringTrace = r.keyringTrace;
         }
 
         public EncryptionMaterials build() {
@@ -274,15 +254,6 @@ public final class EncryptionMaterials {
         @Deprecated
         public Builder setMasterKeys(List<MasterKey> masterKeys) {
             this.masterKeys = unmodifiableList(new ArrayList<>(masterKeys));
-            return this;
-        }
-
-        public KeyringTrace getKeyringTrace() {
-            return keyringTrace;
-        }
-
-        public Builder setKeyringTrace(KeyringTrace keyringTrace) {
-            this.keyringTrace = keyringTrace;
             return this;
         }
     }

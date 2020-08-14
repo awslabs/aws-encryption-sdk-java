@@ -367,8 +367,7 @@ public class AwsCrypto {
 
         final byte[] outBytes = Utils.truncate(out, outLen);
 
-        return new AwsCryptoResult<>(outBytes, encryptionMaterials.getKeyringTrace(),
-                cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
+        return new AwsCryptoResult<>(outBytes, cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
     }
 
     /**
@@ -552,8 +551,7 @@ public class AwsCrypto {
 
         final byte[] outBytes = Utils.truncate(out, outLen);
 
-        return new AwsCryptoResult<>(outBytes, cryptoHandler.getKeyringTrace(),
-                cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
+        return new AwsCryptoResult<>(outBytes, cryptoHandler.getMasterKeys(), cryptoHandler.getHeaders());
     }
 
     /**
