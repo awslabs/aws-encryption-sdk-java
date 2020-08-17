@@ -64,7 +64,7 @@ public class StandardKeyrings {
     }
 
     /**
-     * Constructs a {@code MultiKeyring} of {@code AwsKmsSymmetricKeyring}(s),
+     * Constructs a {@code MultiKeyring} of an {@code AwsKmsSymmetricKeyring},
      * which interacts with AWS Key Management Service (KMS) to create,
      * encrypt, and decrypt data keys using the supplied AWS KMS defined Customer Master Keys (CMKs).
      *

@@ -12,6 +12,7 @@ import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,14 +25,14 @@ import java.util.Map;
  * especially if you don't know which CMK was used to encrypt a message.
  * To address this need, you can use an AWS KMS symmetric multi-region discovery keyring.
  * The AWS KMS symmetric multi-region discovery keyring is a multi-keyring of AWS KMS symmetric region discovery keyrings.
- * AWS KMS symmetric region discovery keyrings cannot encrypt.
+ * AWS KMS symmetric region discovery keyrings throw errors on encryption.
  * On decrypt each AWS KMS symmetric region discovery keyring reviews each encrypted data key (EDK).
  * If an EDK was encrypted under an AWS KMS CMK,
  * the AWS KMS symmetric region discovery keyring attempts to decrypt it if the EDK's region matches the region associated
  * with the AWS KMS symmetric region discovery keyring.
  * Whether decryption succeeds depends on permissions on the CMK.
- * This continues until the AWS KMS symmetric region discovery keyring either runs out of EDKs
- * or succeeds in decrypting an EDK.
+ * This continues until all child AWS KMS symmetric region discovery keyrings either run out of EDKs
+ * or a child succeeds in decrypting an EDK.
  * <p>
  * Each AWS KMS symmetric region discovery keyring is restricted to a single AWS region.
  * Additionally, an AWS KMS symmetric multi-region discovery keyring restricts communication to the configured regions,
@@ -85,8 +86,10 @@ public class DiscoveryDecryptWithPreferredRegions {
 
         // To create our decrypt keyring, we need to know our current default AWS region.
         // Please note that this *may* return a null region.
-        // As a result, we recommend specifying the region you are operating in directly.
-        final String localRegion = AWSKMSClientBuilder.standard().getRegion();
+        // As a result, we recommend specifying the region you are operating in directly
+        // or having a fallback to prevent the keyring builder from failing.
+        String localRegion = AWSKMSClientBuilder.standard().getRegion();
+        localRegion = StringUtils.isBlank(localRegion) ? Regions.US_EAST_1.getName() : localRegion;
 
         // Now, use that region name to create an AWS KMS symmetric multi-region discovery keyring.
         // The AWS KMS symmetric multi-region discovery keyring represents a multi-keying

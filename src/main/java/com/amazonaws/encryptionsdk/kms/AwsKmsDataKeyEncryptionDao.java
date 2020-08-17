@@ -159,10 +159,7 @@ public class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMeth
     }
 
     private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
-        // Only append the user agent string if the user agent string is the AWS SDK default
-        // and if we are allowed to append it
-        final String marker = request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT);
-        if (this.canAppendUserAgentString && marker == null) {
+        if (this.canAppendUserAgentString) {
             request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
         }
         return request;

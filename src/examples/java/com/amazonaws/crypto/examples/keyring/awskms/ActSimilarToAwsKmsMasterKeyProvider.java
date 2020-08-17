@@ -49,8 +49,8 @@ import static java.util.stream.Collectors.toList;
  * However, as you migrate from master key providers to keyrings,
  * you might want a keyring that behaves similarly the AWS KMS master key provider.
  *
- * Since the AWS KMS symmetric multi-region keyring cannot perform encryption,
- * it cannot be combined with an AWS KMS symmetric multi-CMK in a multi-keyring,
+ * The AWS KMS symmetric multi-region keyring throws an error on encryption,
+ * so it cannot be combined with an AWS KMS symmetric multi-CMK in a multi-keyring,
  * if the encrypt operation is ever called.
  * Therefore, we have two separate keyrings.
  * One for encrypting with a specific list of CMKs
@@ -112,12 +112,16 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         // it may communicate with.
         //
         // In production, if you need a keyring that attempts decryption in all AWS regions,
-        // you should call a service/API to get an updated list of AWS regions.
-        // This will prevent any AWS SDK-derived region-lists from potentially becoming stale over time.
+        // you should call a service/API to get an updated list of AWS regions
+        // and configure the keyring with that list.
+        // Although there are ways of getting a list of AWS regions directly from the AWS SDK,
+        // this is more prone to staleness
+        // than making a service/API call.
         //
         // In most cases, you should simply call StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery
-        // with the specific regions you need,
-        // and not attempt decryption in any AWS region.
+        // with the specific AWS regions you require for decryption
+        // and not attempt to configure the keyring with all available AWS regions.
+        // You should only provide the regions you need.
         //
         // This will provide flexibility for adding more regions over time,
         // without allowing unnecessary access to regions that are not currently required.
@@ -129,8 +133,8 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         final Keyring discoveryKeyring = StandardKeyrings.awsKmsSymmetricMultiRegionDiscovery(allRegionIds);
 
         // Note that you cannot combine the AWS KMS symmetric multi-CMK and AWS KMS symmetric multi-region keyrings
-        // using a multi-keyring because the AWS KMS symmetric multi-region keyring is unable to perform
-        // an encryption operation.
+        // using a multi-keyring because the AWS KMS symmetric multi-region keyring throws an error
+        // when calling the encryption operation.
         //
         // Therefore, you should use these keyrings separately (one for encrypt and one for decrypt).
         //
@@ -154,7 +158,7 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         // Demonstrate that the ciphertext and plaintext are different.
         assert !Arrays.equals(ciphertext, sourcePlaintext);
 
-        // Decrypt your encrypted data using the same keyring you used on encrypt.
+        // Decrypt your encrypted data using the AWS KMS symmetric multi-region keyring.
         //
         // You do not need to specify the encryption context on decrypt because
         // the header of the encrypted message includes the encryption context.

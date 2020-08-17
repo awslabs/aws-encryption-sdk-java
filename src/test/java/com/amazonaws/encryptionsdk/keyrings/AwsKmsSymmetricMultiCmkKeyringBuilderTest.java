@@ -129,30 +129,17 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilderTest {
 
     @Test
     void testBuildNullKeyNames() {
-        MultiKeyring keyring = builder.credentialsProvider(credentialsProvider)
-            .clientConfiguration(clientConfiguration)
-            .grantTokens(GRANT_TOKENS)
-            .generator(null)
-            .keyNames(Arrays.asList(
-                null,
-                KEY_NAME_US_EAST_1))
-            .build();
+        when(daoBuilder.clientConfiguration(null)).thenReturn(daoBuilder);
+        when(daoBuilder.credentialsProvider(null)).thenReturn(daoBuilder);
+        when(daoBuilder.grantTokens(null)).thenReturn(daoBuilder);
 
-        assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childKeyrings);
-        assertEquals(1, keyring.childKeyrings.size());
-
-        verify(daoBuilder, times(1)).clientConfiguration(clientConfiguration);
-        verify(daoBuilder, times(1)).credentialsProvider(credentialsProvider);
-        verify(daoBuilder, times(1)).grantTokens(GRANT_TOKENS);
-        verify(daoBuilder).regionId("us-east-1");
-        verify(daoBuilder, times(1)).build();
+        builder = builder.keyNames(Arrays.asList(KEY_NAME_US_EAST_1, null));
+        assertThrows(IllegalArgumentException.class, () -> builder.build());
     }
 
     @Test
     void testBuildNoKeys() {
-        assertThrows(IllegalArgumentException.class,
-            () -> builder.build());
+        assertThrows(IllegalArgumentException.class, () -> builder.build());
     }
 
     @Test

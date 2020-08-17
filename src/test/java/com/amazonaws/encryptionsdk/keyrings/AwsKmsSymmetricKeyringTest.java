@@ -146,7 +146,7 @@ class AwsKmsSymmetricKeyringTest {
     }
 
     @Test
-    void testEncryptNullDataKey() {
+    void testGenerateEncryptDecryptDataKey() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -178,7 +178,7 @@ class AwsKmsSymmetricKeyringTest {
     }
 
     @Test
-    void testDecryptFirstKeyIncorrectKeyName() {
+    void testDecryptFirstKeyFails() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -196,6 +196,21 @@ class AwsKmsSymmetricKeyringTest {
     }
 
     @Test
+    void testDecryptIncorrectKeyName() {
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+            .setAlgorithm(ALGORITHM_SUITE)
+            .setEncryptionContext(ENCRYPTION_CONTEXT)
+            .build();
+
+        List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
+        encryptedDataKeys.add(FAILING_ENCRYPTED_KEY);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
+    }
+
+    @Test
     void testDecryptMismatchedDataKeyException() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
@@ -208,7 +223,7 @@ class AwsKmsSymmetricKeyringTest {
     }
 
     @Test
-    void testDecryptFirstKeyWrongProvider() {
+    void testDecryptWrongProvider() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -218,13 +233,10 @@ class AwsKmsSymmetricKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(wrongProviderKey);
-        encryptedDataKeys.add(ENCRYPTED_KEY);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_ARN, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -252,10 +264,8 @@ class AwsKmsSymmetricKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_KEY);
-        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+        assertThrows(CannotUnwrapDataKeyException.class, () -> keyring.onDecrypt(decryptionMaterials, encryptedDataKeys));
 
-        assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test

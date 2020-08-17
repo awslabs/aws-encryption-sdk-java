@@ -149,7 +149,7 @@ public class AwsKmsSymmetricMultiCmkKeyringBuilder {
         if (this.childKeyNames != null) {
             for (final AwsKmsCmkId keyName : this.childKeyNames) {
                 if (keyName == null) {
-                    continue;
+                    throw new IllegalArgumentException("AwsKmsSymmetricMultiCmkKeyringBuilder provided a null AwsKmsCmkId");
                 }
 
                 // If we have an ARN, obtain the region from the ARN (to specify the region of the AWS SDK KMS service client)

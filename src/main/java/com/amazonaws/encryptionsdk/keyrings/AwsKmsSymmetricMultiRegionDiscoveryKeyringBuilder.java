@@ -119,23 +119,25 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder {
 
         // Construct each AwsKmsSymmetricRegionDiscoveryKeyring
         List<Keyring> discoveryKeyrings = new ArrayList<>();
-        if (this.regionIds != null) {
-            for (final String region : this.regionIds) {
-                if (StringUtils.isBlank(region)) {
-                    continue;
-                }
+        if (this.regionIds == null) {
+            throw new IllegalArgumentException("AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder requires at least one region to build");
+        }
 
-                // Check if a dao already exists for the given region
-                // and use the existing dao or construct a new one and save it
-                final boolean discoveryDaoExists = clientMapping.containsKey(region);
-                final DataKeyEncryptionDao discoveryDao = discoveryDaoExists ? clientMapping.get(region) : constructDataKeyEncryptionDao(region);
-                if (!discoveryDaoExists) {
-                    clientMapping.put(region, discoveryDao);
-                }
-
-                final Keyring discoveryKeyring = new AwsKmsSymmetricRegionDiscoveryKeyring(discoveryDao, region, this.awsAccountId);
-                discoveryKeyrings.add(discoveryKeyring);
+        for (final String region : this.regionIds) {
+            if (StringUtils.isBlank(region)) {
+                throw new IllegalArgumentException("AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilder provided a null or blank region");
             }
+
+            // Check if a dao already exists for the given region
+            // and use the existing dao or construct a new one and save it
+            final boolean discoveryDaoExists = clientMapping.containsKey(region);
+            final DataKeyEncryptionDao discoveryDao = discoveryDaoExists ? clientMapping.get(region) : constructDataKeyEncryptionDao(region);
+            if (!discoveryDaoExists) {
+                clientMapping.put(region, discoveryDao);
+            }
+
+            final Keyring discoveryKeyring = new AwsKmsSymmetricRegionDiscoveryKeyring(discoveryDao, region, this.awsAccountId);
+            discoveryKeyrings.add(discoveryKeyring);
         }
 
         // Finally, construct a multi-keyring

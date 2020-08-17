@@ -91,32 +91,28 @@ public class AwsKmsSymmetricMultiRegionDiscoveryKeyringBuilderTest {
     }
 
     @Test
-    void testBuildEmptyAndNullRegions() {
-        MultiKeyring keyring = builder.credentialsProvider(credentialsProvider)
-            .clientConfiguration(clientConfiguration)
-            .grantTokens(GRANT_TOKENS)
-            .regions(Arrays.asList("us-west-2", null, "", " ", "us-east-1"))
-            .build();
+    void testBuildNullRegions() {
+        when(daoBuilder.clientConfiguration(null)).thenReturn(daoBuilder);
+        when(daoBuilder.credentialsProvider(null)).thenReturn(daoBuilder);
+        when(daoBuilder.grantTokens(null)).thenReturn(daoBuilder);
 
-        assertNull(keyring.generatorKeyring);
-        assertNotNull(keyring.childKeyrings);
-        assertEquals(2, keyring.childKeyrings.size());
+        builder = builder.regions(Arrays.asList("us-west-2", null));
+        assertThrows(IllegalArgumentException.class, () -> builder.build());
+    }
 
-        verify(daoBuilder, times(2)).clientConfiguration(clientConfiguration);
-        verify(daoBuilder, times(2)).credentialsProvider(credentialsProvider);
-        verify(daoBuilder, times(2)).grantTokens(GRANT_TOKENS);
-        verify(daoBuilder).regionId("us-west-2");
-        verify(daoBuilder).regionId("us-east-1");
-        verify(daoBuilder, times(REGIONS.size())).build();
+    @Test
+    void testBuildEmptyRegions() {
+        when(daoBuilder.clientConfiguration(null)).thenReturn(daoBuilder);
+        when(daoBuilder.credentialsProvider(null)).thenReturn(daoBuilder);
+        when(daoBuilder.grantTokens(null)).thenReturn(daoBuilder);
+
+        builder = builder.regions(Arrays.asList("us-west-2", " "));
+        assertThrows(IllegalArgumentException.class, () -> builder.build());
     }
 
     @Test
     void testBuildNoRegions() {
-        assertThrows(IllegalArgumentException.class,
-            () -> builder.credentialsProvider(credentialsProvider)
-                .clientConfiguration(clientConfiguration)
-                .grantTokens(GRANT_TOKENS)
-                .build());
+        assertThrows(IllegalArgumentException.class, () -> builder.build());
     }
 
     @Test

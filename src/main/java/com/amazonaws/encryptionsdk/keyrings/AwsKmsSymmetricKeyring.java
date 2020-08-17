@@ -14,7 +14,6 @@
 package com.amazonaws.encryptionsdk.keyrings;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
-import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.DataKeyEncryptionDao;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
@@ -107,19 +106,15 @@ public class AwsKmsSymmetricKeyring implements Keyring {
 
         for (EncryptedDataKey encryptedDataKey : encryptedDataKeys) {
             if (okToDecrypt(encryptedDataKey)) {
-                try {
-                    final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
-                        encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
+                final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
+                    encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
 
-                    return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
-                        new KeyringTraceEntry(
-                            AWS_KMS_PROVIDER_ID,
-                            result.getKeyArn(),
-                            KeyringTraceFlag.DECRYPTED_DATA_KEY,
-                            KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
-                } catch (CannotUnwrapDataKeyException e) {
-                    continue;
-                }
+                return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
+                    new KeyringTraceEntry(
+                        AWS_KMS_PROVIDER_ID,
+                        result.getKeyArn(),
+                        KeyringTraceFlag.DECRYPTED_DATA_KEY,
+                        KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
             }
         }
 

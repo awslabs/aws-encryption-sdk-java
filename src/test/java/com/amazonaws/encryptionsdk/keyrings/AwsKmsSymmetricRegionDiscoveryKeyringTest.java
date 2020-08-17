@@ -171,7 +171,24 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
     }
 
     @Test
-    void testDecryptFirstKeyIncorrectAccountId() {
+    void testDecryptCannotUnwrap() {
+        DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
+            .setAlgorithm(ALGORITHM_SUITE)
+            .setEncryptionContext(ENCRYPTION_CONTEXT)
+            .build();
+
+        when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_KEY_1, ALGORITHM_SUITE, ENCRYPTION_CONTEXT)).thenThrow(new CannotUnwrapDataKeyException());
+
+        List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
+        encryptedDataKeys.add(ENCRYPTED_KEY_1);
+        decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
+
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
+    }
+
+    @Test
+    void testDecryptIncorrectAccountId() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -179,13 +196,10 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_DIFFERENT_AWS_ACCOUNT_ID_KEY);
-        encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -208,7 +222,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
     }
 
     @Test
-    void testDecryptFirstKeyIncorrectRegion() {
+    void testDecryptIncorrectRegion() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -216,13 +230,10 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(ENCRYPTED_DIFFERENT_REGION_KEY);
-        encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -238,7 +249,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
     }
 
     @Test
-    void testDecryptFirstKeyWrongProvider() {
+    void testDecryptWrongProvider() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -248,17 +259,14 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(wrongProviderKey);
-        encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
-    void testDecryptFirstKeyNotARN() {
+    void testDecryptNotARN() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -271,13 +279,10 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
 
         List<EncryptedDataKey> encryptedDataKeys = new ArrayList<>();
         encryptedDataKeys.add(notArnKey);
-        encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertFalse(decryptionMaterials.hasCleartextDataKey());
+        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
