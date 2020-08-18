@@ -65,7 +65,7 @@ class MultiKeyringTest {
     @Test
     void testOnEncryptWithGenerator() {
         MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
-        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
+        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(false).thenReturn(true);
         when(generatorKeyring.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
         when(keyring1.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
         when(keyring2.onEncrypt(encryptionMaterials)).thenReturn(encryptionMaterials);
@@ -98,6 +98,16 @@ class MultiKeyringTest {
 
         assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
     }
+
+	@Test
+	void testOnDecryptWithGeneratorAndPlaintextDataKey() {
+        MultiKeyring keyring = new MultiKeyring(generatorKeyring, childKeyrings);
+        when(encryptionMaterials.hasCleartextDataKey()).thenReturn(true);
+
+        assertThrows(AwsCryptoException.class, () -> keyring.onEncrypt(encryptionMaterials));
+
+        verifyNoInteractions(generatorKeyring, keyring1, keyring2);
+	}
 
     @Test
     void testOnDecryptWithPlaintextDataKey() {

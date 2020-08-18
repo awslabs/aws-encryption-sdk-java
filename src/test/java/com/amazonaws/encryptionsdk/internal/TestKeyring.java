@@ -15,8 +15,6 @@ package com.amazonaws.encryptionsdk.internal;
 
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceEntry;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceFlag;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -121,8 +119,7 @@ public class TestKeyring implements Keyring {
             } catch (GeneralSecurityException ex) {
                 throw new RuntimeException(ex);
             }
-            return encryptionMaterials.withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
-                    new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+            return encryptionMaterials.withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey));
         }
     }
 
@@ -134,8 +131,7 @@ public class TestKeyring implements Keyring {
                     byte[] unencryptedDataKey = keyDecryptionCipher_.doFinal(edk.getEncryptedDataKey());
                     SecretKey key = new SecretKeySpec(unencryptedDataKey, decryptionMaterials.getAlgorithm().getDataKeyAlgo());
 
-                    return decryptionMaterials.withCleartextDataKey(key,
-                            new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.DECRYPTED_DATA_KEY));
+                    return decryptionMaterials.withCleartextDataKey(key);
                 }
             }
         } catch (GeneralSecurityException ex) {
@@ -153,10 +149,8 @@ public class TestKeyring implements Keyring {
             byte[] encryptedKey = keyEncryptionCipher_.doFinal(key.getEncoded());
 
             return encryptionMaterials
-                    .withCleartextDataKey(key,
-                        new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.GENERATED_DATA_KEY))
-                    .withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey),
-                        new KeyringTraceEntry(PROVIDER_ID, keyId_, KeyringTraceFlag.ENCRYPTED_DATA_KEY));
+                    .withCleartextDataKey(key)
+                    .withEncryptedDataKey(new KeyBlob(PROVIDER_ID, keyId_.getBytes(PROVIDER_ENCODING), encryptedKey));
         } catch (GeneralSecurityException ex) {
             throw new RuntimeException(ex);
         }

@@ -79,12 +79,6 @@ class RawRsaKeyringTest {
         assertEquals(KEYNAMESPACE, actualEncryptedDataKey.getProviderId());
         assertArrayEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation());
 
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(KEYNAME, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
-
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -93,10 +87,6 @@ class RawRsaKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(1, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
     }
 
     @Test
@@ -116,12 +106,6 @@ class RawRsaKeyringTest {
         assertEquals(KEYNAMESPACE, actualEncryptedDataKey.getProviderId());
         assertArrayEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation());
 
-        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.GENERATED_DATA_KEY));
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
-
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -130,10 +114,6 @@ class RawRsaKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(encryptionMaterials.getCleartextDataKey(), decryptionMaterials.getCleartextDataKey());
-        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(1, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
     }
 
     @Test

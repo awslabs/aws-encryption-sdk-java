@@ -267,7 +267,6 @@ public class CryptoInputStream<K extends MasterKey<K>> extends InputStream {
 
         return new AwsCryptoResult<>(
                 awsCryptoInputStream,
-                cryptoHandler_.getKeyringTrace(),
                 cryptoHandler_.getMasterKeys(),
                 cryptoHandler_.getHeaders());
     }

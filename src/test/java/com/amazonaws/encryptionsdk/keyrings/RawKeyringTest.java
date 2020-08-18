@@ -52,9 +52,6 @@ class RawKeyringTest {
     static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("myKey", "myValue");
     private static final EncryptedDataKey ENCRYPTED_DATA_KEY = new KeyBlob("keyProviderId", new byte[]{1, 2, 3}, generate(ALGORITHM.getDataKeyLength()));
     private static final EncryptedDataKey INVALID_DATA_KEY = new KeyBlob("invalidProviderId", new byte[]{1, 2, 3}, generate(ALGORITHM.getDataKeyLength()));
-    private static final KeyringTraceEntry ENCRYPTED_DATA_KEY_TRACE = new KeyringTraceEntry(KEYNAMESPACE, KEYNAME, KeyringTraceFlag.ENCRYPTED_DATA_KEY);
-    private static final KeyringTraceEntry DECRYPTED_DATA_KEY_TRACE = new KeyringTraceEntry(KEYNAMESPACE, KEYNAME, KeyringTraceFlag.DECRYPTED_DATA_KEY);
-    private static final KeyringTraceEntry GENERATED_DATA_KEY_TRACE = new KeyringTraceEntry(KEYNAMESPACE, KEYNAME, KeyringTraceFlag.GENERATED_DATA_KEY);
     @Mock(lenient = true) private JceKeyCipher jceKeyCipher;
     private Keyring keyring;
 
@@ -83,8 +80,6 @@ class RawKeyringTest {
 
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
         assertEncryptedDataKeyEquals(ENCRYPTED_DATA_KEY, encryptionMaterials.getEncryptedDataKeys().get(0));
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(ENCRYPTED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
 
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
@@ -94,7 +89,6 @@ class RawKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 
     @Test
@@ -113,9 +107,6 @@ class RawKeyringTest {
         assertEquals(1, encryptionMaterials.getEncryptedDataKeys().size());
         assertTrue(encryptionMaterials.hasCleartextDataKey());
         assertEncryptedDataKeyEquals(ENCRYPTED_DATA_KEY, encryptionMaterials.getEncryptedDataKeys().get(0));
-        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(GENERATED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(0));
-        assertEquals(ENCRYPTED_DATA_KEY_TRACE, encryptionMaterials.getKeyringTrace().getEntries().get(1));
     }
 
     @Test
@@ -129,7 +120,6 @@ class RawKeyringTest {
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_DATA_KEY));
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -142,7 +132,6 @@ class RawKeyringTest {
         keyring.onDecrypt(decryptionMaterials, Collections.singletonList(INVALID_DATA_KEY));
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -155,7 +144,6 @@ class RawKeyringTest {
         keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
 
@@ -173,7 +161,6 @@ class RawKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, edks);
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 
     @Test
@@ -195,7 +182,6 @@ class RawKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, edks);
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(DECRYPTED_DATA_KEY_TRACE, decryptionMaterials.getKeyringTrace().getEntries().get(0));
     }
 
     private void assertEncryptedDataKeyEquals(EncryptedDataKey expected, EncryptedDataKey actual) {

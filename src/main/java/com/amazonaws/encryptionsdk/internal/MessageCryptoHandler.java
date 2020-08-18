@@ -18,7 +18,6 @@ import java.util.Map;
 
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 
 public interface MessageCryptoHandler extends CryptoHandler {
@@ -55,12 +54,4 @@ public interface MessageCryptoHandler extends CryptoHandler {
      */
     @Deprecated
     List<? extends MasterKey<?>> getMasterKeys();
-
-    /**
-     * Gets the KeyringTrace containing all actions {@link Keyring}s have taken as part of
-     * encryption or decryption.
-     *
-     * @return the KeyringTrace
-     */
-    KeyringTrace getKeyringTrace();
 }

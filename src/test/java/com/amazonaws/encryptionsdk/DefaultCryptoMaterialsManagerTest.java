@@ -68,7 +68,6 @@ public class DefaultCryptoMaterialsManagerTest {
         assertNotNull(result.getAlgorithm());
         assertNotNull(result.getCleartextDataKey());
         assertNotNull(result.getEncryptionContext());
-        assertNotNull(result.getKeyringTrace());
         assertEquals(1, result.getEncryptedDataKeys().size());
         assertEquals(0, result.getMasterKeys().size());
     }

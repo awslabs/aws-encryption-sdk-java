@@ -15,9 +15,6 @@ package com.amazonaws.encryptionsdk.model;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.internal.TrailingSignatureAlgorithm;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTrace;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceEntry;
-import com.amazonaws.encryptionsdk.keyrings.KeyringTraceFlag;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -41,8 +38,6 @@ class DecryptionMaterialsTest {
 
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("testKey", "testValue");
-    private static final KeyringTraceEntry KEYRING_TRACE_ENTRY = new KeyringTraceEntry("Namespace", "Name", KeyringTraceFlag.ENCRYPTED_DATA_KEY);
-    private static final KeyringTrace KEYRING_TRACE = new KeyringTrace(Collections.singletonList(KEYRING_TRACE_ENTRY));
     private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static PublicKey VERIFICATION_KEY;
 
@@ -60,14 +55,12 @@ class DecryptionMaterialsTest {
         DecryptionMaterials result = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(KEYRING_TRACE)
                 .setCleartextDataKey(PLAINTEXT_DATA_KEY)
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
         assertEquals(ALGORITHM_SUITE, result.getAlgorithm());
         assertEquals(ENCRYPTION_CONTEXT, result.getEncryptionContext());
-        assertEquals(KEYRING_TRACE, result.getKeyringTrace());
         assertEquals(PLAINTEXT_DATA_KEY, result.getCleartextDataKey());
         assertEquals(VERIFICATION_KEY, result.getTrailingSignatureKey());
     }
@@ -83,9 +76,9 @@ class DecryptionMaterialsTest {
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> materials
-                .withCleartextDataKey(wrongAlgorithm, KEYRING_TRACE_ENTRY));
+                .withCleartextDataKey(wrongAlgorithm));
         assertThrows(IllegalArgumentException.class, () -> materials
-                .withCleartextDataKey(wrongLength, KEYRING_TRACE_ENTRY));
+                .withCleartextDataKey(wrongLength));
     }
 
     @Test
@@ -93,7 +86,6 @@ class DecryptionMaterialsTest {
         DecryptionMaterials expected = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM_SUITE)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
-                .setKeyringTrace(KEYRING_TRACE)
                 .setCleartextDataKey(PLAINTEXT_DATA_KEY)
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
@@ -111,16 +103,11 @@ class DecryptionMaterialsTest {
                 .setTrailingSignatureKey(VERIFICATION_KEY)
                 .build();
 
-        assertThrows(NullPointerException.class, () -> materials.withCleartextDataKey(null, KEYRING_TRACE_ENTRY));
-        assertThrows(NullPointerException.class, () -> materials.withCleartextDataKey(PLAINTEXT_DATA_KEY, null));
+        assertThrows(NullPointerException.class, () -> materials.withCleartextDataKey(null));
 
-        final DecryptionMaterials newMaterials = materials.withCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY);
+        final DecryptionMaterials newMaterials = materials.withCleartextDataKey(PLAINTEXT_DATA_KEY);
         assertEquals(PLAINTEXT_DATA_KEY, newMaterials.getCleartextDataKey());
         assertEquals(PLAINTEXT_DATA_KEY, newMaterials.getDataKey().getKey());
-        assertEquals(1, newMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(KEYRING_TRACE_ENTRY, newMaterials.getKeyringTrace().getEntries().get(0));
-
-        assertThrows(IllegalStateException.class, () -> newMaterials.withCleartextDataKey(PLAINTEXT_DATA_KEY, KEYRING_TRACE_ENTRY));
     }
 
     @Test
@@ -133,7 +120,6 @@ class DecryptionMaterialsTest {
         assertFalse(materials.hasCleartextDataKey());
         assertNull(materials.getTrailingSignatureKey());
         assertTrue(materials.getEncryptionContext().isEmpty());
-        assertTrue(materials.getKeyringTrace().getEntries().isEmpty());
     }
 
 }

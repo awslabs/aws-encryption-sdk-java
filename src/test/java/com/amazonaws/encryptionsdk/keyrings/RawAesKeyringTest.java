@@ -70,13 +70,6 @@ class RawAesKeyringTest {
         assertTrue(Utils.arrayPrefixEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation(), keyring.keyNameBytes.length));
         assertTrue(actualEncryptedDataKey.getProviderInformation().length > keyring.keyNameBytes.length);
 
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(KEYNAME, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, encryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
-
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -85,11 +78,6 @@ class RawAesKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(2, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
     }
 
     @Test
@@ -110,13 +98,6 @@ class RawAesKeyringTest {
         assertTrue(Utils.arrayPrefixEquals(keyring.keyNameBytes, actualEncryptedDataKey.getProviderInformation(), keyring.keyNameBytes.length));
         assertTrue(actualEncryptedDataKey.getProviderInformation().length > keyring.keyNameBytes.length);
 
-        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().size());
-        assertEquals(1, encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.GENERATED_DATA_KEY));
-        assertEquals(2, encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().size());
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.ENCRYPTED_DATA_KEY));
-        assertTrue(encryptionMaterials.getKeyringTrace().getEntries().get(1).getFlags().contains(KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
-
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
                 .setAlgorithm(ALGORITHM)
                 .setEncryptionContext(ENCRYPTION_CONTEXT)
@@ -125,11 +106,5 @@ class RawAesKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptionMaterials.getEncryptedDataKeys());
 
         assertEquals(encryptionMaterials.getCleartextDataKey(), decryptionMaterials.getCleartextDataKey());
-        assertEquals(KEYNAME, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyName());
-        assertEquals(KEYNAMESPACE, decryptionMaterials.getKeyringTrace().getEntries().get(0).getKeyNamespace());
-        assertEquals(2, decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().size());
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.DECRYPTED_DATA_KEY));
-        assertTrue(decryptionMaterials.getKeyringTrace().getEntries().get(0).getFlags().contains(KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
     }
-
 }
