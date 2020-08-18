@@ -46,7 +46,9 @@ import static org.mockito.Mockito.when;
 class AwsKmsSymmetricRegionDiscoveryKeyringTest {
 
     private static final CryptoAlgorithm ALGORITHM_SUITE = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
-    private static final SecretKey PLAINTEXT_DATA_KEY = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
+    private static final SecretKey PLAINTEXT_DATA_KEY_1 = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
+    private static final SecretKey PLAINTEXT_DATA_KEY_2 = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
+    private static final SecretKey PLAINTEXT_DATA_KEY_DIFFERENT_ACCOUNT_ID = new SecretKeySpec(generate(ALGORITHM_SUITE.getDataKeyLength()), ALGORITHM_SUITE.getDataKeyAlgo());
     private static final Map<String, String> ENCRYPTION_CONTEXT = Collections.singletonMap("myKey", "myValue");
     private static final String KEY_NAME_1 = "arn:aws:kms:us-east-1:999999999999:key/key1-23bv-sdfs-werw-234323nfdsf";
     private static final String KEY_NAME_2 = "arn:aws:kms:us-east-1:999999999999:key/key2-02ds-wvjs-aswe-a4923489273";
@@ -69,11 +71,11 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
     @BeforeEach
     void setup() {
         when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_KEY_1, ALGORITHM_SUITE, ENCRYPTION_CONTEXT))
-            .thenReturn(new DecryptDataKeyResult(KEY_NAME_1, PLAINTEXT_DATA_KEY));
+            .thenReturn(new DecryptDataKeyResult(KEY_NAME_1, PLAINTEXT_DATA_KEY_1));
         when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_KEY_2, ALGORITHM_SUITE, ENCRYPTION_CONTEXT))
-            .thenReturn(new DecryptDataKeyResult(KEY_NAME_2, PLAINTEXT_DATA_KEY));
+            .thenReturn(new DecryptDataKeyResult(KEY_NAME_2, PLAINTEXT_DATA_KEY_2));
         when(dataKeyEncryptionDao.decryptDataKey(ENCRYPTED_DIFFERENT_AWS_ACCOUNT_ID_KEY, ALGORITHM_SUITE, ENCRYPTION_CONTEXT))
-            .thenReturn(new DecryptDataKeyResult(DIFFERENT_AWS_ACCOUNT_ID_KEY_NAME, PLAINTEXT_DATA_KEY));
+            .thenReturn(new DecryptDataKeyResult(DIFFERENT_AWS_ACCOUNT_ID_KEY_NAME, PLAINTEXT_DATA_KEY_DIFFERENT_ACCOUNT_ID));
         keyring = new AwsKmsSymmetricRegionDiscoveryKeyring(dataKeyEncryptionDao, AWS_REGION, AWS_ACCOUNT_ID);
     }
 
@@ -89,7 +91,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         encryptedDataKeys.add(ENCRYPTED_KEY_1);
 
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
+        assertEquals(PLAINTEXT_DATA_KEY_1, decryptionMaterials.getCleartextDataKey());
 
         decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
@@ -122,7 +124,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
     void testEncrypt() {
         EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
-            .setCleartextDataKey(PLAINTEXT_DATA_KEY)
+            .setCleartextDataKey(PLAINTEXT_DATA_KEY_1)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
             .build();
 
@@ -144,10 +146,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_1, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertEquals(PLAINTEXT_DATA_KEY_1, decryptionMaterials.getCleartextDataKey());
     }
 
     @Test
@@ -164,10 +163,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, KEY_NAME_2, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertEquals(PLAINTEXT_DATA_KEY_2, decryptionMaterials.getCleartextDataKey());
     }
 
     @Test
@@ -184,7 +180,6 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -199,7 +194,6 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -215,10 +209,7 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         encryptedDataKeys.add(ENCRYPTED_KEY_2);
         decryptionMaterials = noAwsAccountIdCheckDiscoveryKeyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-
-        KeyringTraceEntry expectedKeyringTraceEntry = new KeyringTraceEntry(AWS_KMS_PROVIDER_ID, DIFFERENT_AWS_ACCOUNT_ID_KEY_NAME, KeyringTraceFlag.DECRYPTED_DATA_KEY, KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT);
-        assertEquals(expectedKeyringTraceEntry, decryptionMaterials.getKeyringTrace().getEntries().get(0));
+        assertEquals(PLAINTEXT_DATA_KEY_DIFFERENT_ACCOUNT_ID, decryptionMaterials.getCleartextDataKey());
     }
 
     @Test
@@ -233,7 +224,6 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -262,7 +252,6 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
@@ -282,21 +271,19 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, encryptedDataKeys);
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 
     @Test
     void testDecryptAlreadyDecryptedDataKey() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)
-            .setCleartextDataKey(PLAINTEXT_DATA_KEY)
+            .setCleartextDataKey(PLAINTEXT_DATA_KEY_1)
             .setEncryptionContext(ENCRYPTION_CONTEXT)
             .build();
 
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, Collections.singletonList(ENCRYPTED_KEY_1));
 
-        assertEquals(PLAINTEXT_DATA_KEY, decryptionMaterials.getCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
+        assertEquals(PLAINTEXT_DATA_KEY_1, decryptionMaterials.getCleartextDataKey());
     }
 
     @Test
@@ -309,6 +296,5 @@ class AwsKmsSymmetricRegionDiscoveryKeyringTest {
         decryptionMaterials = keyring.onDecrypt(decryptionMaterials, Collections.emptyList());
 
         assertFalse(decryptionMaterials.hasCleartextDataKey());
-        assertEquals(0, decryptionMaterials.getKeyringTrace().getEntries().size());
     }
 }

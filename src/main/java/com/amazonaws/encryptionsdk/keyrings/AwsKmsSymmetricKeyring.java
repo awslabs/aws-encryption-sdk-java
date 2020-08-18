@@ -65,34 +65,15 @@ public class AwsKmsSymmetricKeyring implements Keyring {
     private EncryptionMaterials generateDataKey(final EncryptionMaterials encryptionMaterials) {
         final DataKeyEncryptionDao.GenerateDataKeyResult result = this.dataKeyEncryptionDao.generateDataKey(
             this.keyName, encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
-
         return encryptionMaterials
-            .withCleartextDataKey(
-                result.getPlaintextDataKey(),
-                new KeyringTraceEntry(
-                    AWS_KMS_PROVIDER_ID,
-                    this.keyName.toString(),
-                    KeyringTraceFlag.GENERATED_DATA_KEY))
-            .withEncryptedDataKey(
-                new KeyBlob(result.getEncryptedDataKey()),
-                new KeyringTraceEntry(
-                    AWS_KMS_PROVIDER_ID,
-                    this.keyName.toString(),
-                    KeyringTraceFlag.ENCRYPTED_DATA_KEY,
-                    KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
+            .withCleartextDataKey(result.getPlaintextDataKey())
+            .withEncryptedDataKey(new KeyBlob(result.getEncryptedDataKey()));
     }
 
     private EncryptionMaterials encryptDataKey(final EncryptionMaterials encryptionMaterials) {
         final EncryptedDataKey encryptedDataKey = this.dataKeyEncryptionDao.encryptDataKey(
             this.keyName, encryptionMaterials.getCleartextDataKey(), encryptionMaterials.getEncryptionContext());
-
-        return encryptionMaterials.withEncryptedDataKey(
-            new KeyBlob(encryptedDataKey),
-            new KeyringTraceEntry(
-                AWS_KMS_PROVIDER_ID,
-                this.keyName.toString(),
-                KeyringTraceFlag.ENCRYPTED_DATA_KEY,
-                KeyringTraceFlag.SIGNED_ENCRYPTION_CONTEXT));
+        return encryptionMaterials.withEncryptedDataKey(new KeyBlob(encryptedDataKey));
     }
 
     @Override
@@ -108,13 +89,7 @@ public class AwsKmsSymmetricKeyring implements Keyring {
             if (okToDecrypt(encryptedDataKey)) {
                 final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
                     encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
-
-                return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey(),
-                    new KeyringTraceEntry(
-                        AWS_KMS_PROVIDER_ID,
-                        result.getKeyArn(),
-                        KeyringTraceFlag.DECRYPTED_DATA_KEY,
-                        KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
+                return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey());
             }
         }
 

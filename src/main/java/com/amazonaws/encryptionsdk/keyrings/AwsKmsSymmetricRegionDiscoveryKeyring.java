@@ -67,14 +67,7 @@ public class AwsKmsSymmetricRegionDiscoveryKeyring implements Keyring {
                 try {
                     final DataKeyEncryptionDao.DecryptDataKeyResult result = this.dataKeyEncryptionDao.decryptDataKey(
                         encryptedDataKey, decryptionMaterials.getAlgorithm(), decryptionMaterials.getEncryptionContext());
-
-                    return decryptionMaterials.withCleartextDataKey(
-                        result.getPlaintextDataKey(),
-                        new KeyringTraceEntry(
-                            AWS_KMS_PROVIDER_ID,
-                            result.getKeyArn(),
-                            KeyringTraceFlag.DECRYPTED_DATA_KEY,
-                            KeyringTraceFlag.VERIFIED_ENCRYPTION_CONTEXT));
+                    return decryptionMaterials.withCleartextDataKey(result.getPlaintextDataKey());
                 } catch (CannotUnwrapDataKeyException e) {
                     continue;
                 }
