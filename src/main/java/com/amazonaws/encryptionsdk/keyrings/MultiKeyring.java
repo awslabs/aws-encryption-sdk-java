@@ -52,8 +52,8 @@ class MultiKeyring implements Keyring {
 
         // If a generator keyring is configured, it MUST be used to generate the cleartext data key
         if (generatorKeyring != null && resultMaterials.hasCleartextDataKey()) {
-            throw new AwsCryptoException(
-                    "A generator was configured but the keyring recieved materials already containing a cleartext data key");
+            throw new AwsCryptoException("The supplied generator keyring must generate a cleartext data key" +
+					"but the encryption materials already contain a cleartext data key.");
         }
 
         if (generatorKeyring != null) {
