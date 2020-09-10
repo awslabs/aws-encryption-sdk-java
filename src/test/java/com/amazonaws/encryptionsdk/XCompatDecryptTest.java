@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
@@ -53,6 +43,7 @@ import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 public class XCompatDecryptTest {
     private static final String STATIC_XCOMPAT_NAME = "static-aws-xcompat";
     private static final String AES_GCM = "AES/GCM/NoPadding";
+    private static final byte XCOMPAT_MESSAGE_VERSION = 1;
 
     private String plaintextFileName;
     private String ciphertextFileName;
@@ -142,7 +133,7 @@ public class XCompatDecryptTest {
             Map<String, String> ciphertext = (Map<String, String>)testCase.get("ciphertext");
 
             short algId = (short) Integer.parseInt((String)testCase.get("algorithm"), 16);
-            CryptoAlgorithm encryptionAlgorithm = CryptoAlgorithm.deserialize(algId);
+            CryptoAlgorithm encryptionAlgorithm = CryptoAlgorithm.deserialize(XCOMPAT_MESSAGE_VERSION, algId);
 
             List<Map<String, Object>> masterKeys = (List<Map<String, Object>>)testCase.get("master_keys");
             List<JceMasterKey> allMasterKeys = new ArrayList<JceMasterKey>();
@@ -213,7 +204,7 @@ public class XCompatDecryptTest {
 
     @Test
     public void testDecryptFromFile() throws Exception {
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         byte ciphertextBytes[] = Files.readAllBytes(Paths.get(ciphertextFileName));
         byte plaintextBytes[] = Files.readAllBytes(Paths.get(plaintextFileName));
         final CryptoResult decryptResult = crypto.decryptData(

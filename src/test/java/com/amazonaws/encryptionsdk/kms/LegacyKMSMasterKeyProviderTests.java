@@ -34,6 +34,7 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -86,7 +87,7 @@ public class LegacyKMSMasterKeyProviderTests {
         MasterKeyProvider<KmsMasterKey> prov = legacyConstruct(kms, arn1, arn2);
         KmsMasterKey mk1 = prov.getMasterKey(arn1);
 
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         CryptoResult<byte[], KmsMasterKey> ct = crypto.encryptData(prov, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
         CryptoResult<byte[], KmsMasterKey> result = crypto.decryptData(prov, ct.getResult());
@@ -105,7 +106,7 @@ public class LegacyKMSMasterKeyProviderTests {
         KmsMasterKey mk1 = prov.getMasterKey(arn1);
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
 
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         CryptoResult<byte[], KmsMasterKey> ct = crypto.encryptData(prov, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
 
@@ -144,7 +145,7 @@ public class LegacyKMSMasterKeyProviderTests {
 
         final MasterKeyProvider<KmsMasterKey> mkp = MultipleProviderFactory.buildMultiProvider(KmsMasterKey.class,
                                                                                                mk1, mk2);
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         CryptoResult<byte[], KmsMasterKey> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
 
@@ -181,7 +182,7 @@ public class LegacyKMSMasterKeyProviderTests {
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         CryptoResult<byte[], ?> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
         CryptoResult<byte[], ?> result = crypto.decryptData(mkp, ct.getResult());
@@ -203,7 +204,7 @@ public class LegacyKMSMasterKeyProviderTests {
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         CryptoResult<byte[], ?> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
 

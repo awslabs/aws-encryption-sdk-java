@@ -56,7 +56,7 @@ You can get the latest release from Maven:
 <dependency>
   <groupId>com.amazonaws</groupId>
   <artifactId>aws-encryption-sdk-java</artifactId>
-  <version>1.6.2</version>
+  <version>1.7.0</version>
 </dependency>
 ```
 
@@ -77,6 +77,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
@@ -90,10 +91,12 @@ public class StringExample {
         data = args[1];
 
         // Instantiate the SDK
-        final AwsCrypto crypto = new AwsCrypto();
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+                .build();
 
         // Set up the master key provider
-        final KmsMasterKeyProvider prov = new KmsMasterKeyProvider(keyArn);
+        final KmsMasterKeyProvider prov = KmsMasterKeyProvider.builder().buildStrict(keyArn);
 
         // Encrypt the data
         //

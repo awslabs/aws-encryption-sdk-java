@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 -- 2020-09-24
+
+* feat: Updates to the AWS Encryption SDK.
+
 ## 1.6.2 -- 2020-05-26
 
 ### Patches

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import com.amazonaws.encryptionsdk.TestUtils;
 import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
@@ -30,7 +31,7 @@ import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.TestIOUtils;
 
 public class CipherFrameHeadersTest {
-    final int nonceLen_ = AwsCrypto.getDefaultCryptoAlgorithm().getNonceLen();
+    final int nonceLen_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG.getNonceLen();
     final int testSeqNum_ = 1;
     final int testFrameContentLen_ = 4096;
     byte[] nonce_ = RandomBytesGenerator.generate(nonceLen_);

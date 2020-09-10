@@ -4,8 +4,8 @@ import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -18,21 +18,21 @@ import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache.EncryptCacheEntry;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache.UsageStats;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 public class CachingCryptoMaterialsManagerTest {
     private static final String PARTITION_ID = "partition ID";
@@ -321,9 +321,9 @@ public class CachingCryptoMaterialsManagerTest {
     @Test
     public void whenMKPPassed_itIsUsed() throws Exception {
         JceMasterKey key = spy(JceMasterKey.getInstance(new SecretKeySpec(new byte[16], "AES"),
-                                                         "provider",
-                                                         "keyId",
-                                                         "AES/GCM/NoPadding"));
+                "provider",
+                "keyId",
+                "AES/GCM/NoPadding"));
         CryptoMaterialsManager cmm = CachingCryptoMaterialsManager.newBuilder()
                                                                   .withCache(cache)
                                                                   .withMasterKeyProvider(key)
@@ -396,4 +396,3 @@ public class CachingCryptoMaterialsManagerTest {
         }
     }
 }
-

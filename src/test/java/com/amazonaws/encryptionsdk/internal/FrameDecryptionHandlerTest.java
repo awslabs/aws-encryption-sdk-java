@@ -32,8 +32,8 @@ import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 
 public class FrameDecryptionHandlerTest {
     private static final SecureRandom RND = new SecureRandom();
-    private final CryptoAlgorithm cryptoAlgorithm_ = AwsCrypto.getDefaultCryptoAlgorithm();
-    private final byte[] messageId_ = new byte[Constants.MESSAGE_ID_LEN];
+    private final CryptoAlgorithm cryptoAlgorithm_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
+    private final byte[] messageId_ = new byte[cryptoAlgorithm_.getMessageIdLength()];
     private final byte nonceLen_ = cryptoAlgorithm_.getNonceLen();
     private final byte[] dataKeyBytes_ = new byte[cryptoAlgorithm_.getKeyLength()];
     private final SecretKey dataKey_ = new SecretKeySpec(dataKeyBytes_, "AES");

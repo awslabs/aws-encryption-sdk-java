@@ -1,15 +1,5 @@
-/*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples;
 
@@ -27,6 +17,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoInputStream;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.util.IOUtils;
 
 /**
@@ -56,8 +47,9 @@ public class FileStreamingExample {
         // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm
         JceMasterKey masterKey = JceMasterKey.getInstance(cryptoKey, "Example", "RandomKey", "AES/GCM/NoPadding");
 
-        // Instantiate the SDK
-        AwsCrypto crypto = new AwsCrypto();
+        // Instantiate the SDK with a specific commitment policy.
+        // ForbidEncryptAllowDecrypt is the only available policy in 1.7.0.
+        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
 
         // Create an encryption context to identify this ciphertext
         Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");

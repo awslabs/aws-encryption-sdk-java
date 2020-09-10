@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.internal;
 
@@ -27,6 +17,7 @@ import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -96,7 +87,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
         if (keyBlobs_.isEmpty()) {
             throw new IllegalArgumentException("No encrypted data keys in materials result");
         }
-        
+
         if (trailingSignaturePrivateKey_ != null) {
             try {
                 TrailingSignatureAlgorithm algorithm = TrailingSignatureAlgorithm.forCryptoAlgorithm(cryptoAlgo_);
@@ -113,7 +104,15 @@ public class EncryptionHandler implements MessageCryptoHandler {
         }
 
         // set default values
-        version_ = VersionInfo.CURRENT_CIPHERTEXT_VERSION;
+        version_ = cryptoAlgo_.getMessageFormatVersion();
+
+        // only allow to encrypt with version 1 crypto algorithms
+        if (version_ != 1) {
+            throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                    CommitmentPolicy.ForbidEncryptAllowDecrypt + " requiring only non-committed messages. Algorithm ID was " +
+                    cryptoAlgo_ + ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+        }
+
         type_ = CIPHERTEXT_TYPE;
         nonceLen_ = cryptoAlgo_.getNonceLen();
 
@@ -139,7 +138,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
         switch (contentType) {
             case FRAME:
                 contentCryptoHandler_ = new FrameEncryptionHandler(encryptionKey_, nonceLen_, cryptoAlgo_, messageId_,
-                                                                   frameSize);
+                        frameSize);
                 break;
             case SINGLEBLOCK:
                 contentCryptoHandler_ = new BlockEncryptionHandler(encryptionKey_, nonceLen_, cryptoAlgo_, messageId_);
@@ -153,7 +152,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
 
     /**
      * Encrypt a block of bytes from {@code in} putting the plaintext result into {@code out}.
-     * 
+     *
      * <p>
      * It encrypts by performing the following operations:
      * <ol>
@@ -161,7 +160,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
      * returned.</li>
      * <li>else, pass off the input data to underlying content cryptohandler.</li>
      * </ol>
-     * 
+     *
      * @param in
      *            the input byte array.
      * @param off
@@ -208,7 +207,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
 
     /**
      * Finish encryption of the plaintext bytes.
-     * 
+     *
      * @param out
      *            space for any resulting output data.
      * @param outOff
@@ -283,7 +282,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
     /**
      * Return the size of the output buffer required for a {@code processBytes} plus a
      * {@code doFinal} with an input of inLen bytes.
-     * 
+     *
      * @param inLen
      *            the length of the input.
      * @return the space required to accommodate a call to processBytes and doFinal with len bytes
@@ -322,7 +321,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
 
     /**
      * Return the encryption context.
-     * 
+     *
      * @return the key-value map containing encryption context.
      */
     @Override
@@ -376,7 +375,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
     /**
      * Create ciphertext headers using the instance variables, and the provided content type and
      * frame size.
-     * 
+     *
      * @param contentType
      *            the content type to set in the ciphertext headers.
      * @param frameSize
@@ -389,7 +388,7 @@ public class EncryptionHandler implements MessageCryptoHandler {
         // We use a deterministic IV of zero for the header authentication.
 
         final byte[] encryptionContextBytes = EncryptionContextSerializer.serialize(encryptionContext_);
-        final CiphertextHeaders ciphertextHeaders = new CiphertextHeaders(version_, type_, cryptoAlgo_,
+        final CiphertextHeaders ciphertextHeaders = new CiphertextHeaders(type_, cryptoAlgo_,
                 encryptionContextBytes, keyBlobs_, contentType, frameSize);
         ciphertextHeaders.setHeaderNonce(headerNonce);
 

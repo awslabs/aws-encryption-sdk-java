@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
@@ -20,6 +10,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -38,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Assert;
+import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,12 +49,13 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 public class AwsCryptoTest {
     private StaticMasterKey masterKeyProvider;
     private AwsCrypto encryptionClient_;
+    private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
 
     @Before
     public void init() {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
 
-        encryptionClient_ = new AwsCrypto();
+        encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
     }
 
@@ -107,7 +99,7 @@ public class AwsCryptoTest {
                     masterKeyProvider,
                     cipherText
                     ).getResult();
-            Assert.fail("Expected BadCiphertextException");
+            fail("Expected BadCiphertextException");
         } catch (final BadCiphertextException ex) {
             // Expected exception
         }
@@ -132,7 +124,7 @@ public class AwsCryptoTest {
                     masterKeyProvider,
                     truncatedCipherText
             ).getResult();
-            Assert.fail("Expected BadCiphertextException");
+            fail("Expected BadCiphertextException");
         } catch (final BadCiphertextException ex) {
             // Expected exception
         }
@@ -171,6 +163,12 @@ public class AwsCryptoTest {
     @Test
     public void encryptDecrypt() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+            // Only test with crypto algs without commitment, since those
+            // are the only ones we can encrypt with
+            if (cryptoAlg.getMessageFormatVersion() != 1) {
+                continue;
+            }
+
             final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
@@ -193,9 +191,132 @@ public class AwsCryptoTest {
         }
     }
 
+    @SuppressWarnings("deprecation")
+    @Test
+    public void legacyConstructorEncryptDecrypt() {
+        final byte[] plaintextBytes = new byte[100];
+
+        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
+        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
+
+        AwsCrypto client = new AwsCrypto();
+
+        client.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
+        client.setEncryptionFrameSize(100);
+
+        final byte[] cipherText = client.encryptData(
+                masterKeyProvider,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText = client.decryptData(
+                masterKeyProvider,
+                cipherText
+        ).getResult();
+
+        assertArrayEquals("Bad encrypt/decrypt for legacy constructor", plaintextBytes, decryptedText);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void legacyConstructorLegacyCMMEncryptDecrypt() {
+        final byte[] plaintextBytes = new byte[100];
+
+        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
+        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
+        final DefaultCryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
+
+        AwsCrypto client = new AwsCrypto();
+
+        client.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
+        client.setEncryptionFrameSize(100);
+
+        final byte[] cipherText = client.encryptData(
+                cmm,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText = client.decryptData(
+                cmm,
+                cipherText
+        ).getResult();
+
+        assertArrayEquals("Bad encrypt/decrypt for legacy constructor with legacy cmm", plaintextBytes, decryptedText);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void legacyConstructorEncryptDecryptInterop() {
+        final byte[] plaintextBytes = new byte[100];
+
+        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
+        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
+
+        final DefaultCryptoMaterialsManager legacy = new DefaultCryptoMaterialsManager(masterKeyProvider);
+
+        AwsCrypto legacyClient = new AwsCrypto();
+
+        legacyClient.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
+        legacyClient.setEncryptionFrameSize(100);
+
+        encryptionClient_.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
+        encryptionClient_.setEncryptionFrameSize(100);
+
+        // Test the legacy constructed message can be decrypted by the default client
+        final byte[] cipherText = legacyClient.encryptData(
+                masterKeyProvider,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText = encryptionClient_.decryptData(
+                masterKeyProvider,
+                cipherText
+        ).getResult();
+        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText);
+
+        // Test the default client constructed message can be decrypted by the legacy client
+        final byte[] cipherText2 = encryptionClient_.encryptData(
+                masterKeyProvider,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText2 = legacyClient.decryptData(
+                masterKeyProvider,
+                cipherText2
+        ).getResult();
+        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText2);
+
+        // Now interop test using a legacy constructed Default Crypto Materials Manager
+        final DefaultCryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
+
+        // Test the default client constructed message can be decrypted by the legacy client with legacy cmm
+        final byte[] cipherText3 = encryptionClient_.encryptData(
+                cmm,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText3 = legacyClient.decryptData(
+                cmm,
+                cipherText3
+        ).getResult();
+        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText3);
+
+        // Test the legacy constructed message can be decrypted by the default client
+        final byte[] cipherText4 = legacyClient.encryptData(
+                masterKeyProvider,
+                plaintextBytes,
+                encryptionContext).getResult();
+        final byte[] decryptedText4 = encryptionClient_.decryptData(
+                masterKeyProvider,
+                cipherText4
+        ).getResult();
+        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText4);
+    }
+
     @Test
     public void encryptDecryptWithBadSignature() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+            // Only test with crypto algs without commitment, since those
+            // are the only ones we can encrypt with
+            if (cryptoAlg.getMessageFormatVersion() != 1) {
+                continue;
+            }
+
             if (cryptoAlg.getTrailingSignatureAlgo() == null) {
                 continue;
             }
@@ -224,6 +345,12 @@ public class AwsCryptoTest {
     @Test
     public void encryptDecryptWithTruncatedCiphertext() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+            // Only test with crypto algs without commitment, since those
+            // are the only ones we can encrypt with
+            if (cryptoAlg.getMessageFormatVersion() != 1) {
+                continue;
+            }
+
             final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
@@ -345,6 +472,42 @@ public class AwsCryptoTest {
     }
 
     @Test
+    public void whenCustomCMMUsesCommittingAlgorithmWithForbidPolicy_throws() throws Exception {
+        CryptoMaterialsManager manager = new CryptoMaterialsManager() {
+            @Override public EncryptionMaterials getMaterialsForEncrypt(
+                    EncryptionMaterialsRequest request
+            ) {
+                EncryptionMaterials encryptionMaterials
+                        = new DefaultCryptoMaterialsManager(masterKeyProvider).getMaterialsForEncrypt(request);
+
+                return encryptionMaterials.toBuilder()
+                        .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384)
+                        .build();
+            }
+
+            @Override public DecryptionMaterials decryptMaterials(
+                    DecryptionMaterialsRequest request
+            ) {
+                return new DefaultCryptoMaterialsManager(masterKeyProvider).decryptMaterials(request);
+            }
+        };
+
+        // create client with null encryption algorithm and ForbidEncrypt policy
+        final AwsCrypto client = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+
+        byte[] plaintext = new byte[100];
+        assertThrows(AwsCryptoException.class,
+                () -> client.encryptData(manager, plaintext));
+        assertThrows(AwsCryptoException.class,
+                () -> client.estimateCiphertextSize(manager, 12345));
+        assertThrows(AwsCryptoException.class,
+                () -> client.createEncryptingStream(manager, new ByteArrayOutputStream()).write(0));
+        assertThrows(AwsCryptoException.class,
+                () -> client.createEncryptingStream(manager, new ByteArrayInputStream(new byte[1024*1024])).read());
+
+    }
+
+    @Test
     public void whenDecrypting_invokesMKPOnce() throws Exception {
         byte[] data = encryptionClient_.encryptData(masterKeyProvider, new byte[1]).getResult();
 
@@ -381,6 +544,12 @@ public class AwsCryptoTest {
     @Test
     public void estimateCiphertextSize() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+            // Only test with crypto algs without commitment, since those
+            // are the only ones we can encrypt with
+            if (cryptoAlg.getMessageFormatVersion() != 1) {
+                continue;
+            }
+
             final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
@@ -543,6 +712,27 @@ public class AwsCryptoTest {
         assertArrayEquals(plaintextBytes, decryptedText);
     }
 
+    @Test
+    public void decryptMessageWithKeyCommitment() {
+        final byte[] cipherText = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+        JceMasterKey masterKey = TestUtils.messageWithCommitKeyMasterKey;
+        final CryptoResult decryptedText = encryptionClient_.decryptData(masterKey, cipherText);
+
+        assertEquals(decryptedText.getCryptoAlgorithm(), TestUtils.messageWithCommitKeyCryptoAlgorithm);
+        assertArrayEquals(decryptedText.getHeaders().getMessageId(), Utils.decodeBase64String(TestUtils.messageWithCommitKeyMessageIdBase64));
+        assertArrayEquals(decryptedText.getHeaders().getSuiteData(), Utils.decodeBase64String(TestUtils.messageWithCommitKeyCommitmentBase64));
+        assertArrayEquals((byte[])decryptedText.getResult(), TestUtils.messageWithCommitKeyExpectedResult.getBytes());
+    }
+
+    @Test
+    public void decryptMessageWithInvalidKeyCommitment() {
+        final byte[] cipherText = Utils.decodeBase64String(TestUtils.invalidMessageWithCommitKeyBase64);
+        JceMasterKey masterKey = TestUtils.invalidMessageWithCommitKeyMasterKey;
+        assertThrows(BadCiphertextException.class, "Key commitment validation failed. Key identity does not " +
+                "match the identity asserted in the message. Halting processing of this message.",
+                () -> encryptionClient_.decryptData(masterKey, cipherText));
+    }
+
     // Test that all the parameters that aren't allowed to be null (i.e. all of them) result in immediate NPEs if
     // invoked with null args
     @Test
@@ -699,7 +889,7 @@ public class AwsCryptoTest {
 
     @Test
     public void setValidFrameSize() throws IOException {
-        final int setFrameSize = AwsCrypto.getDefaultCryptoAlgorithm().getBlockSize() * 2;
+        final int setFrameSize = TestUtils.DEFAULT_TEST_CRYPTO_ALG.getBlockSize() * 2;
         encryptionClient_.setEncryptionFrameSize(setFrameSize);
 
         final int getFrameSize = encryptionClient_.getEncryptionFrameSize();
@@ -707,9 +897,9 @@ public class AwsCryptoTest {
         assertEquals(setFrameSize, getFrameSize);
     }
 
-
+    @Test
     public void unalignedFrameSizesAreAccepted() throws IOException {
-        final int frameSize = AwsCrypto.getDefaultCryptoAlgorithm().getBlockSize() - 1;
+        final int frameSize = TestUtils.DEFAULT_TEST_CRYPTO_ALG.getBlockSize() - 1;
         encryptionClient_.setEncryptionFrameSize(frameSize);
 
         assertEquals(frameSize, encryptionClient_.getEncryptionFrameSize());
@@ -730,4 +920,34 @@ public class AwsCryptoTest {
         assertEquals(setCryptoAlgorithm, getCryptoAlgorithm);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void buildWithoutSpecifiedCommitmentPolicy() throws IOException {
+        AwsCrypto.builder().build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void buildWithNullCommitmentPolicy() throws IOException {
+        AwsCrypto.builder().withCommitmentPolicy(null).build();
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    public void setCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
+        encryptionClient_.setEncryptionAlgorithm(setCryptoAlgorithm);
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    public void buildWithCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
+        AwsCrypto.builder().withCommitmentPolicy(commitmentPolicy)
+                .withEncryptionAlgorithm(setCryptoAlgorithm).build();
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    @SuppressWarnings("deprecation")
+    public void legacyConstructAndSetCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
+        AwsCrypto client = new AwsCrypto();
+        client.setEncryptionAlgorithm(setCryptoAlgorithm);
+    }
 }

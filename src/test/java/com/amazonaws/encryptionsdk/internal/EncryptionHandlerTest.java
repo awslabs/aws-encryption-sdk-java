@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.internal;
 
@@ -22,6 +12,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.TestUtils;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
@@ -37,6 +29,7 @@ public class EncryptionHandlerTest {
     private final Map<String, String> encryptionContext_ = Collections.<String, String> emptyMap();
     private StaticMasterKey masterKeyProvider = new StaticMasterKey("mock");
     private final List<StaticMasterKey> cmks_ = Collections.singletonList(masterKeyProvider);
+    private final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
     private EncryptionMaterialsRequest testRequest
             = EncryptionMaterialsRequest.newBuilder()
                                         .setContext(encryptionContext_)
@@ -103,5 +96,11 @@ public class EncryptionHandlerTest {
                 new byte[encryptionHandler.getHeaders().getCryptoAlgoId().getNonceLen()],
                 encryptionHandler.getHeaders().getHeaderNonce()
         );
+    }
+
+    @Test(expected = AwsCryptoException.class)
+    public void whenEncryptingV2Algorithm_fails() throws Exception {
+        final EncryptionMaterials resultWithV2Alg = testResult.toBuilder().setAlgorithm(TestUtils.KEY_COMMIT_CRYPTO_ALG).build();
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, resultWithV2Alg);
     }
 }

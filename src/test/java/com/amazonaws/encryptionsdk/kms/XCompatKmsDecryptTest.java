@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.kms;
 
@@ -32,6 +22,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -102,8 +93,8 @@ public class XCompatKmsDecryptTest {
 
     @Test
     public void testDecryptFromFile() throws Exception {
-        AwsCrypto crypto = new AwsCrypto();
-        final KmsMasterKeyProvider masterKeyProvider = new KmsMasterKeyProvider(kmsKeyId);
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(kmsKeyId);
         byte ciphertextBytes[] = Files.readAllBytes(Paths.get(ciphertextFileName));
         byte plaintextBytes[] = Files.readAllBytes(Paths.get(plaintextFileName));
         final CryptoResult decryptResult = crypto.decryptData(

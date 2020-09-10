@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk.kms;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
@@ -29,6 +32,7 @@ import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider.RegionalClientSupplier;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -52,15 +56,15 @@ public class KMSProviderBuilderMockTests {
         );
 
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
-                                                        .withKeysForEncryption("alias/foo")
                                                         .withCustomClientFactory(supplier)
                                                         .withDefaultRegion("us-west-2")
-                                                        .build();
+                                                        .buildStrict("alias/foo");
 
-        new AwsCrypto().encryptData(mkp0, new byte[0]);
+        AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp0, new byte[0]);
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testBareAliasMapping_withLegacyCtor() {
         MockKMSClient client = spy(new MockKMSClient());
 
@@ -77,7 +81,7 @@ public class KMSProviderBuilderMockTests {
                 client, Region.getRegion(Regions.DEFAULT_REGION), Arrays.asList("alias/foo")
         );
 
-        new AwsCrypto().encryptData(mkp0, new byte[0]);
+        AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp0, new byte[0]);
     }
 
     @Test
@@ -93,8 +97,7 @@ public class KMSProviderBuilderMockTests {
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
                                                        .withDefaultRegion("us-west-2")
                                                        .withCustomClientFactory(supplier)
-                                                       .withKeysForEncryption(key1, key2)
-                                                       .build();
+                                                       .buildStrict(key1, key2);
         KmsMasterKey mk1 = mkp0.getMasterKey(key1);
         KmsMasterKey mk2 = mkp0.getMasterKey(key2);
 
@@ -103,7 +106,7 @@ public class KMSProviderBuilderMockTests {
 
         MasterKeyProvider<?> mkp = buildMultiProvider(mk1, mk2);
 
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
+        byte[] ciphertext = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp, new byte[0]).getResult();
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
@@ -119,7 +122,7 @@ public class KMSProviderBuilderMockTests {
         assertEquals(1, er.getValue().getGrantTokens().size());
         assertEquals("foo", er.getValue().getGrantTokens().get(0));
 
-        new AwsCrypto().decryptData(mkp, ciphertext);
+        AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().decryptData(mkp, ciphertext);
 
         ArgumentCaptor<DecryptRequest> decrypt = ArgumentCaptor.forClass(DecryptRequest.class);
         verify(client, times(1)).decrypt(decrypt.capture());
@@ -144,12 +147,11 @@ public class KMSProviderBuilderMockTests {
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
                                                         .withDefaultRegion("us-west-2")
                                                         .withCustomClientFactory(supplier)
-                                                        .withKeysForEncryption(key1, key2)
-                                                        .build();
+                                                        .buildStrict(key1, key2);
 
         MasterKeyProvider<?> mkp = mkp0.withGrantTokens("foo");
 
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
+        byte[] ciphertext = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp, new byte[0]).getResult();
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
@@ -167,7 +169,7 @@ public class KMSProviderBuilderMockTests {
 
         mkp = mkp0.withGrantTokens(Arrays.asList("bar"));
 
-        new AwsCrypto().decryptData(mkp, ciphertext);
+        AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().decryptData(mkp, ciphertext);
 
         ArgumentCaptor<DecryptRequest> decrypt = ArgumentCaptor.forClass(DecryptRequest.class);
         verify(client, times(1)).decrypt(decrypt.capture());
@@ -180,6 +182,7 @@ public class KMSProviderBuilderMockTests {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testLegacyGrantTokenPassthrough() throws Exception {
         MockKMSClient client = spy(new MockKMSClient());
 
@@ -192,7 +195,7 @@ public class KMSProviderBuilderMockTests {
         mkp.setGrantTokens(new ArrayList<>(Arrays.asList("a", "b")));
         mkp.addGrantToken("c");
 
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
+        byte[] ciphertext = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp, new byte[0]).getResult();
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
@@ -213,11 +216,10 @@ public class KMSProviderBuilderMockTests {
         String key2 = client.createKey().getKeyMetadata().getArn();
 
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
-                                                       .withKeysForEncryption(key1, key2)
                                                        .withCustomClientFactory(ignored -> client)
-                                                       .build();
+                                                       .buildStrict(key1, key2);
 
-        new AwsCrypto().decryptData(mkp, new AwsCrypto().encryptData(mkp, new byte[0]).getResult());
+        AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().decryptData(mkp, AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().encryptData(mkp, new byte[0]).getResult());
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());

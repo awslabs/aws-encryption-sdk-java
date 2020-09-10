@@ -1,16 +1,18 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
 import static java.util.Collections.singletonMap;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -26,32 +28,35 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.junit.Test;
-
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
+import org.junit.Test;
+
 import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 import com.amazonaws.encryptionsdk.internal.TrailingSignatureAlgorithm;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 public class DefaultCryptoMaterialsManagerTest {
     private static final MasterKey<?> mk1 = new StaticMasterKey("mk1");
     private static final MasterKey<?> mk2 = new StaticMasterKey("mk2");
+    private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
 
     @Test
     public void encrypt_testBasicFunctionality() throws Exception {
-        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
+        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                   .setCommitmentPolicy(commitmentPolicy)
+                                                                   .build();
         EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
-        assertNotNull(result.getAlgorithm());
         assertNotNull(result.getCleartextDataKey());
         assertNotNull(result.getEncryptionContext());
+        assertEquals(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, result.getAlgorithm());
         assertEquals(1, result.getEncryptedDataKeys().size());
         assertEquals(1, result.getMasterKeys().size());
         assertEquals(mk1, result.getMasterKeys().get(0));
@@ -69,8 +74,10 @@ public class DefaultCryptoMaterialsManagerTest {
         };
 
         for (CryptoAlgorithm algo : algorithms) {
-            EncryptionMaterialsRequest req
-                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                       .setCommitmentPolicy(commitmentPolicy)
+                                                                       .setRequestedAlgorithm(algo)
+                                                                       .build();
             EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
             assertNull(result.getTrailingSignatureKey());
@@ -89,8 +96,10 @@ public class DefaultCryptoMaterialsManagerTest {
 
         for (CryptoAlgorithm algo : algorithms) {
 
-            EncryptionMaterialsRequest req
-                    = EncryptionMaterialsRequest.newBuilder().setRequestedAlgorithm(algo).build();
+            EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                       .setCommitmentPolicy(commitmentPolicy)
+                                                                       .setRequestedAlgorithm(algo)
+                                                                       .build();
             EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
 
             assertNotNull(result.getTrailingSignatureKey());
@@ -119,6 +128,7 @@ public class DefaultCryptoMaterialsManagerTest {
         MasterKeyProvider<?> mkp = buildMultiProvider(mk1_spy, mk2_spy);
 
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                   .setCommitmentPolicy(commitmentPolicy)
                                                                    .setContext(singletonMap("foo", "bar"))
                                                                    .build();
 
@@ -149,6 +159,7 @@ public class DefaultCryptoMaterialsManagerTest {
         MasterKey<?> mk1_spy = spy(mk1);
 
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
+                                                                       .setCommitmentPolicy(commitmentPolicy)
                                                                        .setPlaintext(new byte[1])
                                                                        .build();
         new DefaultCryptoMaterialsManager(mk1_spy).getMaterialsForEncrypt(request);
@@ -165,6 +176,7 @@ public class DefaultCryptoMaterialsManagerTest {
         MasterKey<?> mk1_spy = spy(mk1);
 
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
+                                                                       .setCommitmentPolicy(commitmentPolicy)
                                                                        .setPlaintextSize(1)
                                                                        .build();
         new DefaultCryptoMaterialsManager(mk1_spy).getMaterialsForEncrypt(request);
@@ -180,7 +192,9 @@ public class DefaultCryptoMaterialsManagerTest {
     public void encrypt_setsStreamingWhenNoSizeAvailable() throws Exception {
         MasterKey<?> mk1_spy = spy(mk1);
 
-        EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder().build();
+        EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
+                                                                       .setCommitmentPolicy(commitmentPolicy)
+                                                                       .build();
         new DefaultCryptoMaterialsManager(mk1_spy).getMaterialsForEncrypt(request);
 
         verify(mk1_spy).getMasterKeysForEncryption(
@@ -191,6 +205,7 @@ public class DefaultCryptoMaterialsManagerTest {
     @Test(expected = IllegalArgumentException.class)
     public void encrypt_whenECContextKeyPresent_throws() throws Exception {
         EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                   .setCommitmentPolicy(commitmentPolicy)
                                                                    .setRequestedAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)
                                                                    .setContext(singletonMap(Constants.EC_PUBLIC_KEY_FIELD, "some EC key"))
                                                                    .build();
@@ -200,8 +215,9 @@ public class DefaultCryptoMaterialsManagerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void encrypt_whenNoMasterKeys_throws() throws Exception {
-        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
-
+        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                                                                   .setCommitmentPolicy(commitmentPolicy)
+                                                                   .build();
         new DefaultCryptoMaterialsManager(new MasterKeyProvider() {
             @Override public String getDefaultProviderId() {
                 return "provider ID";
@@ -225,7 +241,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     private EncryptionMaterials easyGenMaterials(Consumer<EncryptionMaterialsRequest.Builder> customizer) {
-        EncryptionMaterialsRequest.Builder request = EncryptionMaterialsRequest.newBuilder();
+        EncryptionMaterialsRequest.Builder request = EncryptionMaterialsRequest.newBuilder().setCommitmentPolicy(commitmentPolicy);
 
         customizer.accept(request);
 
@@ -243,6 +259,10 @@ public class DefaultCryptoMaterialsManagerTest {
     @Test
     public void decrypt_testSimpleRoundTrip() throws Exception {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
+            // Only test algorithms without key commitment
+            if (algorithm.getMessageFormatVersion() != 1) {
+                continue;
+            }
             EncryptionMaterials encryptMaterials = easyGenMaterials(
                     builder -> builder.setRequestedAlgorithm(algorithm)
             );
@@ -285,6 +305,10 @@ public class DefaultCryptoMaterialsManagerTest {
     @Test
     public void decrypt_whenTrailingSigMissing_throwsException() throws Exception {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
+            // Only test algorithms without key commitment
+            if (algorithm.getMessageFormatVersion() != 1) {
+                continue;
+            }
             if (algorithm.getTrailingSignatureLength() == 0) {
                 continue;
             }

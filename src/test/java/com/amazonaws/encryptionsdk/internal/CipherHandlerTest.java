@@ -22,6 +22,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.amazonaws.encryptionsdk.TestUtils;
 import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
@@ -42,7 +43,7 @@ public class CipherHandlerTest {
 
     @Test(expected = BadCiphertextException.class)
     public void tamperCiphertext() {
-        final CryptoAlgorithm cryptoAlgorithm = AwsCrypto.getDefaultCryptoAlgorithm();
+        final CryptoAlgorithm cryptoAlgorithm = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
         final byte[] content = RandomBytesGenerator.generate(contentLen_);
         final byte[] keyBytes = RandomBytesGenerator.generate(cryptoAlgorithm.getKeyLength());
         final byte[] nonce = RandomBytesGenerator.generate(cryptoAlgorithm.getNonceLen());

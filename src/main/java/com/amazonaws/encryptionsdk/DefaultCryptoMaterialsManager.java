@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
 import static com.amazonaws.encryptionsdk.internal.Utils.assertNonNull;
@@ -32,6 +35,8 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
     private final MasterKeyProvider<?> mkp;
 
+    private final CryptoAlgorithm DEFAULT_CRYPTO_ALGORITHM = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+
     /**
      * @param mkp The master key provider to delegate to
      */
@@ -45,7 +50,7 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
 
         CryptoAlgorithm algo = request.getRequestedAlgorithm();
         if (algo == null) {
-            algo = AwsCrypto.getDefaultCryptoAlgorithm();
+            algo = DEFAULT_CRYPTO_ALGORITHM;
         }
 
         KeyPair trailingKeys = null;

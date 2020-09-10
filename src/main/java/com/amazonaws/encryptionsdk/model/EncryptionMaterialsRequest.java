@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk.model;
 
 import java.util.Arrays;
@@ -6,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
@@ -20,12 +24,17 @@ public final class EncryptionMaterialsRequest {
     private final CryptoAlgorithm requestedAlgorithm;
     private final long plaintextSize;
     private final byte[] plaintext;
+    private final CommitmentPolicy commitmentPolicy;
 
     private EncryptionMaterialsRequest(Builder builder) {
         this.context = builder.context;
         this.requestedAlgorithm = builder.requestedAlgorithm;
         this.plaintextSize = builder.plaintextSize;
         this.plaintext = builder.plaintext;
+
+        // Requests MAY include a commitmentPolicy.
+        // This will become a required field in 2.0
+        this.commitmentPolicy = builder.commitmentPolicy;
     }
 
     /**
@@ -61,6 +70,8 @@ public final class EncryptionMaterialsRequest {
         return plaintext;
     }
 
+    public CommitmentPolicy getCommitmentPolicy() { return commitmentPolicy; }
+
     public Builder toBuilder() {
         return new Builder(this);
     }
@@ -88,6 +99,7 @@ public final class EncryptionMaterialsRequest {
         private CryptoAlgorithm requestedAlgorithm = null;
         private long plaintextSize = -1;
         private byte[] plaintext = null;
+        private CommitmentPolicy commitmentPolicy = null;
 
         private Builder() {
 
@@ -98,6 +110,7 @@ public final class EncryptionMaterialsRequest {
             this.requestedAlgorithm = request.getRequestedAlgorithm();
             this.plaintextSize = request.getPlaintextSize();
             this.plaintext = request.getPlaintext();
+            this.commitmentPolicy = request.getCommitmentPolicy();
         }
 
         public EncryptionMaterialsRequest build() {
@@ -161,6 +174,15 @@ public final class EncryptionMaterialsRequest {
             } else {
                 return setPlaintextSize(-1);
             }
+        }
+
+        public CommitmentPolicy getCommitmentPolicy() {
+            return commitmentPolicy;
+        }
+
+        public Builder setCommitmentPolicy(CommitmentPolicy commitmentPolicy) {
+            this.commitmentPolicy = commitmentPolicy;
+            return this;
         }
     }
 }

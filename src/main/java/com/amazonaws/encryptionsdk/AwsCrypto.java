@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
@@ -88,10 +78,108 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 public class AwsCrypto {
     private static final Map<String, String> EMPTY_MAP = Collections.emptyMap();
 
+    // These are volatile because we allow unsynchronized writes via our setters,
+    // and without setting volatile we could see strange results.
+    // E.g. copying these to a local might give different values on subsequent reads from the local.
+    // By setting them volatile we ensure that proper memory barriers are applied
+    // to ensure things behave in a sensible manner.
+    private volatile CryptoAlgorithm encryptionAlgorithm_ = null;
+    private volatile int encryptionFrameSize_ = getDefaultFrameSize();
+
+    private final CommitmentPolicy commitmentPolicy_;
+
+    /**
+     * @deprecated This constructor implicitly configures the Aws Crypto client with a commitment policy that
+     * allows reading encrypted messages without commitment values.
+     * Use {@link AwsCrypto.Builder} and {@link AwsCrypto.Builder#withCommitmentPolicy(CommitmentPolicy)}
+     * to explicitly build the AwsCrypto client with your desired policy.
+     */
+    @Deprecated
+    public AwsCrypto() {
+        commitmentPolicy_ = CommitmentPolicy.ForbidEncryptAllowDecrypt;
+    }
+
+    private AwsCrypto(Builder builder) {
+        if (builder.commitmentPolicy_ == null) {
+            throw new IllegalArgumentException("Must specify a commitment policy on the client.");
+        }
+        // only allow to encrypt with version 1 crypto algorithms
+        if (builder.encryptionAlgorithm_ != null && builder.encryptionAlgorithm_.getMessageFormatVersion() != 1) {
+            throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                    builder.commitmentPolicy_ + " requiring only non-committed messages. Algorithm ID was " +
+                    builder.encryptionAlgorithm_ +
+                    ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+        }
+        encryptionAlgorithm_ = builder.encryptionAlgorithm_;
+        encryptionFrameSize_ = builder.encryptionFrameSize_;
+        commitmentPolicy_ = builder.commitmentPolicy_;
+    }
+
+    public static class Builder {
+        private CryptoAlgorithm encryptionAlgorithm_;
+        private int encryptionFrameSize_ = getDefaultFrameSize();
+        private CommitmentPolicy commitmentPolicy_;
+
+        private Builder() {}
+
+        /**
+         * Sets the {@link CryptoAlgorithm} to encrypt with.
+         * The Aws Crypto client will use the last crypto algorithm set with
+         * either {@link AwsCrypto.Builder#withEncryptionAlgorithm(CryptoAlgorithm)} or
+         * {@link #setEncryptionAlgorithm(CryptoAlgorithm)} to encrypt with.
+         *
+         * @param encryptionAlgorithm The {@link CryptoAlgorithm}
+         * @return The Builder, for method chaining
+         */
+        public Builder withEncryptionAlgorithm(CryptoAlgorithm encryptionAlgorithm) {
+            this.encryptionAlgorithm_ = encryptionAlgorithm;
+            return this;
+        }
+
+        /**
+         * Sets the frame size of the encrypted messages that the Aws Crypto client produces.
+         * The Aws Crypto client will use the last frame size set with
+         * either {@link AwsCrypto.Builder#withEncryptionFrameSize(int)} or
+         * {@link #setEncryptionFrameSize(int)}.
+         *
+         * @param frameSize The frame size to produce encrypted messages with.
+         * @return The Builder, for method chaining
+         */
+        public Builder withEncryptionFrameSize(int frameSize) {
+            this.encryptionFrameSize_ = frameSize;
+            return this;
+        }
+
+        /**
+         * Sets the {@link CommitmentPolicy} of this Aws Crypto client.
+         *
+         * @param commitmentPolicy The commitment policy to enforce during encryption and decryption
+         * @return The Builder, for method chaining
+         */
+        public Builder withCommitmentPolicy(CommitmentPolicy commitmentPolicy) {
+            this.commitmentPolicy_ = commitmentPolicy;
+            return this;
+        }
+
+        public AwsCrypto build() {
+            return new AwsCrypto(this);
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     /**
      * Returns the {@link CryptoAlgorithm} to be used for encryption when none is explicitly
      * selected. Currently it is {@link CryptoAlgorithm#ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384}.
+     *
+     * @deprecated The recommended crypto algorithm may change in the future.
+     * Instead of using this method, the Aws Crypto client will choose a sensible default for encryption if none
+     * is specified and you are passing in either a {@link MasterKeyProvider} or a {@link DefaultCryptoMaterialsManager}
+     * to the encrypt methods.
      */
+    @Deprecated
     public static CryptoAlgorithm getDefaultCryptoAlgorithm() {
         return CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     }
@@ -104,18 +192,17 @@ public class AwsCrypto {
         return 4096;
     }
 
-    // These are volatile because we allow unsynchronized writes via our setters, and without setting volatile we could
-    // see strange results - e.g. copying these to a local might give different values on subsequent reads from the
-    // local. By setting them volatile we ensure that proper memory barriers are applied to ensure things behave in a
-    // sensible manner.
-    private volatile CryptoAlgorithm encryptionAlgorithm_ = null;
-    private volatile int encryptionFrameSize_ = getDefaultFrameSize();
-
     /**
      * Sets the {@link CryptoAlgorithm} to use when <em>encrypting</em> data. This has no impact on
      * decryption.
      */
     public void setEncryptionAlgorithm(final CryptoAlgorithm alg) {
+        // only allow to encrypt with version 1 crypto algorithms
+        if (alg.getMessageFormatVersion() != 1) {
+            throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                    commitmentPolicy_ + " requiring only non-committed messages. Algorithm ID was " +
+                    alg + ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+        }
         encryptionAlgorithm_ = alg;
     }
 

@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
@@ -60,6 +50,7 @@ public class CryptoOutputStreamTest {
     private static final SecureRandom RND = new SecureRandom();
     private static final MasterKey<JceMasterKey> customerMasterKey;
     private static final AtomicReference<byte[]> RANDOM_BUFFER = new AtomicReference<>(new byte[0]);
+    private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
 
     static {
         byte[] rawKey = new byte[16];
@@ -74,7 +65,7 @@ public class CryptoOutputStreamTest {
             Callback onEncrypt,
             Callback onDecrypt
     ) throws Exception {
-        AwsCrypto awsCrypto = new AwsCrypto();
+        AwsCrypto awsCrypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         customizer.accept(awsCrypto);
 
         byte[] plaintext = insecureRandomBytes(dataSize);
@@ -155,6 +146,11 @@ public class CryptoOutputStreamTest {
             ArrayList<Object[]> cases = new ArrayList<>();
 
             for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
+              // Only test with crypto algs without commitment, since those
+              // are the only ones we can encrypt with
+              if (cryptoAlg.getMessageFormatVersion() != 1) {
+                  continue;
+              }
               final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
                 // iterate over frame size to test
@@ -216,7 +212,7 @@ public class CryptoOutputStreamTest {
 
         @Before
         public void setup() throws IOException {
-            encryptionClient_ = new AwsCrypto();
+            encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         }
 
         @Test
@@ -397,7 +393,7 @@ public class CryptoOutputStreamTest {
         }
 
         private void invalidWriteLen(final int frameSize) throws BadCiphertextException, IOException {
-            AwsCrypto awsCrypto = new AwsCrypto();
+            AwsCrypto awsCrypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
 
             awsCrypto.setEncryptionFrameSize(frameSize);
 
@@ -414,7 +410,7 @@ public class CryptoOutputStreamTest {
         }
 
         private void invalidWriteOffset(final int frameSize) throws BadCiphertextException, IOException {
-            AwsCrypto awsCrypto = new AwsCrypto();
+            AwsCrypto awsCrypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
 
             awsCrypto.setEncryptionFrameSize(frameSize);
 
@@ -592,7 +588,7 @@ public class CryptoOutputStreamTest {
         public void whenStreamSizeSetEarly_streamSizePassedToCMM() throws Exception {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
-            CryptoOutputStream<?> os = new AwsCrypto().createEncryptingStream(cmm, new ByteArrayOutputStream());
+            CryptoOutputStream<?> os = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayOutputStream());
 
             os.setMaxInputLength(1);
 
@@ -608,7 +604,7 @@ public class CryptoOutputStreamTest {
         public void whenStreamSizeSetEarly_andExceeded_exceptionThrown() throws Exception {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
-            CryptoOutputStream<?> os = new AwsCrypto().createEncryptingStream(cmm, new ByteArrayOutputStream());
+            CryptoOutputStream<?> os = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayOutputStream());
 
             os.setMaxInputLength(1);
             os.write(0);
@@ -619,7 +615,7 @@ public class CryptoOutputStreamTest {
         public void whenStreamSizeSetLate_andExceeded_exceptionThrown() throws Exception {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
-            CryptoOutputStream<?> os = new AwsCrypto().createEncryptingStream(cmm, new ByteArrayOutputStream());
+            CryptoOutputStream<?> os = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayOutputStream());
 
             os.write(0);
             os.setMaxInputLength(1);
@@ -631,7 +627,7 @@ public class CryptoOutputStreamTest {
         public void whenStreamSizeSet_afterBeingExceeded_exceptionThrown() throws Exception {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
-            CryptoOutputStream<?> os = new AwsCrypto().createEncryptingStream(cmm, new ByteArrayOutputStream());
+            CryptoOutputStream<?> os = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayOutputStream());
 
             os.write(0);
             os.write(0);
@@ -642,7 +638,7 @@ public class CryptoOutputStreamTest {
         @Test
         public void whenStreamSizeNegative_setSizeThrows() throws Exception {
             CryptoOutputStream<?> is
-                    = new AwsCrypto().createEncryptingStream(customerMasterKey, new ByteArrayOutputStream());
+                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(customerMasterKey, new ByteArrayOutputStream());
 
             assertThrows(() -> is.setMaxInputLength(-1));
         }

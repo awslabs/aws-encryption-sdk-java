@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
 import static java.lang.String.format;
@@ -54,7 +57,7 @@ public class TestVectorRunner {
 
     @Test
     public void decrypt() {
-        AwsCrypto crypto = new AwsCrypto();
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         byte[] plaintext = crypto.decryptData(testCase.mkp, cachedData.get(testCase.ciphertextPath)).getResult();
         final byte[] expectedPlaintext = cachedData.get(testCase.plaintextPath);
 
@@ -90,7 +93,7 @@ public class TestVectorRunner {
             final KmsMasterKeyProvider kmsProv = KmsMasterKeyProvider
                                                          .builder()
                                                          .withCredentials(new DefaultAWSCredentialsProviderChain())
-                                                         .build();
+                                                         .buildDiscovery();
 
             List<Object[]> testCases = new ArrayList<>();
             for (Map.Entry<String, Map<String, Object>> testEntry :

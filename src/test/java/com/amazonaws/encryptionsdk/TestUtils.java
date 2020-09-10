@@ -1,5 +1,14 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+
+import javax.crypto.spec.SecretKeySpec;
+
+import static java.lang.String.format;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -13,6 +22,33 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TestUtils {
+    public static final CryptoAlgorithm DEFAULT_TEST_CRYPTO_ALG = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    public static final CryptoAlgorithm KEY_COMMIT_CRYPTO_ALG = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384;
+    public static final CommitmentPolicy DEFAULT_TEST_COMMITMENT_POLICY = CommitmentPolicy.ForbidEncryptAllowDecrypt;
+
+    // Handcrafted message for testing decryption of messages with committed keys
+    public static final String messageWithCommitKeyBase64 = "AgR4TfvRMU2dVZJbgXIyxeNtbj" +
+            "5eIw8BiTDiwsHyQ/Z9wXkAAAABAAxQcm92aWRlck5hbWUAGUtleUlkAAAAgAAAAAz45sc3cDvJZ7D4P3sAM" +
+            "KE7d/w8ziQt2C0qHsy1Qu2E2q92eIGE/kLnF/Y003HKvTxx7xv2Zv83YuOdwHML5QIAABAAF88I9zPbUQSf" +
+            "OlzLXv+uIY2+m/E6j2PMsbgeHVH/L0wLqQlY+5CL0z3xnNOMIZae/////wAAAAEAAAAAAAAAAAAAAAEAAAA" +
+            "OSZBKHHRpTwXOFTQVGapXXj5CwXBMouBB2ucaIJVm";
+    public static final JceMasterKey messageWithCommitKeyMasterKey = JceMasterKey.getInstance(
+            new SecretKeySpec(new byte[32], "AES"), "ProviderName", "KeyId", "AES/GCM/NoPadding");
+    public static final String messageWithCommitKeyMessageIdBase64 = "TfvRMU2dVZJbgXIyxeNtbj5eIw8BiTDiwsHyQ/Z9wXk=";
+    public static final String messageWithCommitKeyCommitmentBase64 = "F88I9zPbUQSfOlzLXv+uIY2+m/E6j2PMsbgeHVH/L0w=";
+    public static final String messageWithCommitKeyDEKBase64 = "+p6+whPVw9kOrYLZFMRBJ2n6Vli6T/7TkjDouS+25s0=";
+    public static final CryptoAlgorithm messageWithCommitKeyCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
+    public static final String messageWithCommitKeyExpectedResult = "GoodCommitment";
+
+    // Handcrafted message for testing decryption of messages with invalid committed keys
+    public static final String invalidMessageWithCommitKeyBase64 = "AgR4b1/73X5ErILpj0aSQIx6wNnH" +
+            "LEcNLxPzA0m6vYRr7kAAAAABAAxQcm92aWRlck5hbWUAGUtleUlkAAAAgAAAAAypJmXwyizUr3/pyvIAMHL" +
+            "U/i5GhZlGayeYC5w/CjUobyGwN4QpeMB0XpNDGTM0f1Zx72V4uM2H5wMjy/hm2wIAABAAAAECAwQFBgcICQ" +
+            "oLDA0ODxAREhMUFRYXGBkaGxwdHh/pQM2VSvliz2Qgi5JZf2ta/////wAAAAEAAAAAAAAAAAAAAAEAAAANS" +
+            "4Id4+dVHhPrvuJHEiOswo6YGSRjSGX3VDrt+0s=";
+    public static final JceMasterKey invalidMessageWithCommitKeyMasterKey = JceMasterKey.getInstance(
+            new SecretKeySpec(new byte[32], "AES"), "ProviderName", "KeyId", "AES/GCM/NoPadding");
+
     // avoid spending time generating random data on every test case by caching some random test vectors
     private static final AtomicReference<byte[]> RANDOM_CACHE = new AtomicReference<>(new byte[0]);
 
@@ -50,6 +86,24 @@ public class TestUtils {
         }
 
         fail("Expected exception of type " + throwableClass);
+    }
+
+    /**
+     * Asserts that calling {@code callback} results in a {@code throwableClass} (or sub-class) being thrown
+     * which has {@link Throwable#getMessage()} containing {@code message}.
+     */
+    public static void assertThrows(Class<? extends Throwable> throwableClass, String message, ThrowingRunnable callback) {
+        try {
+            callback.run();
+            fail("Expected exception of type " + throwableClass);
+        } catch (Throwable t) {
+            assertTrue(
+                format("Exception of wrong type. Was %s but expected %s", t.getClass(), throwableClass),
+                throwableClass.isAssignableFrom(t.getClass()));
+            assertTrue(
+                format("Exception did not contain the expected message. Actual: \"%s\" did not contain \"%s\"", t.getMessage(), message),
+                    t.getMessage().contains(message));
+        }
     }
 
     public static void assertThrows(ThrowingRunnable callback) {

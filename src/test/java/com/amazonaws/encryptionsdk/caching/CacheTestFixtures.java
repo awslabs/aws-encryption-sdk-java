@@ -11,12 +11,15 @@ import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.TestUtils;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 public class CacheTestFixtures {
+    private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
+
     private static final MasterKey<?> FIXED_KEY = JceMasterKey.getInstance(
             new SecretKeySpec(TestUtils.insecureRandomBytes(16), "AES"),
             "prov",
@@ -27,6 +30,7 @@ public class CacheTestFixtures {
     public static EncryptionMaterialsRequest createMaterialsRequest(int index) {
         return EncryptionMaterialsRequest.newBuilder()
                                          .setContext(Collections.singletonMap("index", Integer.toString(index)))
+                                         .setCommitmentPolicy(commitmentPolicy)
                                          .build();
     }
 

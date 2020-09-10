@@ -1,21 +1,12 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.internal;
 
 import java.util.Collections;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,14 +15,19 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.TestUtils;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
+import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
+
 public class DecryptionHandlerTest {
     private StaticMasterKey masterKeyProvider_;
+    private final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
 
     @Before
     public void init() {
@@ -89,7 +85,7 @@ public class DecryptionHandlerTest {
         byte[] ciphertext = getTestHeaders();
 
         // set byte containing version to invalid value.
-        ciphertext[0] += VersionInfo.CURRENT_CIPHERTEXT_VERSION + 1;
+        ciphertext[0] = 0; // NOTE: This will need to be updated should 0 ever be a valid version
 
         // attempt to decrypt with the tampered header.
         final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
@@ -101,7 +97,7 @@ public class DecryptionHandlerTest {
     @Test(expected = AwsCryptoException.class)
     public void invalidCMK() {
         final byte[] ciphertext = getTestHeaders();
-        
+
         masterKeyProvider_.setKeyId(masterKeyProvider_.getKeyId() + "nonsense");
 
         // attempt to decrypt with the tampered header.
@@ -112,7 +108,7 @@ public class DecryptionHandlerTest {
     }
 
     private byte[] getTestHeaders() {
-        final CryptoAlgorithm cryptoAlgorithm_ = AwsCrypto.getDefaultCryptoAlgorithm();
+        final CryptoAlgorithm cryptoAlgorithm_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
         final int frameSize_ = AwsCrypto.getDefaultFrameSize();
         final Map<String, String> encryptionContext = Collections.<String, String> emptyMap();
 
@@ -154,5 +150,48 @@ public class DecryptionHandlerTest {
 
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
         decryptionHandler.doFinal(out, 0);
+    }
+
+    @Test
+    public void incompleteCiphertextV2() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final byte[] out = new byte[1];
+
+        decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
+        assertThrows(BadCiphertextException.class, "Unable to process entire ciphertext.",
+                () -> decryptionHandler.doFinal(out, 0));
+    }
+
+    @Test
+    public void headerV2HeaderIntegrityFailure() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+
+        // Tamper the bytes that corresponds to the frame length.
+        // This is the only reasonable way to tamper with this handcrafted message's
+        // header which can still be successfully parsed.
+        ciphertext[134] += 1;
+
+        // attempt to decrypt with the tampered header.
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        assertThrows(BadCiphertextException.class, "Header integrity check failed", () ->
+                decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
+    public void headerV2BodyIntegrityFailure() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+
+        // Tamper the bytes that corresponds to the body auth
+        ciphertext[ciphertext.length - 1] += 1;
+
+        // attempt to decrypt with the tampered header.
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        assertThrows(BadCiphertextException.class, "Tag mismatch", () ->
+                decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
     }
 }

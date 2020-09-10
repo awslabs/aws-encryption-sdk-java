@@ -1,15 +1,5 @@
-/*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples;
 
@@ -22,6 +12,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 
 /**
  * <p>
@@ -45,35 +36,32 @@ public class BasicEncryptionExample {
     }
 
     static void encryptAndDecrypt(final String keyArn) {
-        // 1. Instantiate the SDK
-        final AwsCrypto crypto = new AwsCrypto();
+        // 1. Instantiate the SDK with a specific commitment policy.
+        // ForbidEncryptAllowDecrypt is the only available policy in 1.7.0.
+        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
 
-        // 2. Instantiate a KMS master key provider
-        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().withKeysForEncryption(keyArn).build();
+        // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
+        // In strict mode, the AWS KMS master key provider encrypts and decrypts only by using the key
+        // indicated by keyArn.
+        // To encrypt and decrypt with this master key provider, use an AWS KMS key ARN to identify the CMKs.
+        // The decrypt operation doesn't work with any other key identifier in strict mode.
+        final KmsMasterKeyProvider keyProvider = KmsMasterKeyProvider.builder().buildStrict(keyArn);
 
         // 3. Create an encryption context
-        //
         // Most encrypted data should have an associated encryption context
         // to protect integrity. This sample uses placeholder values.
-        //
         // For more information see:
         // blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
         final Map<String, String> encryptionContext = Collections.singletonMap("ExampleContextKey", "ExampleContextValue");
 
         // 4. Encrypt the data
-        final CryptoResult<byte[], KmsMasterKey> encryptResult = crypto.encryptData(masterKeyProvider, EXAMPLE_DATA, encryptionContext);
+        final CryptoResult<byte[], KmsMasterKey> encryptResult = crypto.encryptData(keyProvider, EXAMPLE_DATA, encryptionContext);
         final byte[] ciphertext = encryptResult.getResult();
 
         // 5. Decrypt the data
-        final CryptoResult<byte[], KmsMasterKey> decryptResult = crypto.decryptData(masterKeyProvider, ciphertext);
+        final CryptoResult<byte[], KmsMasterKey> decryptResult = crypto.decryptData(keyProvider, ciphertext);
 
-        // 6. Before verifying the plaintext, verify that the customer master key that
-        // was used in the encryption operation was the one supplied to the master key provider.
-        if (!decryptResult.getMasterKeyIds().get(0).equals(keyArn)) {
-            throw new IllegalStateException("Wrong key ID!");
-        }
-
-        // 7. Also, verify that the encryption context in the result contains the
+        // 6. Verify that the encryption context in the result contains the
         // encryption context supplied to the encryptData method. Because the
         // SDK can add values to the encryption context, don't require that
         // the entire context matches.
@@ -82,7 +70,7 @@ public class BasicEncryptionExample {
             throw new IllegalStateException("Wrong Encryption Context!");
         }
 
-        // 8. Verify that the decrypted plaintext matches the original plaintext
+        // 7. Verify that the decrypted plaintext matches the original plaintext
         assert Arrays.equals(decryptResult.getResult(), EXAMPLE_DATA);
     }
 }

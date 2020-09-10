@@ -168,11 +168,19 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
+                final String edkKeyId = new String(edk.getProviderInformation(), StandardCharsets.UTF_8);
+                if (!edkKeyId.equals(id_)) {
+                    continue;
+                }
                 final DecryptResult decryptResult = kms_.get().decrypt(updateUserAgent(
                         new DecryptRequest()
                                 .withCiphertextBlob(ByteBuffer.wrap(edk.getEncryptedDataKey()))
                                 .withEncryptionContext(encryptionContext)
-                                .withGrantTokens(grantTokens_)));
+                                .withGrantTokens(grantTokens_)
+                                .withKeyId(edkKeyId)));
+                if (decryptResult.getKeyId() == null) {
+                    throw new IllegalStateException("Received an empty keyId from KMS");
+                }
                 if (decryptResult.getKeyId().equals(id_)) {
                     final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
                     decryptResult.getPlaintext().get(rawKey);
