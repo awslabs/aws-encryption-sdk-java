@@ -27,7 +27,7 @@ import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 
 public class CiphertextHeadersTest {
-    final CryptoAlgorithm cryptoAlgo_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
+    final CryptoAlgorithm cryptoAlgo_ = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     final String keyProviderId_ = "None";
     final byte[] keyProviderInfo_ = "TestKeyID".getBytes();
     final byte version_ = cryptoAlgo_.getMessageFormatVersion();

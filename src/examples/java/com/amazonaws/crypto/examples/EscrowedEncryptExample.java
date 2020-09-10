@@ -66,10 +66,16 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
-        // Encrypt with the AWS KMS CMK and the escrowed public key
-        // 1. Instantiate the SDK with a specific commitment policy.
-        // ForbidEncryptAllowDecrypt is the only available policy in 1.7.0.
-        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        // Encrypt with the KMS CMK and the escrowed public key
+        // 1. Instantiate the SDK
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
         // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
         //
@@ -102,8 +108,15 @@ public class EscrowedEncryptExample {
         // Decrypt with the AWS KMS CMK and the escrow public key. You can use a combined provider,
         // as shown here, or just the AWS KMS master key provider.
 
-        // 1. Instantiate the SDK
-        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        // 1. Instantiate the SDK.
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
         // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
         //
@@ -136,7 +149,7 @@ public class EscrowedEncryptExample {
         // This method does not call AWS KMS.
 
         // 1. Instantiate the SDK
-        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        final AwsCrypto crypto = AwsCrypto.standard();
 
         // 2. Instantiate a JCE master key provider
         // This method call uses the escrowed private key, not null 

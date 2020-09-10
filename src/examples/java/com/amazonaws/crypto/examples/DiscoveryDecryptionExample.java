@@ -45,9 +45,15 @@ public class DiscoveryDecryptionExample {
     }
 
     static void encryptAndDecrypt(final String keyName, final String partition, final String accountId) {
-        // 1. Instantiate the SDK with a specific commitment policy.
-        // ForbidEncryptAllowDecrypt is the only available policy in 1.7.0.
-        final AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        // 1. Instantiate the SDK
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
         // 2. Instantiate an AWS KMS master key provider for encryption.
         //

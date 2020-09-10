@@ -3,6 +3,8 @@
 
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.crypto.examples.SetCommitmentPolicyExampleTest;
+import com.amazonaws.crypto.examples.SetEncryptionAlgorithmExampleTest;
 import com.amazonaws.crypto.examples.SimpleDataKeyCachingExampleTest;
 import com.amazonaws.encryptionsdk.jce.JceMasterKeyTest;
 import org.junit.runner.RunWith;
@@ -85,7 +87,9 @@ import com.amazonaws.encryptionsdk.kms.KmsMasterKeyTest;
         DiscoveryDecryptionExampleTest.class,
         MultipleCmkEncryptExampleTest.class,
         RestrictRegionExampleTest.class,
-        SimpleDataKeyCachingExampleTest.class
+        SimpleDataKeyCachingExampleTest.class,
+        SetEncryptionAlgorithmExampleTest.class,
+        SetCommitmentPolicyExampleTest.class
 })
 public class AllTestsSuite {
 }

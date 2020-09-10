@@ -4,10 +4,7 @@
 package com.amazonaws.encryptionsdk.internal;
 
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
-import com.amazonaws.encryptionsdk.ParsedCiphertext;
 import com.amazonaws.encryptionsdk.TestUtils;
-import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
-import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import org.bouncycastle.util.Arrays;
 import org.junit.Test;
 
@@ -16,7 +13,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
 
 import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static com.amazonaws.encryptionsdk.TestUtils.insecureRandomBytes;
@@ -33,8 +29,8 @@ public class CommittedKeyTest {
         SecretKeySpec secretKey = new SecretKeySpec(Utils.decodeBase64String(TestUtils.messageWithCommitKeyDEKBase64), algorithm.getDataKeyAlgo());
         CommittedKey committedKey = CommittedKey.generate(algorithm, secretKey, Utils.decodeBase64String(TestUtils.messageWithCommitKeyMessageIdBase64));
         assertNotNull(committedKey);
-        assertEquals(committedKey.getKey().getAlgorithm(), TestUtils.messageWithCommitKeyCryptoAlgorithm.getKeyAlgo());
-        assertArrayEquals(committedKey.getCommitment(), Utils.decodeBase64String(TestUtils.messageWithCommitKeyCommitmentBase64));
+        assertEquals(TestUtils.messageWithCommitKeyCryptoAlgorithm.getKeyAlgo(), committedKey.getKey().getAlgorithm());
+        assertArrayEquals(Utils.decodeBase64String(TestUtils.messageWithCommitKeyCommitmentBase64), committedKey.getCommitment());
     }
 
     @Test

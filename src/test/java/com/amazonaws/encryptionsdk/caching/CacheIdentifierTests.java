@@ -94,6 +94,7 @@ public class CacheIdentifierTests {
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
                                                                        .setContext(context)
                                                                        .setRequestedAlgorithm(algo)
+                                                                       .setCommitmentPolicy(commitmentPolicy)
                                                                        .build();
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
@@ -115,6 +116,7 @@ public class CacheIdentifierTests {
                                        EncryptionMaterialsRequest.newBuilder()
                                                                  .setContext(contextMap)
                                                                  .setRequestedAlgorithm(null)
+                                                                 .setCommitmentPolicy(commitmentPolicy)
                                                                  .build()
         );
 
@@ -127,6 +129,7 @@ public class CacheIdentifierTests {
                                 EncryptionMaterialsRequest.newBuilder()
                                                           .setContext(contextMap)
                                                           .setRequestedAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
+                                                          .setCommitmentPolicy(commitmentPolicy)
                                                           .build()
         );
 

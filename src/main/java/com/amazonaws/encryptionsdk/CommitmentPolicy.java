@@ -3,6 +3,34 @@
 
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
+
 public enum CommitmentPolicy {
-    ForbidEncryptAllowDecrypt
+    ForbidEncryptAllowDecrypt,
+    RequireEncryptAllowDecrypt,
+    RequireEncryptRequireDecrypt;
+
+    public boolean algorithmAllowedForEncrypt(CryptoAlgorithm algorithm) {
+        switch (this) {
+            case ForbidEncryptAllowDecrypt:
+                return !algorithm.isCommitting();
+            case RequireEncryptAllowDecrypt:
+            case RequireEncryptRequireDecrypt:
+                return algorithm.isCommitting();
+            default:
+                throw new UnsupportedOperationException("Support for commitment policy " + this + " not yet built.");
+        }
+    }
+
+    public boolean algorithmAllowedForDecrypt(CryptoAlgorithm algorithm) {
+        switch (this) {
+            case ForbidEncryptAllowDecrypt:
+            case RequireEncryptAllowDecrypt:
+                return true;
+            case RequireEncryptRequireDecrypt:
+                return algorithm.isCommitting();
+            default:
+                throw new UnsupportedOperationException("Support for commitment policy " + this + " not yet built.");
+        }
+    }
 }

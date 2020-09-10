@@ -211,18 +211,6 @@ public enum CryptoAlgorithm {
      * @return the CryptoAlgorithm object that matches the given value, null if no match is found.
      * @deprecated See {@link #deserialize(byte, short)}
      */
-    @Deprecated
-    public static CryptoAlgorithm deserialize(final short value) {
-        return deserialize((byte) 1, value);
-    }
-
-    /**
-     * Returns the CryptoAlgorithm object that matches the given value.
-     *
-     * @param value
-     *            the value of the object
-     * @return the CryptoAlgorithm object that matches the given value, null if no match is found.
-     */
     public static CryptoAlgorithm deserialize(final byte messageFormatVersion, final short value) {
         return ID_MAPPING.get(fieldsToLookupKey(messageFormatVersion, value));
     }

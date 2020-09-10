@@ -51,7 +51,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     private final List<String> keyIds_;
     private final List<String> grantTokens_;
 
-    private static final boolean IS_DISCOVERY_DEFAULT = true;
     private final boolean isDiscovery_;
     private final DiscoveryFilter discoveryFilter_;
 
@@ -74,8 +73,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         private String defaultRegion_ = null;
         private RegionalClientSupplier regionalClientSupplier_ = null;
         private AWSKMSClientBuilder templateBuilder_ = null;
-        private List<String> keyIds_ = new ArrayList<>();
-        private boolean isDiscovery_ = IS_DISCOVERY_DEFAULT;
         private DiscoveryFilter discoveryFilter_ = null;
 
         Builder() {
@@ -90,54 +87,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
                     cloned.templateBuilder_ = cloneClientBuilder(templateBuilder_);
                 }
 
-                cloned.keyIds_ = new ArrayList<>(keyIds_);
-
                 return cloned;
             } catch (CloneNotSupportedException e) {
                 throw new Error("Impossible: CloneNotSupportedException", e);
             }
-        }
-
-        /**
-         * Adds key ID(s) to the list of keys to use on encryption.
-         *
-         * @deprecated This method allows for configuring {@code keyIds} for encryption on KMS
-         * Master Key Providers that perform the discovery behavior on decrypt,
-         * which results in a complex behavior mode for the KMS Master Key Provider.
-         * Use {@link #buildStrict(List)} to construct a Master Key Provider that
-         * uses the supplied {@code keysIds} for encryption and decryption.
-         * If a KMS Master Key Provider that decrypts with discovery behavior is still required,
-         * use {@link #buildDiscovery()} or {@link #buildDiscovery(DiscoveryFilter)} to construct
-         * a seperate Master Key Provider that is used for decryption.
-         *
-         * @param keyIds
-         * @return
-         */
-        @Deprecated
-        public Builder withKeysForEncryption(String... keyIds) {
-            keyIds_.addAll(asList(keyIds));
-            return this;
-        }
-
-        /**
-         * Adds key ID(s) to the list of keys to use on encryption.
-         *
-         * @deprecated This method allows for configuring {@code keyIds} for encryption on KMS
-         * Master Key Providers that perform the discovery behavior on decrypt,
-         * which results in a complex behavior mode for the KMS Master Key Provider.
-         * Use {@link #buildStrict(List)} to construct a Master Key Provider that
-         * uses the supplied {@code keysIds} for encryption and decryption.
-         * If a KMS Master Key Provider that decrypts with discovery behavior is still required,
-         * use {@link #buildDiscovery()} or {@link #buildDiscovery(DiscoveryFilter)} to construct
-         * a seperate Master Key Provider that is used for decryption.
-         *
-         * @param keyIds
-         * @return
-         */
-        @Deprecated
-        public Builder withKeysForEncryption(List<String> keyIds) {
-            keyIds_.addAll(keyIds);
-            return this;
         }
 
         /**
@@ -264,12 +217,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
          * @return
          */
         public KmsMasterKeyProvider buildDiscovery() {
-            if (keyIds_.size() > 0) {
-                throw new IllegalStateException("Cannot explicitly build Discovery KMS Master Key " +
-                        "Provider with keyIds configured");
-            }
-            isDiscovery_ = true;
-            return buildBase();
+            final boolean isDiscovery = true;
+            RegionalClientSupplier supplier = clientFactory();
+
+            return new KmsMasterKeyProvider(supplier, defaultRegion_, emptyList(), emptyList(), isDiscovery, discoveryFilter_);
         }
 
         /**
@@ -307,19 +258,11 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
                 throw new IllegalArgumentException("Strict mode must be configured with a non-empty " +
                         "list of keyIds.");
             }
-            if (keyIds_.size() > 0) {
-                throw new IllegalStateException("buildStrict cannot be used in conjunction with " +
-                        "withKeysForEncryption. Please supply keys to encrypt and decrypt with " +
-                        "to buildStrict()");
-            }
-            if (keyIds.contains(null)) {
-                throw new IllegalArgumentException("Cannot configure Strict KMS Master Key Provider with " +
-                                                     "null key identifier.");
-            }
 
-            isDiscovery_ = false;
-            keyIds_.addAll(keyIds);
-            return buildBase();
+            final boolean isDiscovery = false;
+            RegionalClientSupplier supplier = clientFactory();
+
+            return new KmsMasterKeyProvider(supplier, defaultRegion_, new ArrayList<String>(keyIds), emptyList(), isDiscovery, null);
         }
 
         /**
@@ -334,40 +277,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
          */
         public KmsMasterKeyProvider buildStrict(String... keyIds) {
             return buildStrict(asList(keyIds));
-        }
-
-        /**
-         * Builds the master key provider.
-         *
-         * @deprecated This method implicitly configures the KMS Master Key Provider to perform
-         * discovery behavior on decrypt, which is a behavior that should be constructed explicitly.
-         * To create a KMS Master Key Provider that continues to perform discovery on decrypt,
-         * use {@link #buildDiscovery()} or {@link #buildDiscovery(DiscoveryFilter)}.
-         * To create a KMS Master Key Provider that restricts what keys to attempt decryption with
-         * to a set of configured keys, use {@link #buildStrict(List)}.
-         *
-         * @return
-         */
-        @Deprecated
-        public KmsMasterKeyProvider build() {
-            return buildBase();
-        }
-
-        private KmsMasterKeyProvider buildBase() {
-            // If we don't have a default region, we need to check that all key IDs will be usable
-            if (defaultRegion_ == null) {
-                for (String keyId : keyIds_) {
-                    final AwsKmsCmkArnInfo arnInfo = parseInfoFromKeyArn(keyId);
-                    if (arnInfo == null) {
-                        throw new AwsCryptoException("Can't use non-ARN key identifiers or aliases when " +
-                                                             "no default region is set");
-                    }
-                }
-            }
-
-            RegionalClientSupplier supplier = clientFactory();
-
-            return new KmsMasterKeyProvider(supplier, defaultRegion_, keyIds_, emptyList(), false, isDiscovery_, discoveryFilter_);
         }
 
         private RegionalClientSupplier clientFactory() {
@@ -452,7 +361,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             String defaultRegion,
             List<String> keyIds,
             List<String> grantTokens,
-            boolean onlyOneRegion,
             boolean isDiscovery,
             DiscoveryFilter discoveryFilter
     ) {
@@ -460,26 +368,25 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             throw new IllegalArgumentException("Strict mode must be configured with a non-empty " +
                     "list of keyIds.");
         }
-
+        if (!isDiscovery && keyIds.contains(null)) {
+            throw new IllegalArgumentException("Strict mode cannot be configured with a " +
+                    "null key identifier.");
+        }
         if (!isDiscovery && discoveryFilter != null) {
             throw new IllegalArgumentException("Strict mode cannot be configured with a " +
                     "discovery filter.");
         }
-
-        if (onlyOneRegion) {
-            // restrict this provider to only the default region to avoid code using the legacy ctors from unexpectedly
-            // starting to make cross-region calls
-            RegionalClientSupplier originalSupplier = supplier;
-
-            supplier = region -> {
-                if (!Objects.equals(region, defaultRegion)) {
-                    // An appropriate exception will be thrown elsewhere if return null
-                    return null;
+        // If we don't have a default region, we need to check that all key IDs will be usable
+        if (!isDiscovery && defaultRegion == null) {
+            for (String keyId : keyIds) {
+                final AwsKmsCmkArnInfo arnInfo = parseInfoFromKeyArn(keyId);
+                if (arnInfo == null) {
+                    throw new AwsCryptoException("Can't use non-ARN key identifiers or aliases when " +
+                                                         "no default region is set");
                 }
-
-                return originalSupplier.getClient(region);
-            };
+            }
         }
+
 
         this.regionalClientSupplier_ = supplier;
         this.defaultRegion_ = defaultRegion;
@@ -490,155 +397,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         this.grantTokens_ = grantTokens;
     }
 
-    // Helper ctor for legacy ctors
-    private KmsMasterKeyProvider(RegionalClientSupplier supplier, String defaultRegion, List<String> keyIds) {
-        this(supplier, defaultRegion, keyIds, new ArrayList<>(), true, IS_DISCOVERY_DEFAULT, null);
-    }
-
     private static RegionalClientSupplier defaultProvider() {
         return builder().clientFactory();
-    }
-
-    /**
-     * Returns an instance of this object with default settings, default credentials, and configured
-     * to talk to the {@link Regions#DEFAULT_REGION}.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider() {
-        this(defaultProvider(), Regions.DEFAULT_REGION.getName(), emptyList());
-    }
-
-
-    /**
-     * Returns an instance of this object with default settings and credentials configured to speak
-     * to the region specified by {@code keyId} (if specified). Data will be protected with
-     * {@code keyId} as appropriate.
-     *
-     * The default region will be set to that of the given key ID, or to the AWS SDK default region if a bare key ID or
-     * alias is passed.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final String keyId) {
-        this(defaultProvider(), getStartingRegion(keyId).getName(), singletonList(keyId));
-    }
-
-    /**
-     * Returns an instance of this object with default settings configured to speak to the region
-     * specified by {@code keyId} (if specified). Data will be protected with {@code keyId} as
-     * appropriate.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentials creds, final String keyId) {
-        this(new AWSStaticCredentialsProvider(creds), getStartingRegion(keyId), new ClientConfiguration(),
-             keyId);
-    }
-
-    /**
-     * Returns an instance of this object with default settings configured to speak to the region
-     * specified by {@code keyId} (if specified). Data will be protected with {@code keyId} as
-     * appropriate.
-     *
-     * The default region will be set to that of the given key ID, or to the AWS SDK default region if a bare key ID or
-     * alias is passed.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final String keyId) {
-        this(creds, getStartingRegion(keyId), new ClientConfiguration(), keyId);
-    }
-
-    /**
-     * Returns an instance of this object with default settings and configured to talk to the
-     * {@link Regions#DEFAULT_REGION}.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentials creds) {
-        this(new AWSStaticCredentialsProvider(creds), Region.getRegion(Regions.DEFAULT_REGION), new ClientConfiguration(),
-                Collections.<String> emptyList());
-    }
-
-    /**
-     * Returns an instance of this object with default settings and configured to talk to the
-     * {@link Regions#DEFAULT_REGION}.
-     *
-     * @deprecated The default region set by this constructor is subject to change. Use the builder method to construct
-     * instances of this class for better control.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentialsProvider creds) {
-        this(creds, Region.getRegion(Regions.DEFAULT_REGION), new ClientConfiguration(), Collections
-                .<String> emptyList());
-    }
-
-    /**
-     * Returns an instance of this object with the supplied configuration and credentials.
-     * {@code keyId} will be used to protect data.
-     *
-     * @deprecated This constructor implicitly configures the KMS Master Key Provider to perform
-     * discovery behavior on decrypt, which is a behavior that should be constructed explicitly.
-     * To create a KMS Master Key Provider that continues to perform discovery on decrypt,
-     * use {@link KmsMasterKeyProvider.Builder#buildDiscovery()} or
-     * {@link KmsMasterKeyProvider.Builder#buildDiscovery(DiscoveryFilter)}.
-     * To create a KMS Master Key Provider that restricts what keys to attempt decryption with
-     * to a set of configured keys, use {@link KmsMasterKeyProvider.Builder#buildStrict(List)}.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
-            final ClientConfiguration clientConfiguration, final String keyId) {
-        this(creds, region, clientConfiguration, singletonList(keyId));
-    }
-
-    /**
-     * Returns an instance of this object with the supplied configuration and credentials. all keys
-     * listed in {@code keyIds} will be used to protect data.
-     *
-     * @deprecated This constructor implicitly configures the KMS Master Key Provider to perform
-     * discovery behavior on decrypt, which is a behavior that should be constructed explicitly.
-     * To create a KMS Master Key Provider that continues to perform discovery on decrypt,
-     * use {@link KmsMasterKeyProvider.Builder#buildDiscovery()} or
-     * {@link KmsMasterKeyProvider.Builder#buildDiscovery(DiscoveryFilter)}.
-     * To create a KMS Master Key Provider that restricts what keys to attempt decryption with
-     * to a set of configured keys, use {@link KmsMasterKeyProvider.Builder#buildStrict(List)}.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSCredentialsProvider creds, final Region region,
-            final ClientConfiguration clientConfiguration, final List<String> keyIds) {
-        this(builder().withClientBuilder(AWSKMSClientBuilder.standard()
-                                                            .withClientConfiguration(clientConfiguration)
-                                                            .withCredentials(creds))
-                      .clientFactory(),
-             region.getName(),
-             keyIds
-        );
-    }
-
-    /**
-     * Returns an instance of this object with the supplied client and region; the client will be 
-     * configured to use the provided region. All keys listed in {@code keyIds} will be used to 
-     * protect data.
-     *
-     * @deprecated This constructor modifies the passed-in KMS client by setting its region. This functionality may be
-     * removed in future releases. Use the builder to construct instances of this class instead.
-     */
-    @Deprecated
-    public KmsMasterKeyProvider(final AWSKMS kms, final Region region, final List<String> keyIds) {
-        this(requestedRegion -> kms, region.getName(), keyIds);
-
-        kms.setRegion(region);
     }
 
     /**
@@ -775,7 +535,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     public KmsMasterKeyProvider withGrantTokens(List<String> grantTokens) {
         grantTokens = Collections.unmodifiableList(new ArrayList<>(grantTokens));
 
-        return new KmsMasterKeyProvider(regionalClientSupplier_, defaultRegion_, keyIds_, grantTokens, false, isDiscovery_, discoveryFilter_);
+        return new KmsMasterKeyProvider(regionalClientSupplier_, defaultRegion_, keyIds_, grantTokens, isDiscovery_, discoveryFilter_);
     }
 
     /**
@@ -787,19 +547,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      */
     public KmsMasterKeyProvider withGrantTokens(String... grantTokens) {
         return withGrantTokens(asList(grantTokens));
-    }
-
-    private static Region getStartingRegion(final String keyArn) {
-        final AwsKmsCmkArnInfo arnInfo = parseInfoFromKeyArn(keyArn);
-        if (arnInfo != null) {
-            return RegionUtils.getRegion(arnInfo.getRegion());
-        }
-        final Region currentRegion = Regions.getCurrentRegion();
-        if (currentRegion != null) {
-            return currentRegion;
-        }
-
-        return Region.getRegion(Regions.DEFAULT_REGION);
     }
 
     private static AwsKmsCmkArnInfo parseInfoFromKeyArn(final String keyArn) {

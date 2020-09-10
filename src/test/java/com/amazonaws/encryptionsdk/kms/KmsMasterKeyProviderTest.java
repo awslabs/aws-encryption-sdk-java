@@ -9,6 +9,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -41,6 +42,10 @@ import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.model.KeyBlob;
@@ -95,11 +100,11 @@ public class KmsMasterKeyProviderTest {
 
         private static class MKPTestConfiguration {
             // instance vars are public for easier access during testing
-            public Boolean isDiscovery; // null indicates default
+            public boolean isDiscovery;
             public DiscoveryFilter discoveryFilter;
             public List<String> keyIds;
 
-            public MKPTestConfiguration(Boolean isDiscovery,
+            public MKPTestConfiguration(boolean isDiscovery,
                                         DiscoveryFilter discoveryFilter,
                                         List<String> keyIds
             ) {
@@ -126,9 +131,6 @@ public class KmsMasterKeyProviderTest {
             MKPTestConfiguration explicitDiscovery = new MKPTestConfiguration(true, null, null);
             MKPTestConfiguration explicitDiscovery_filter = new MKPTestConfiguration(true,
                     new DiscoveryFilter(AWS_PARTITION, Arrays.asList(ACCOUNT_ID)), null);
-            MKPTestConfiguration deprecated_noCMKs = new MKPTestConfiguration(null, null, null);
-            MKPTestConfiguration deprecated_oneCMK = new MKPTestConfiguration(null, null, Arrays.asList(KEY_ID_1));
-            MKPTestConfiguration deprecated_twoCMKs = new MKPTestConfiguration(null, null, Arrays.asList(KEY_ID_1, KEY_ID_2));
 
             // Define all test cases
             Collection<Object[]> testCases = Arrays.asList(new Object[][]{
@@ -154,21 +156,6 @@ public class KmsMasterKeyProviderTest {
                 {explicitDiscovery_filter, Arrays.asList(EDK_OTHER_ACCOUNT), Collections.emptyList()},
                 {explicitDiscovery_filter, Arrays.asList(EDK_OTHER_PROVIDER, EDK_EMPTY_PROVIDER), Collections.emptyList()},
 
-                {deprecated_noCMKs, Collections.emptyList(), Collections.emptyList()},
-                {deprecated_noCMKs, Arrays.asList(EDK_OTHER_PROVIDER), Collections.emptyList()},
-                {deprecated_noCMKs, Arrays.asList(EDK_EMPTY_PROVIDER), Collections.emptyList()},
-                {deprecated_noCMKs, Arrays.asList(EDK_OTHER_PROVIDER, EDK_EMPTY_PROVIDER), Collections.emptyList()},
-
-                {deprecated_oneCMK, Collections.emptyList(), Collections.emptyList()},
-                {deprecated_oneCMK, Arrays.asList(EDK_OTHER_PROVIDER), Collections.emptyList()},
-                {deprecated_oneCMK, Arrays.asList(EDK_EMPTY_PROVIDER), Collections.emptyList()},
-                {deprecated_oneCMK, Arrays.asList(EDK_OTHER_PROVIDER, EDK_EMPTY_PROVIDER), Collections.emptyList()},
-
-                {deprecated_twoCMKs, Collections.emptyList(), Collections.emptyList()},
-                {deprecated_twoCMKs, Arrays.asList(EDK_OTHER_PROVIDER), Collections.emptyList()},
-                {deprecated_twoCMKs, Arrays.asList(EDK_EMPTY_PROVIDER), Collections.emptyList()},
-                {deprecated_twoCMKs, Arrays.asList(EDK_OTHER_PROVIDER, EDK_EMPTY_PROVIDER), Collections.emptyList()},
-
                 // Test cases where one EDK is expected to be decryptable
                 {strict_oneCMK, Arrays.asList(EDK_ID_1), Arrays.asList(EDK_ID_1)},
                 {strict_oneCMK, Arrays.asList(EDK_ID_2, EDK_ID_1), Arrays.asList(EDK_ID_1)},
@@ -187,26 +174,11 @@ public class KmsMasterKeyProviderTest {
                 {explicitDiscovery_filter, Arrays.asList(EDK_OTHER_ACCOUNT, EDK_ID_1), Arrays.asList(EDK_ID_1)},
                 {explicitDiscovery_filter, Arrays.asList(EDK_ID_1, EDK_OTHER_ACCOUNT), Arrays.asList(EDK_ID_1)},
 
-                {deprecated_noCMKs, Arrays.asList(EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_noCMKs, Arrays.asList(EDK_OTHER_PROVIDER, EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_noCMKs, Arrays.asList(EDK_ID_1, EDK_OTHER_PROVIDER), Arrays.asList(EDK_ID_1)},
-
-                {deprecated_oneCMK, Arrays.asList(EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_oneCMK, Arrays.asList(EDK_OTHER_PROVIDER, EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_oneCMK, Arrays.asList(EDK_ID_1, EDK_OTHER_PROVIDER), Arrays.asList(EDK_ID_1)},
-
-                {deprecated_twoCMKs, Arrays.asList(EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_twoCMKs, Arrays.asList(EDK_OTHER_PROVIDER, EDK_ID_1), Arrays.asList(EDK_ID_1)},
-                {deprecated_twoCMKs, Arrays.asList(EDK_ID_1, EDK_OTHER_PROVIDER), Arrays.asList(EDK_ID_1)},
-
                 // Test cases where multiple EDKs are expected to be decryptable
                 {strict_oneCMK, Arrays.asList(EDK_ID_1, EDK_ID_1_OTHER_CIPHERTEXT), Arrays.asList(EDK_ID_1, EDK_ID_1_OTHER_CIPHERTEXT)},
                 {strict_twoCMKs, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)},
                 {explicitDiscovery, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)},
                 {explicitDiscovery_filter, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)},
-                {deprecated_noCMKs, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)},
-                {deprecated_oneCMK, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)},
-                {deprecated_twoCMKs, Arrays.asList(EDK_ID_1, EDK_ID_2), Arrays.asList(EDK_ID_1, EDK_ID_2)}
             });
             return testCases;
         }
@@ -216,11 +188,7 @@ public class KmsMasterKeyProviderTest {
             Builder builder = KmsMasterKeyProvider.builder().withCustomClientFactory(supplier);
 
             KmsMasterKeyProvider mkp;
-            if (mkpConfig.isDiscovery == null && mkpConfig.keyIds == null) {
-                mkp = builder.build();
-            } else if (mkpConfig.isDiscovery == null) {
-                mkp = builder.withKeysForEncryption(mkpConfig.keyIds).build();
-            } else if (mkpConfig.isDiscovery && mkpConfig.discoveryFilter == null) {
+            if (mkpConfig.isDiscovery && mkpConfig.discoveryFilter == null) {
                 mkp = builder.buildDiscovery();
             } else if (mkpConfig.isDiscovery) {
                 mkp = builder.buildDiscovery(mkpConfig.discoveryFilter);
@@ -370,30 +338,6 @@ public class KmsMasterKeyProviderTest {
         }
 
         @Test
-        @SuppressWarnings("deprecation")
-        public void testBuildStrictWithKeysForEncryption() throws Exception {
-            RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
-
-            assertThrows(IllegalStateException.class,
-                    "buildStrict cannot be used in conjunction with withKeysForEncryption.",
-                    () -> KmsMasterKeyProvider.builder()
-                                              .withKeysForEncryption(KEY_ID_1)
-                                              .withCustomClientFactory(supplier)
-                                              .buildStrict(KEY_ID_2));
-        }
-
-        @Test
-        @SuppressWarnings("deprecation")
-        public void testBuildDiscoveryWithCMKs() throws Exception {
-            RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
-
-            assertThrows(IllegalStateException.class, () -> KmsMasterKeyProvider.builder()
-                   .withCustomClientFactory(supplier)
-                   .withKeysForEncryption(KEY_ID_1)
-                   .buildDiscovery());
-        }
-
-        @Test
         public void testBuildDiscoveryWithFilter() throws Exception {
             RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
 
@@ -434,4 +378,44 @@ public class KmsMasterKeyProviderTest {
                         ENCRYPTION_CONTEXT));
         }
     }
+
+    @Test
+    public void testExplicitCredentials() throws Exception {
+        AWSCredentials creds = new AWSCredentials() {
+            @Override public String getAWSAccessKeyId() {
+                throw new UsedExplicitCredentials();
+            }
+
+            @Override public String getAWSSecretKey() {
+                throw new UsedExplicitCredentials();
+            }
+        };
+
+        MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
+                .withCredentials(creds)
+                .buildStrict("arn:aws:kms:us-east-1:012345678901:key/foo-bar");
+        assertExplicitCredentialsUsed(mkp);
+
+        mkp = KmsMasterKeyProvider.builder()
+                .withCredentials(new AWSStaticCredentialsProvider(creds))
+                .buildStrict("arn:aws:kms:us-east-1:012345678901:key/foo-bar");
+        assertExplicitCredentialsUsed(mkp);
+    }
+
+    private void assertExplicitCredentialsUsed(final MasterKeyProvider<KmsMasterKey> mkp) {
+        try {
+            MasterKeyRequest mkr = MasterKeyRequest.newBuilder()
+                                                   .setEncryptionContext(Collections.emptyMap())
+                                                   .setStreaming(true)
+                                                   .build();
+            mkp.getMasterKeysForEncryption(mkr)
+               .forEach(mk -> mk.generateDataKey(ALGORITHM_SUITE, Collections.emptyMap()));
+
+            fail("Expected exception");
+        } catch (UsedExplicitCredentials e) {
+            // ok
+        }
+    }
+
+    private static class UsedExplicitCredentials extends RuntimeException {}
 }

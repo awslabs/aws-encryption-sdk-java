@@ -22,9 +22,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TestUtils {
-    public static final CryptoAlgorithm DEFAULT_TEST_CRYPTO_ALG = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
-    public static final CryptoAlgorithm KEY_COMMIT_CRYPTO_ALG = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384;
-    public static final CommitmentPolicy DEFAULT_TEST_COMMITMENT_POLICY = CommitmentPolicy.ForbidEncryptAllowDecrypt;
+    public static final CryptoAlgorithm DEFAULT_TEST_CRYPTO_ALG = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384;
+    public static final CommitmentPolicy DEFAULT_TEST_COMMITMENT_POLICY = CommitmentPolicy.RequireEncryptRequireDecrypt;
 
     // Handcrafted message for testing decryption of messages with committed keys
     public static final String messageWithCommitKeyBase64 = "AgR4TfvRMU2dVZJbgXIyxeNtbj" +

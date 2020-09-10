@@ -93,7 +93,7 @@ public class XCompatKmsDecryptTest {
 
     @Test
     public void testDecryptFromFile() throws Exception {
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(kmsKeyId);
         byte ciphertextBytes[] = Files.readAllBytes(Paths.get(ciphertextFileName));
         byte plaintextBytes[] = Files.readAllBytes(Paths.get(plaintextFileName));

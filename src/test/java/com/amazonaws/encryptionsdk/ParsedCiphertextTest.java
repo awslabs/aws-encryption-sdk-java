@@ -25,7 +25,7 @@ public class ParsedCiphertextTest extends CiphertextHeaders {
     public void init() {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
 
-        encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        encryptionClient_ = AwsCrypto.standard();
         encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
     }
 

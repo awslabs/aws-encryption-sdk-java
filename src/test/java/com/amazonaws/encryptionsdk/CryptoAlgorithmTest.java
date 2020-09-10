@@ -12,8 +12,6 @@ import com.amazonaws.encryptionsdk.internal.EncryptionHandler;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
-import com.amazonaws.encryptionsdk.model.CiphertextType;
-import com.amazonaws.encryptionsdk.model.ContentType;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import org.junit.Test;
@@ -22,25 +20,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class CryptoAlgorithmTest {
-    @Test
-    @SuppressWarnings("deprecation")
-    public void testLegacyDeserialization() {
-        for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
-            // Legacy deserialization only works for algorithms with a message format version of 1
-            if (algorithm.getMessageFormatVersion() != 1) {
-                continue;
-            }
-
-            assertEquals(algorithm.toString(),
-                algorithm,
-                CryptoAlgorithm.deserialize(algorithm.getValue()));
-        }
-    }
-
     @Test
     public void testDeserialization() {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
@@ -57,7 +39,7 @@ public class CryptoAlgorithmTest {
         CiphertextHeaders headers = new ParsedCiphertext(Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64));
         SecretKey key = algorithm.getEncryptionKeyFromDataKey(secretKey, headers);
         assertNotNull(key);
-        assertEquals(key.getAlgorithm(), algorithm.getKeyAlgo());
+        assertEquals(algorithm.getKeyAlgo(), key.getAlgorithm());
     }
 
     @Test
@@ -98,7 +80,7 @@ public class CryptoAlgorithmTest {
         CiphertextHeaders headers = getTestHeaders(algo);
         SecretKey key = algo.getEncryptionKeyFromDataKey(secretKey, headers);
         assertNotNull(key);
-        assertEquals(key.getAlgorithm(), algo.getKeyAlgo());
+        assertEquals(algo.getKeyAlgo(), key.getAlgorithm());
     }
 
     @Test
@@ -122,10 +104,12 @@ public class CryptoAlgorithmTest {
         // Generate test headers
         final int frameSize_ = AwsCrypto.getDefaultFrameSize();
         final Map<String, String> encryptionContext = Collections.<String, String>emptyMap();
+        final CommitmentPolicy policy = CommitmentPolicy.ForbidEncryptAllowDecrypt;
 
         final EncryptionMaterialsRequest encryptionMaterialsRequest = EncryptionMaterialsRequest.newBuilder()
                 .setContext(encryptionContext)
                 .setRequestedAlgorithm(algo)
+                .setCommitmentPolicy(policy)
                 .build();
 
         final StaticMasterKey masterKeyProvider = new StaticMasterKey("mock");
@@ -133,7 +117,7 @@ public class CryptoAlgorithmTest {
         final EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider)
                 .getMaterialsForEncrypt(encryptionMaterialsRequest);
 
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, encryptionMaterials);
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, encryptionMaterials, policy);
 
         final byte[] in = new byte[0];
         final int ciphertextLen = encryptionHandler.estimateOutputSize(in.length);

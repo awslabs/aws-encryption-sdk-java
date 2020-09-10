@@ -204,7 +204,7 @@ public class XCompatDecryptTest {
 
     @Test
     public void testDecryptFromFile() throws Exception {
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         byte ciphertextBytes[] = Files.readAllBytes(Paths.get(ciphertextFileName));
         byte plaintextBytes[] = Files.readAllBytes(Paths.get(plaintextFileName));
         final CryptoResult decryptResult = crypto.decryptData(

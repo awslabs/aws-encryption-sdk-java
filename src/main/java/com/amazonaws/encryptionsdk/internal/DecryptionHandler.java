@@ -16,6 +16,7 @@ import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.DataKey;
@@ -44,6 +45,7 @@ import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
  */
 public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoHandler {
     private final CryptoMaterialsManager materialsManager_;
+    private final CommitmentPolicy commitmentPolicy_;
 
     private final CiphertextHeaders ciphertextHeaders_;
     private final CiphertextFooters ciphertextFooters_;
@@ -67,21 +69,25 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     // These ctors are private to ensure type safety - we must ensure construction using a CMM results in a
     // DecryptionHandler<?>, not a DecryptionHandler<SomeConcreteType>, since the CryptoMaterialsManager is not itself
     // genericized.
-    private DecryptionHandler(final CryptoMaterialsManager materialsManager) {
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CommitmentPolicy commitmentPolicy) {
         Utils.assertNonNull(materialsManager, "materialsManager");
+        Utils.assertNonNull(commitmentPolicy, "commitmentPolicy");
 
         this.materialsManager_ = materialsManager;
+        this.commitmentPolicy_ = commitmentPolicy;
         ciphertextHeaders_ = new CiphertextHeaders();
         ciphertextFooters_ = new CiphertextFooters();
     }
 
-    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers)
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers, final CommitmentPolicy commitmentPolicy)
             throws AwsCryptoException
     {
         Utils.assertNonNull(materialsManager, "materialsManager");
+        Utils.assertNonNull(commitmentPolicy, "commitmentPolicy");
 
         materialsManager_ = materialsManager;
         ciphertextHeaders_ = headers;
+        commitmentPolicy_ = commitmentPolicy;
         ciphertextFooters_ = new CiphertextFooters();
         readHeaderFields(headers);
         updateTrailingSignature(headers);
@@ -102,11 +108,12 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      */
     @SuppressWarnings("unchecked")
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
-            final MasterKeyProvider<K> customerMasterKeyProvider
-    ) throws AwsCryptoException {
+            final MasterKeyProvider<K> customerMasterKeyProvider,
+            final CommitmentPolicy commitmentPolicy
+            ) throws AwsCryptoException {
         Utils.assertNonNull(customerMasterKeyProvider, "customerMasterKeyProvider");
 
-        return (DecryptionHandler<K>)create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider));
+        return (DecryptionHandler<K>)create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), commitmentPolicy);
     }
 
     /**
@@ -127,11 +134,12 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      */
     @SuppressWarnings("unchecked")
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
-            final MasterKeyProvider<K> customerMasterKeyProvider, final CiphertextHeaders headers
+            final MasterKeyProvider<K> customerMasterKeyProvider, final CiphertextHeaders headers,
+            final CommitmentPolicy commitmentPolicy
     ) throws AwsCryptoException {
         Utils.assertNonNull(customerMasterKeyProvider, "customerMasterKeyProvider");
 
-        return (DecryptionHandler<K>) create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), headers);
+        return (DecryptionHandler<K>) create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), headers, commitmentPolicy);
     }
 
     /**
@@ -148,9 +156,10 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *             if the master key is null.
      */
     public static DecryptionHandler<?> create(
-            final CryptoMaterialsManager materialsManager
+            final CryptoMaterialsManager materialsManager,
+            final CommitmentPolicy commitmentPolicy
     ) throws AwsCryptoException {
-        return new DecryptionHandler(materialsManager);
+        return new DecryptionHandler(materialsManager, commitmentPolicy);
     }
 
     /**
@@ -170,9 +179,10 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      *             if the master key is null.
      */
     public static DecryptionHandler<?> create(
-            final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers
+            final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers,
+            final CommitmentPolicy commitmentPolicy
     ) throws AwsCryptoException {
-        return new DecryptionHandler(materialsManager, headers);
+        return new DecryptionHandler(materialsManager, headers, commitmentPolicy);
     }
 
     /**
@@ -433,6 +443,13 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         }
 
         final byte[] messageId = ciphertextHeaders.getMessageId();
+
+        if (!commitmentPolicy_.algorithmAllowedForDecrypt(cryptoAlgo_)) {
+            throw new AwsCryptoException("Configuration conflict. " +
+                    "Cannot decrypt message with ID " + messageId + " due to CommitmentPolicy " +
+                    commitmentPolicy_ + " requiring only committed messages. Algorithm ID was " +
+                    cryptoAlgo_ + ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+        }
 
         encryptionContext_ = ciphertextHeaders.getEncryptionContextMap();
 

@@ -10,10 +10,15 @@ import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import org.junit.Test;
 
 public class EncryptionMaterialsRequestTest {
-    @Test
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructWithNullCommitmentPolicy() {
+        EncryptionMaterialsRequest.newBuilder().setCommitmentPolicy(null).build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testConstructWithoutCommitmentPolicy() {
-        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder().build();
-        assertNotNull(req);
+        EncryptionMaterialsRequest.newBuilder().build();
     }
 
     @Test

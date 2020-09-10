@@ -32,8 +32,10 @@ public final class EncryptionMaterialsRequest {
         this.plaintextSize = builder.plaintextSize;
         this.plaintext = builder.plaintext;
 
-        // Requests MAY include a commitmentPolicy.
-        // This will become a required field in 2.0
+        if (builder.commitmentPolicy == null) {
+            throw new IllegalArgumentException("Cannot create EncryptionMaterialRequest without a " +
+                    "CommitmentPolicy specified.");
+        }
         this.commitmentPolicy = builder.commitmentPolicy;
     }
 

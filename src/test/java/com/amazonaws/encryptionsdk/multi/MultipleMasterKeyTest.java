@@ -29,7 +29,7 @@ public class MultipleMasterKeyTest {
         final MasterKeyProvider<JceMasterKey> mkp = MultipleProviderFactory.buildMultiProvider(JceMasterKey.class,
                 mk1, mk2);
 
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         CryptoResult<byte[], JceMasterKey> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
         CryptoResult<byte[], JceMasterKey> result = crypto.decryptData(mkp, ct.getResult());
@@ -50,7 +50,7 @@ public class MultipleMasterKeyTest {
         final MasterKeyProvider<JceMasterKey> mkp = MultipleProviderFactory.buildMultiProvider(JceMasterKey.class,
                 mk1, mk2);
 
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         CryptoResult<byte[], JceMasterKey> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
 
@@ -74,7 +74,7 @@ public class MultipleMasterKeyTest {
         StaticMasterKey mk2 = new StaticMasterKey("mock1");
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         CryptoResult<byte[], ?> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
         CryptoResult<byte[], ?> result = crypto.decryptData(mkp, ct.getResult());
@@ -94,7 +94,7 @@ public class MultipleMasterKeyTest {
 
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
-        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto crypto = AwsCrypto.standard();
         CryptoResult<byte[], ?> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
 

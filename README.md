@@ -91,9 +91,7 @@ public class StringExample {
         data = args[1];
 
         // Instantiate the SDK
-        final AwsCrypto crypto = AwsCrypto.builder()
-                .withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
-                .build();
+        final AwsCrypto crypto = AwsCrypto.standard();
 
         // Set up the master key provider
         final KmsMasterKeyProvider prov = KmsMasterKeyProvider.builder().buildStrict(keyArn);

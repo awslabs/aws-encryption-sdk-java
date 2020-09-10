@@ -121,7 +121,16 @@ public class CachingCryptoMaterialsManagerTest {
                                                       .build();
         setupForCacheMiss(request, result);
 
-        assertEquals(result, cmm.getMaterialsForEncrypt(request));
+        CachingCryptoMaterialsManager allowNoKdfCMM = CachingCryptoMaterialsManager.newBuilder()
+                .withBackingMaterialsManager(delegate)
+                .withCache(cache)
+                .withPartitionId(PARTITION_ID)
+                .withMaxAge(maxAgeMs, TimeUnit.MILLISECONDS)
+                .withByteUseLimit(200)
+                .withMessageUseLimit(100)
+                .build();
+
+        assertEquals(result, allowNoKdfCMM.getMaterialsForEncrypt(request));
         verify(cache, never()).putEntryForEncrypt(any(), any(), any(), any());
     }
 
@@ -135,7 +144,7 @@ public class CachingCryptoMaterialsManagerTest {
                                                               .setPlaintextSize(200)
                                                               .build();
         EncryptionMaterials result = CacheTestFixtures.createMaterialsResult(request).toBuilder()
-                                                      .setAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF)
+                                                      .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
                                                       .build();
         setupForCacheMiss(request, result);
 

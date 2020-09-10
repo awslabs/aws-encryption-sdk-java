@@ -66,7 +66,7 @@ public class SimpleDataKeyCachingExample {
 
         // When the call to encryptData specifies a caching CMM,
         // the encryption operation uses the data key cache
-        final AwsCrypto encryptionSdk = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        final AwsCrypto encryptionSdk = AwsCrypto.standard();
         return encryptionSdk.encryptData(cachingCmm, myData, encryptionContext).getResult();
     }
 }

@@ -62,9 +62,10 @@ public class CryptoInputStreamTest {
             int dataSize,
             Consumer<AwsCrypto> customizer,
             Callback onEncrypt,
-            Callback onDecrypt
+            Callback onDecrypt,
+            CommitmentPolicy commitmentPolicy
     ) throws Exception {
-        AwsCrypto awsCrypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        AwsCrypto awsCrypto = AwsCrypto.builder().withCommitmentPolicy(commitmentPolicy).build();
         customizer.accept(awsCrypto);
 
         byte[] plaintext = insecureRandomBytes(dataSize);
@@ -202,6 +203,8 @@ public class CryptoInputStreamTest {
 
         @Test
         public void encryptDecrypt() throws Exception {
+            final CommitmentPolicy commitmentPolicy = cryptoAlg.isCommitting() ?
+                    CommitmentPolicy.RequireEncryptRequireDecrypt : CommitmentPolicy.ForbidEncryptAllowDecrypt;
             testRoundTrip(
                     byteSize,
                     awsCrypto -> {
@@ -209,7 +212,8 @@ public class CryptoInputStreamTest {
                         awsCrypto.setEncryptionFrameSize(frameSize);
                     },
                     encryptWithoutContext(),
-                    basicDecrypt(readLen)
+                    basicDecrypt(readLen),
+                    commitmentPolicy
             );
         }
     }
@@ -219,7 +223,7 @@ public class CryptoInputStreamTest {
 
         @Before
         public void setup() throws IOException {
-            encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+            encryptionClient_ = AwsCrypto.standard();
         }
 
         @Test
@@ -229,7 +233,8 @@ public class CryptoInputStreamTest {
                     awsCrypto -> {
                     },
                     encryptWithoutContext(),
-                    basicDecrypt()
+                    basicDecrypt(),
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
 
@@ -254,7 +259,8 @@ public class CryptoInputStreamTest {
 
                         outStream.write(ciphertext.getResult());
                     },
-                    basicDecrypt()
+                    basicDecrypt(),
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
 
         }
@@ -263,7 +269,6 @@ public class CryptoInputStreamTest {
         public void encryptStreamDecryptBytes() throws Exception {
             Map<String, String> encryptionContext = new HashMap<>(1);
             encryptionContext.put("ENC", "encryptStreamDecryptBytes");
-
             testRoundTrip(
                     1_000_000,
                     awsCrypto -> {
@@ -279,7 +284,8 @@ public class CryptoInputStreamTest {
                         );
 
                         outStream.write(ciphertext.getResult());
-                    }
+                    },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
 
         }
@@ -298,7 +304,8 @@ public class CryptoInputStreamTest {
                                 = awsCrypto.createEncryptingStream(customerMasterKey, outStream, encryptionContext);
                         TestIOUtils.copyInStreamToOutStream(inStream, cryptoOS);
                     },
-                    basicDecrypt()
+                    basicDecrypt(),
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
 
         }
@@ -330,7 +337,8 @@ public class CryptoInputStreamTest {
                     (awsCrypto, inStream, outStream) -> {
                         InputStream is = awsCrypto.createDecryptingStream(customerMasterKey, inStream);
                         singleByteCopyLoop(is, outStream);
-                    }
+                    },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
 
@@ -475,7 +483,8 @@ public class CryptoInputStreamTest {
                         setEncryptionContext.forEach(
                                 (k, v) -> assertEquals(v, cryptoResult.getEncryptionContext().get(k))
                         );
-                    }
+                    },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
 
@@ -494,7 +503,8 @@ public class CryptoInputStreamTest {
                         final String returnedKeyId = cryptoResult.getMasterKeys().get(0).getKeyId();
 
                         assertEquals("mockKey", returnedKeyId);
-                    }
+                    },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
 
@@ -547,7 +557,8 @@ public class CryptoInputStreamTest {
 
                               // still works
                               cryptoStream.getCryptoResult();
-                          }
+                          },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
 
@@ -564,7 +575,6 @@ public class CryptoInputStreamTest {
         @Test()
         public void encryptUsingCryptoMaterialsManager() throws Exception {
             RecordingMaterialsManager cmm = new RecordingMaterialsManager(customerMasterKey);
-
             testRoundTrip(
                     1024,
                     awsCrypto -> {},
@@ -575,7 +585,8 @@ public class CryptoInputStreamTest {
 
                         assertEquals("bar", cryptoStream.getCryptoResult().getEncryptionContext().get("foo"));
                     },
-                    basicDecrypt()
+                    basicDecrypt(),
+                    commitmentPolicy
             );
         }
 
@@ -595,7 +606,8 @@ public class CryptoInputStreamTest {
                         TestIOUtils.copyInStreamToOutStream(cryptoStream, outStream);
 
                         assertTrue(cmm.didDecrypt);
-                    }
+                    },
+                    commitmentPolicy
             );
         }
 
@@ -604,7 +616,7 @@ public class CryptoInputStreamTest {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
             CryptoInputStream<?> is
-                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[1]));
+                    = AwsCrypto.standard().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[1]));
 
             is.setMaxInputLength(1);
 
@@ -621,7 +633,7 @@ public class CryptoInputStreamTest {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
             CryptoInputStream<?> is
-                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[2]));
+                    = AwsCrypto.standard().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[2]));
 
             is.setMaxInputLength(1);
 
@@ -632,7 +644,7 @@ public class CryptoInputStreamTest {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
             CryptoInputStream<?> is
-                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[2]));
+                    = AwsCrypto.standard().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[2]));
 
             assertThrows(() -> {
                 is.read();
@@ -646,7 +658,7 @@ public class CryptoInputStreamTest {
             CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(customerMasterKey));
 
             CryptoInputStream<?> is
-                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[1024*1024]));
+                    = AwsCrypto.standard().createEncryptingStream(cmm, new ByteArrayInputStream(new byte[1024*1024]));
 
             assertThrows(() -> {
                 is.read();
@@ -657,7 +669,7 @@ public class CryptoInputStreamTest {
         @Test
         public void whenStreamSizeNegative_setSizeThrows() throws Exception {
             CryptoInputStream<?> is
-                    = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build().createEncryptingStream(customerMasterKey, new ByteArrayInputStream(new byte[0]));
+                    = AwsCrypto.standard().createEncryptingStream(customerMasterKey, new ByteArrayInputStream(new byte[0]));
 
             assertThrows(() -> is.setMaxInputLength(-1));
         }
@@ -687,7 +699,8 @@ public class CryptoInputStreamTest {
                         cryptoStream.setMaxInputLength(inStream.available());
 
                         TestIOUtils.copyInStreamToOutStream(cryptoStream, outStream);
-                    }
+                    },
+                    CommitmentPolicy.RequireEncryptRequireDecrypt
             );
         }
     }

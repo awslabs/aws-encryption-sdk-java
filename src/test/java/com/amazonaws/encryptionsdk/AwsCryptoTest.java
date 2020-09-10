@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -48,15 +49,21 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 public class AwsCryptoTest {
     private StaticMasterKey masterKeyProvider;
+    private AwsCrypto forbidCommitmentClient_;
     private AwsCrypto encryptionClient_;
     private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
+
+    List<CommitmentPolicy> requireWriteCommitmentPolicies = Arrays.asList(
+            CommitmentPolicy.RequireEncryptAllowDecrypt, CommitmentPolicy.RequireEncryptRequireDecrypt);
 
     @Before
     public void init() {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
 
-        encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
-        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
+        forbidCommitmentClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        forbidCommitmentClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
+        encryptionClient_ = AwsCrypto.standard();
+        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY);
     }
 
     private void doEncryptDecrypt(final CryptoAlgorithm cryptoAlg, final int byteSize, final int frameSize) {
@@ -65,14 +72,15 @@ public class AwsCryptoTest {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC1", "Encrypt-decrypt test with %d" + byteSize);
 
-        encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
-        encryptionClient_.setEncryptionFrameSize(frameSize);
+        AwsCrypto client = cryptoAlg.isCommitting() ? encryptionClient_ : forbidCommitmentClient_;
+        client.setEncryptionAlgorithm(cryptoAlg);
+        client.setEncryptionFrameSize(frameSize);
 
-        final byte[] cipherText = encryptionClient_.encryptData(
+        final byte[] cipherText = client.encryptData(
                 masterKeyProvider,
                 plaintextBytes,
                 encryptionContext).getResult();
-        final byte[] decryptedText = encryptionClient_.decryptData(
+        final byte[] decryptedText = client.decryptData(
                 masterKeyProvider,
                 cipherText
                 ).getResult();
@@ -86,16 +94,17 @@ public class AwsCryptoTest {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC1", "Encrypt-decrypt test with %d" + byteSize);
 
-        encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
-        encryptionClient_.setEncryptionFrameSize(frameSize);
+        AwsCrypto client = cryptoAlg.isCommitting() ? encryptionClient_ : forbidCommitmentClient_;
+        client.setEncryptionAlgorithm(cryptoAlg);
+        client.setEncryptionFrameSize(frameSize);
 
-        final byte[] cipherText = encryptionClient_.encryptData(
+        final byte[] cipherText = client.encryptData(
                 masterKeyProvider,
                 plaintextBytes,
                 encryptionContext).getResult();
         cipherText[cipherText.length - 2] ^= (byte) 0xff;
         try {
-            encryptionClient_.decryptData(
+            client.decryptData(
                     masterKeyProvider,
                     cipherText
                     ).getResult();
@@ -111,16 +120,17 @@ public class AwsCryptoTest {
         final Map<String, String> encryptionContext = new HashMap<>(1);
         encryptionContext.put("ENC1", "Encrypt-decrypt test with %d" + byteSize);
 
-        encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
-        encryptionClient_.setEncryptionFrameSize(frameSize);
+        AwsCrypto client = cryptoAlg.isCommitting() ? encryptionClient_ : forbidCommitmentClient_;
+        client.setEncryptionAlgorithm(cryptoAlg);
+        client.setEncryptionFrameSize(frameSize);
 
-        final byte[] cipherText = encryptionClient_.encryptData(
+        final byte[] cipherText = client.encryptData(
                 masterKeyProvider,
                 plaintextBytes,
                 encryptionContext).getResult();
         final byte[] truncatedCipherText = Arrays.copyOf(cipherText, cipherText.length - 1);
         try {
-            encryptionClient_.decryptData(
+            client.decryptData(
                     masterKeyProvider,
                     truncatedCipherText
             ).getResult();
@@ -130,20 +140,22 @@ public class AwsCryptoTest {
         }
     }
 
-    private void doEncryptDecryptWithParsedCiphertext(final int byteSize, final int frameSize) {
+    private void doEncryptDecryptWithParsedCiphertext(final CryptoAlgorithm cryptoAlg, final int byteSize, final int frameSize) {
         final byte[] plaintextBytes = new byte[byteSize];
 
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC1", "Encrypt-decrypt test with %d" + byteSize);
 
-        encryptionClient_.setEncryptionFrameSize(frameSize);
+        AwsCrypto client = cryptoAlg.isCommitting() ? encryptionClient_ : forbidCommitmentClient_;
+        client.setEncryptionAlgorithm(cryptoAlg);
+        client.setEncryptionFrameSize(frameSize);
 
-        final byte[] cipherText = encryptionClient_.encryptData(
+        final byte[] cipherText = client.encryptData(
                 masterKeyProvider,
                 plaintextBytes,
                 encryptionContext).getResult();
         ParsedCiphertext pCt = new ParsedCiphertext(cipherText);
-        assertEquals(encryptionClient_.getEncryptionAlgorithm(), pCt.getCryptoAlgoId());
+        assertEquals(client.getEncryptionAlgorithm(), pCt.getCryptoAlgoId());
         assertEquals(CiphertextType.CUSTOMER_AUTHENTICATED_ENCRYPTED_DATA, pCt.getType());
         assertEquals(1, pCt.getEncryptedKeyBlobCount());
         assertEquals(pCt.getEncryptedKeyBlobCount(), pCt.getEncryptedKeyBlobs().size());
@@ -152,7 +164,7 @@ public class AwsCryptoTest {
             assertEquals(e.getValue(), pCt.getEncryptionContextMap().get(e.getKey()));
         }
 
-        final byte[] decryptedText = encryptionClient_.decryptData(
+        final byte[] decryptedText = client.decryptData(
                 masterKeyProvider,
                 pCt
                 ).getResult();
@@ -189,123 +201,6 @@ public class AwsCryptoTest {
                 }
             }
         }
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void legacyConstructorEncryptDecrypt() {
-        final byte[] plaintextBytes = new byte[100];
-
-        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
-        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
-
-        AwsCrypto client = new AwsCrypto();
-
-        client.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
-        client.setEncryptionFrameSize(100);
-
-        final byte[] cipherText = client.encryptData(
-                masterKeyProvider,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText = client.decryptData(
-                masterKeyProvider,
-                cipherText
-        ).getResult();
-
-        assertArrayEquals("Bad encrypt/decrypt for legacy constructor", plaintextBytes, decryptedText);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void legacyConstructorLegacyCMMEncryptDecrypt() {
-        final byte[] plaintextBytes = new byte[100];
-
-        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
-        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
-        final DefaultCryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
-
-        AwsCrypto client = new AwsCrypto();
-
-        client.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
-        client.setEncryptionFrameSize(100);
-
-        final byte[] cipherText = client.encryptData(
-                cmm,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText = client.decryptData(
-                cmm,
-                cipherText
-        ).getResult();
-
-        assertArrayEquals("Bad encrypt/decrypt for legacy constructor with legacy cmm", plaintextBytes, decryptedText);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void legacyConstructorEncryptDecryptInterop() {
-        final byte[] plaintextBytes = new byte[100];
-
-        final Map<String, String> encryptionContext = new HashMap<String, String>(1);
-        encryptionContext.put("ENC1", "legacy constructor encrypt-decrypt test");
-
-        final DefaultCryptoMaterialsManager legacy = new DefaultCryptoMaterialsManager(masterKeyProvider);
-
-        AwsCrypto legacyClient = new AwsCrypto();
-
-        legacyClient.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
-        legacyClient.setEncryptionFrameSize(100);
-
-        encryptionClient_.setEncryptionAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG);
-        encryptionClient_.setEncryptionFrameSize(100);
-
-        // Test the legacy constructed message can be decrypted by the default client
-        final byte[] cipherText = legacyClient.encryptData(
-                masterKeyProvider,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText = encryptionClient_.decryptData(
-                masterKeyProvider,
-                cipherText
-        ).getResult();
-        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText);
-
-        // Test the default client constructed message can be decrypted by the legacy client
-        final byte[] cipherText2 = encryptionClient_.encryptData(
-                masterKeyProvider,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText2 = legacyClient.decryptData(
-                masterKeyProvider,
-                cipherText2
-        ).getResult();
-        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText2);
-
-        // Now interop test using a legacy constructed Default Crypto Materials Manager
-        final DefaultCryptoMaterialsManager cmm = new DefaultCryptoMaterialsManager(masterKeyProvider);
-
-        // Test the default client constructed message can be decrypted by the legacy client with legacy cmm
-        final byte[] cipherText3 = encryptionClient_.encryptData(
-                cmm,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText3 = legacyClient.decryptData(
-                cmm,
-                cipherText3
-        ).getResult();
-        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText3);
-
-        // Test the legacy constructed message can be decrypted by the default client
-        final byte[] cipherText4 = legacyClient.encryptData(
-                masterKeyProvider,
-                plaintextBytes,
-                encryptionContext).getResult();
-        final byte[] decryptedText4 = encryptionClient_.decryptData(
-                masterKeyProvider,
-                cipherText4
-        ).getResult();
-        assertArrayEquals("Bad encrypt/decrypt for legacy interop", plaintextBytes, decryptedText4);
     }
 
     @Test
@@ -391,7 +286,7 @@ public class AwsCryptoTest {
                     }
 
                     if (byteSize >= 0) {
-                        doEncryptDecryptWithParsedCiphertext(byteSize, frameSize);
+                        doEncryptDecryptWithParsedCiphertext(cryptoAlg, byteSize, frameSize);
                     }
                 }
             }
@@ -408,8 +303,8 @@ public class AwsCryptoTest {
             ) {
                 request = request.toBuilder().setContext(singletonMap("foo", "bar")).build();
 
-                EncryptionMaterials encryptionMaterials
-                        = new DefaultCryptoMaterialsManager(masterKeyProvider).getMaterialsForEncrypt(request);
+                EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                        .getMaterialsForEncrypt(request);
 
                 return encryptionMaterials;
             }
@@ -443,8 +338,8 @@ public class AwsCryptoTest {
             ) {
                 request = request.toBuilder().setRequestedAlgorithm(null).build();
 
-                EncryptionMaterials encryptionMaterials
-                        = new DefaultCryptoMaterialsManager(masterKeyProvider).getMaterialsForEncrypt(request);
+                EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                        .getMaterialsForEncrypt(request);
 
                 return encryptionMaterials;
             }
@@ -457,7 +352,7 @@ public class AwsCryptoTest {
             }
         };
 
-        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF);
+        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY);
 
         byte[] plaintext = new byte[100];
         assertThrows(AwsCryptoException.class,
@@ -468,7 +363,6 @@ public class AwsCryptoTest {
                      () -> encryptionClient_.createEncryptingStream(manager, new ByteArrayOutputStream()).write(0));
         assertThrows(AwsCryptoException.class,
                      () -> encryptionClient_.createEncryptingStream(manager, new ByteArrayInputStream(new byte[1024*1024])).read());
-
     }
 
     @Test
@@ -477,8 +371,8 @@ public class AwsCryptoTest {
             @Override public EncryptionMaterials getMaterialsForEncrypt(
                     EncryptionMaterialsRequest request
             ) {
-                EncryptionMaterials encryptionMaterials
-                        = new DefaultCryptoMaterialsManager(masterKeyProvider).getMaterialsForEncrypt(request);
+                EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                        .getMaterialsForEncrypt(request);
 
                 return encryptionMaterials.toBuilder()
                         .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384)
@@ -504,7 +398,6 @@ public class AwsCryptoTest {
                 () -> client.createEncryptingStream(manager, new ByteArrayOutputStream()).write(0));
         assertThrows(AwsCryptoException.class,
                 () -> client.createEncryptingStream(manager, new ByteArrayInputStream(new byte[1024*1024])).read());
-
     }
 
     @Test
@@ -524,14 +417,15 @@ public class AwsCryptoTest {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC1", "Ciphertext size estimation test with " + inLen);
 
-        encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
-        encryptionClient_.setEncryptionFrameSize(frameSize);
+        AwsCrypto client = cryptoAlg.isCommitting() ? encryptionClient_ : forbidCommitmentClient_;
+        client.setEncryptionAlgorithm(cryptoAlg);
+        client.setEncryptionFrameSize(frameSize);
 
-        final long estimatedCiphertextSize = encryptionClient_.estimateCiphertextSize(
+        final long estimatedCiphertextSize = client.estimateCiphertextSize(
                 masterKeyProvider,
                 inLen,
                 encryptionContext);
-        final byte[] cipherText = encryptionClient_.encryptData(masterKeyProvider, plaintext,
+        final byte[] cipherText = client.encryptData(masterKeyProvider, plaintext,
                 encryptionContext).getResult();
 
         // The estimate should be close (within 16 bytes) and never less than reality
@@ -718,10 +612,10 @@ public class AwsCryptoTest {
         JceMasterKey masterKey = TestUtils.messageWithCommitKeyMasterKey;
         final CryptoResult decryptedText = encryptionClient_.decryptData(masterKey, cipherText);
 
-        assertEquals(decryptedText.getCryptoAlgorithm(), TestUtils.messageWithCommitKeyCryptoAlgorithm);
-        assertArrayEquals(decryptedText.getHeaders().getMessageId(), Utils.decodeBase64String(TestUtils.messageWithCommitKeyMessageIdBase64));
-        assertArrayEquals(decryptedText.getHeaders().getSuiteData(), Utils.decodeBase64String(TestUtils.messageWithCommitKeyCommitmentBase64));
-        assertArrayEquals((byte[])decryptedText.getResult(), TestUtils.messageWithCommitKeyExpectedResult.getBytes());
+        assertEquals(TestUtils.messageWithCommitKeyCryptoAlgorithm, decryptedText.getCryptoAlgorithm());
+        assertArrayEquals(Utils.decodeBase64String(TestUtils.messageWithCommitKeyMessageIdBase64), decryptedText.getHeaders().getMessageId());
+        assertArrayEquals(Utils.decodeBase64String(TestUtils.messageWithCommitKeyCommitmentBase64), decryptedText.getHeaders().getSuiteData());
+        assertArrayEquals(TestUtils.messageWithCommitKeyExpectedResult.getBytes(), (byte[])decryptedText.getResult());
     }
 
     @Test
@@ -912,7 +806,7 @@ public class AwsCryptoTest {
 
     @Test
     public void setCryptoAlgorithm() throws IOException {
-        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF;
+        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
         encryptionClient_.setEncryptionAlgorithm(setCryptoAlgorithm);
 
         final CryptoAlgorithm getCryptoAlgorithm = encryptionClient_.getEncryptionAlgorithm();
@@ -920,34 +814,175 @@ public class AwsCryptoTest {
         assertEquals(setCryptoAlgorithm, getCryptoAlgorithm);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void buildWithoutSpecifiedCommitmentPolicy() throws IOException {
-        AwsCrypto.builder().build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void buildWithNullCommitmentPolicy() throws IOException {
         AwsCrypto.builder().withCommitmentPolicy(null).build();
     }
 
-    @Test(expected = AwsCryptoException.class)
-    public void setCommittingCryptoAlgorithm() throws IOException {
-        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
-        encryptionClient_.setEncryptionAlgorithm(setCryptoAlgorithm);
+    @Test
+    public void forbidAndSetCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
+
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder()
+                        .withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+                        .build()
+                        .setEncryptionAlgorithm(setCryptoAlgorithm));
     }
 
-    @Test(expected = AwsCryptoException.class)
-    public void buildWithCommittingCryptoAlgorithm() throws IOException {
-        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
-        AwsCrypto.builder().withCommitmentPolicy(commitmentPolicy)
-                .withEncryptionAlgorithm(setCryptoAlgorithm).build();
+    @Test
+    public void requireAndSetNonCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+
+        // Default case
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.standard().setEncryptionAlgorithm(setCryptoAlgorithm));
+
+        // Test explicitly for every relevant policy
+        for (CommitmentPolicy policy : requireWriteCommitmentPolicies) {
+            assertThrows(AwsCryptoException.class, () ->
+                    AwsCrypto.builder()
+                            .withCommitmentPolicy(policy)
+                            .build()
+                            .setEncryptionAlgorithm(setCryptoAlgorithm));
+
+        }
     }
 
-    @Test(expected = AwsCryptoException.class)
-    @SuppressWarnings("deprecation")
-    public void legacyConstructAndSetCommittingCryptoAlgorithm() throws IOException {
-        final CryptoAlgorithm setCryptoAlgorithm = TestUtils.KEY_COMMIT_CRYPTO_ALG;
-        AwsCrypto client = new AwsCrypto();
-        client.setEncryptionAlgorithm(setCryptoAlgorithm);
+    @Test
+    public void forbidAndBuildWithCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
+
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+                        .withEncryptionAlgorithm(setCryptoAlgorithm)
+                        .build());
+    }
+
+    @Test
+    public void requireAndBuildWithNonCommittingCryptoAlgorithm() throws IOException {
+        final CryptoAlgorithm setCryptoAlgorithm = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+
+        // Test default case
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder().withEncryptionAlgorithm(setCryptoAlgorithm).build());
+
+        // Test explicitly for every relevant policy
+        for (CommitmentPolicy policy : requireWriteCommitmentPolicies) {
+            assertThrows(AwsCryptoException.class, () ->
+                    AwsCrypto.builder()
+                            .withCommitmentPolicy(policy)
+                            .withEncryptionAlgorithm(setCryptoAlgorithm)
+                            .build());
+        }
+    }
+
+    @Test
+    public void requireCommitmentOnDecryptFailsNonCommitting() throws IOException {
+        // Create non-committing ciphertext
+        forbidCommitmentClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
+
+        final byte[] cipherText = forbidCommitmentClient_.encryptData(
+                masterKeyProvider,
+                new byte[1],
+                new HashMap<>()).getResult();
+
+        // Test explicit policy set
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder()
+                         .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                         .build()
+                         .decryptData(masterKeyProvider, cipherText));
+
+        // Test default builder behavior
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder()
+                         .build()
+                         .decryptData(masterKeyProvider, cipherText));
+
+        // Test input stream
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder()
+                         .build()
+                         .createDecryptingStream(masterKeyProvider, new ByteArrayInputStream(cipherText))
+                         .read());
+
+        // Test output stream
+        assertThrows(AwsCryptoException.class, () ->
+                AwsCrypto.builder()
+                         .build()
+                         .createDecryptingStream(masterKeyProvider, new ByteArrayOutputStream())
+                         .write(cipherText));
+    }
+
+    @Test
+    public void whenCustomCMMUsesNonCommittingAlgorithmWithRequirePolicy_throws() throws Exception {
+        CryptoMaterialsManager manager = new CryptoMaterialsManager() {
+            @Override public EncryptionMaterials getMaterialsForEncrypt(
+                    EncryptionMaterialsRequest request
+            ) {
+                EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                        .getMaterialsForEncrypt(request);
+
+                return encryptionMaterials.toBuilder()
+                        .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)
+                        .build();
+            }
+
+            @Override public DecryptionMaterials decryptMaterials(
+                    DecryptionMaterialsRequest request
+            ) {
+                return new DefaultCryptoMaterialsManager(masterKeyProvider).decryptMaterials(request);
+            }
+        };
+
+
+        for (CommitmentPolicy policy : requireWriteCommitmentPolicies) {
+            // create client with null encryption algorithm and a policy that requires encryption
+            final AwsCrypto client = AwsCrypto.builder().withCommitmentPolicy(policy).build();
+
+            byte[] plaintext = new byte[100];
+            assertThrows(AwsCryptoException.class,
+                    () -> client.encryptData(manager, plaintext));
+            assertThrows(AwsCryptoException.class,
+                    () -> client.estimateCiphertextSize(manager, 12345));
+            assertThrows(AwsCryptoException.class,
+                    () -> client.createEncryptingStream(manager, new ByteArrayOutputStream()).write(0));
+            assertThrows(AwsCryptoException.class,
+                    () -> client.createEncryptingStream(manager, new ByteArrayInputStream(new byte[1024 * 1024])).read());
+        }
+    }
+
+    @Test
+    public void testDecryptMessageWithInvalidCommitment() {
+        for (final CryptoAlgorithm cryptoAlg : CryptoAlgorithm.values()) {
+            if (!cryptoAlg.isCommitting()) {
+                continue;
+            }
+            final Map<String, String> encryptionContext = new HashMap<String, String>(1);
+            encryptionContext.put("Commitment", "Commitment test for %s" + cryptoAlg);
+            encryptionClient_.setEncryptionAlgorithm(cryptoAlg);
+            byte[] plaintextBytes = new byte[16]; // Actual content doesn't matter
+            final byte[] cipherText = encryptionClient_.encryptData(
+                    masterKeyProvider,
+                    plaintextBytes,
+                    encryptionContext).getResult();
+
+            // Find the commitment value
+            ParsedCiphertext parsed = new ParsedCiphertext(cipherText);
+            final int headerLength = parsed.getOffset();
+            // The commitment value is immediately prior to the header tag for v2 encrypted messages
+            final int endOfCommitment = headerLength - parsed.getHeaderTag().length;
+            // The commitment is 32 bytes long, but if we just index one back from the endOfCommitment we know
+            // that we are within it.
+            cipherText[endOfCommitment - 1] ^= 0x01; // Tamper with the commitment value
+
+            // Since commitment is verified prior to the header tag, we don't need to worry about actually
+            // creating a colliding tag but can just verify that the exception indicates an incorrect commitment
+            // value.
+            assertThrows(BadCiphertextException.class, "Key commitment validation failed. Key identity does " +
+                    "not match the identity asserted in the message. Halting processing of this message.",
+                    () -> encryptionClient_.decryptData(masterKeyProvider, cipherText));
+        }
     }
 }

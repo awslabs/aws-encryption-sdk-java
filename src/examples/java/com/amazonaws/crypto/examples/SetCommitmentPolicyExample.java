@@ -9,14 +9,19 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
-import com.amazonaws.encryptionsdk.CommitmentPolicy;
 
 /**
  * <p>
- * Encrypts and then decrypts data using an AWS KMS customer master key.
+ * Configures a client with a specific commitment policy, then
+ * encrypts and decrypts data using an AWS KMS customer master key.
+ *
+ * This configuration should only be used as part of a migration from version 1.x to 2.x, or for advanced users
+ * with specialized requirements. We recommend that AWS Encryption SDK users use the default commitment policy
+ * whenever possible.
  *
  * <p>
  * Arguments:
@@ -25,7 +30,7 @@ import com.amazonaws.encryptionsdk.CommitmentPolicy;
  *    key (CMK), see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
  * </ol>
  */
-public class BasicEncryptionExample {
+public class SetCommitmentPolicyExample {
 
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
@@ -36,17 +41,26 @@ public class BasicEncryptionExample {
     }
 
     static void encryptAndDecrypt(final String keyArn) {
-        // 1. Instantiate the SDK
-        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
-        // which enforces that this client only encrypts using committing algorithm suites and enforces
-        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
-        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
-        // or `AwsCrypto.standard()`.
+        // 1. Instantiate the SDK with a specific commitment policy
+        //
+        // `withCommitmentPolicy(CommitmentPolicy)` configures the client with
+        // a commitment policy that dictates whether the client is required to encrypt
+        // using committing algorithms and whether the client must require that the messages
+        // it decrypts were encrypted using committing algorithms.
+        // In this example, we set the commitment policy to `ForbidEncryptAllowDecrypt`.
+        // This policy enforces that the client writes using non-committing algorithms,
+        // and allows decrypting of messages created with committing algorithms.
+        //
+        // If this value is not set, the client is configured to use our recommended default:
+        // `RequireEncryptRequireDecrypt`.
+        // This policy enforces that the client uses committing algorithms
+        // to encrypt and enforces that the client only decrypts messages created with committing algorithms.
+        // We recommend using the default whenever possible.
         final AwsCrypto crypto = AwsCrypto.builder()
-                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
                 .build();
 
-        // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict().
+        // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
         // In strict mode, the AWS KMS master key provider encrypts and decrypts only by using the key
         // indicated by keyArn.
         // To encrypt and decrypt with this master key provider, use an AWS KMS key ARN to identify the CMKs.

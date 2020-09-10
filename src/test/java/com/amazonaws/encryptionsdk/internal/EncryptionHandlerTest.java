@@ -7,7 +7,9 @@ import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +26,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 public class EncryptionHandlerTest {
-    private final CryptoAlgorithm cryptoAlgorithm_ = CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF;
+    private final CryptoAlgorithm cryptoAlgorithm_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
     private final int frameSize_ = AwsCrypto.getDefaultFrameSize();
     private final Map<String, String> encryptionContext_ = Collections.<String, String> emptyMap();
     private StaticMasterKey masterKeyProvider = new StaticMasterKey("mock");
@@ -34,6 +36,7 @@ public class EncryptionHandlerTest {
             = EncryptionMaterialsRequest.newBuilder()
                                         .setContext(encryptionContext_)
                                         .setRequestedAlgorithm(cryptoAlgorithm_)
+                                        .setCommitmentPolicy(commitmentPolicy)
                                         .build();
 
     private EncryptionMaterials testResult = new DefaultCryptoMaterialsManager(masterKeyProvider)
@@ -42,37 +45,41 @@ public class EncryptionHandlerTest {
     @Test
     public void badArguments() {
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setAlgorithm(null).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setAlgorithm(null).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptionContext(null).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptionContext(null).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptedDataKeys(null).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptedDataKeys(null).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptedDataKeys(emptyList()).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setEncryptedDataKeys(emptyList()).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setCleartextDataKey(null).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setCleartextDataKey(null).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setMasterKeys(null).build())
+                () -> new EncryptionHandler(frameSize_, testResult.toBuilder().setMasterKeys(null).build(), commitmentPolicy)
         );
 
         assertThrows(
-                () -> new EncryptionHandler(-1, testResult)
+                () -> new EncryptionHandler(-1, testResult, commitmentPolicy)
+        );
+
+        assertThrows(
+                () -> new EncryptionHandler(frameSize_, testResult, null)
         );
     }
 
     @Test(expected = AwsCryptoException.class)
     public void invalidLenProcessBytes() {
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult);
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult, commitmentPolicy);
 
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
@@ -81,7 +88,7 @@ public class EncryptionHandlerTest {
 
     @Test(expected = AwsCryptoException.class)
     public void invalidOffsetProcessBytes() {
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult);
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult, commitmentPolicy);
 
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
@@ -90,7 +97,7 @@ public class EncryptionHandlerTest {
 
     @Test
     public void whenEncrypting_headerIVIsZero() throws Exception {
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult);
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, testResult, commitmentPolicy);
 
         assertArrayEquals(
                 new byte[encryptionHandler.getHeaders().getCryptoAlgoId().getNonceLen()],
@@ -98,9 +105,55 @@ public class EncryptionHandlerTest {
         );
     }
 
-    @Test(expected = AwsCryptoException.class)
-    public void whenEncryptingV2Algorithm_fails() throws Exception {
-        final EncryptionMaterials resultWithV2Alg = testResult.toBuilder().setAlgorithm(TestUtils.KEY_COMMIT_CRYPTO_ALG).build();
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, resultWithV2Alg);
+    @Test
+    public void whenConstructWithForbidPolicyAndCommittingAlg_fails() throws Exception {
+        final EncryptionMaterials resultWithV2Alg = testResult.toBuilder().setAlgorithm(TestUtils.DEFAULT_TEST_CRYPTO_ALG).build();
+        assertThrows(AwsCryptoException.class, () -> new EncryptionHandler(frameSize_, resultWithV2Alg, CommitmentPolicy.ForbidEncryptAllowDecrypt));
+    }
+
+    @Test
+    public void whenConstructWithForbidPolicyAndNonCommittingAlg_succeeds() throws Exception {
+        final CryptoAlgorithm algorithm = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        final EncryptionMaterialsRequest requestForMaterialsWithoutCommitment = EncryptionMaterialsRequest.newBuilder()
+                .setContext(encryptionContext_)
+                .setRequestedAlgorithm(algorithm)
+                .setCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+                .build();
+        final EncryptionMaterials materials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                .getMaterialsForEncrypt(requestForMaterialsWithoutCommitment);
+
+        EncryptionHandler handler = new EncryptionHandler(frameSize_, materials, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        assertNotNull(handler);
+        assertEquals(algorithm, handler.getHeaders().getCryptoAlgoId());
+    }
+
+    @Test
+    public void whenConstructWithRequirePolicyAndNonCommittingAlg_fails() throws Exception {
+        final EncryptionMaterials resultWithV1Alg = testResult.toBuilder()
+                .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)
+                .build();
+
+        assertThrows(AwsCryptoException.class, () -> new EncryptionHandler(frameSize_, resultWithV1Alg, CommitmentPolicy.RequireEncryptRequireDecrypt));
+        assertThrows(AwsCryptoException.class, () -> new EncryptionHandler(frameSize_, resultWithV1Alg, CommitmentPolicy.RequireEncryptAllowDecrypt));
+    }
+
+    @Test
+    public void whenConstructWithRequirePolicyAndCommittingAlg_succeeds() throws Exception {
+        final CryptoAlgorithm algorithm = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
+        final EncryptionMaterialsRequest requestForMaterialsWithCommitment = EncryptionMaterialsRequest.newBuilder()
+                .setContext(encryptionContext_)
+                .setRequestedAlgorithm(algorithm)
+                .setCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
+        final EncryptionMaterials materials = new DefaultCryptoMaterialsManager(masterKeyProvider)
+                .getMaterialsForEncrypt(requestForMaterialsWithCommitment);
+        final List<CommitmentPolicy> requireWritePolicies = Arrays.asList(
+                CommitmentPolicy.RequireEncryptAllowDecrypt,CommitmentPolicy.RequireEncryptRequireDecrypt);
+
+        for (CommitmentPolicy policy : requireWritePolicies) {
+            EncryptionHandler handler = new EncryptionHandler(frameSize_, materials, policy);
+            assertNotNull(handler);
+            assertEquals(algorithm, handler.getHeaders().getCryptoAlgoId());
+        }
     }
 }

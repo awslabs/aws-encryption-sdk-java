@@ -56,10 +56,32 @@ public class DefaultCryptoMaterialsManagerTest {
 
         assertNotNull(result.getCleartextDataKey());
         assertNotNull(result.getEncryptionContext());
-        assertEquals(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, result.getAlgorithm());
+        assertEquals(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384, result.getAlgorithm());
         assertEquals(1, result.getEncryptedDataKeys().size());
         assertEquals(1, result.getMasterKeys().size());
         assertEquals(mk1, result.getMasterKeys().get(0));
+    }
+
+    @Test
+    public void encrypt_testNonCommittingDefaultAlgorithm() throws Exception {
+        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                .setCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+                .build();
+        EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
+        assertEquals(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, result.getAlgorithm());
+    }
+
+    @Test
+    public void encrypt_testCommittingDefaultAlgorithm() throws Exception {
+        final List<CommitmentPolicy> requireWritePolicies = Arrays.asList(
+                CommitmentPolicy.RequireEncryptRequireDecrypt, CommitmentPolicy.RequireEncryptAllowDecrypt);
+        for (CommitmentPolicy policy : requireWritePolicies) {
+            EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
+                    .setCommitmentPolicy(policy)
+                    .build();
+            EncryptionMaterials result = new DefaultCryptoMaterialsManager(mk1).getMaterialsForEncrypt(req);
+            assertEquals(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384, result.getAlgorithm());
+        }
     }
 
     @Test
@@ -70,7 +92,8 @@ public class DefaultCryptoMaterialsManagerTest {
                 CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA256,
                 CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF,
                 CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256,
-                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_NO_KDF
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_NO_KDF,
+                CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY
         };
 
         for (CryptoAlgorithm algo : algorithms) {
@@ -91,7 +114,8 @@ public class DefaultCryptoMaterialsManagerTest {
         CryptoAlgorithm[] algorithms = new CryptoAlgorithm[] {
                 CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
                 CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384
         };
 
         for (CryptoAlgorithm algo : algorithms) {
@@ -259,16 +283,13 @@ public class DefaultCryptoMaterialsManagerTest {
     @Test
     public void decrypt_testSimpleRoundTrip() throws Exception {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
-            // Only test algorithms without key commitment
-            if (algorithm.getMessageFormatVersion() != 1) {
-                continue;
-            }
+            CommitmentPolicy policy = algorithm.isCommitting() ? CommitmentPolicy.RequireEncryptRequireDecrypt : CommitmentPolicy.ForbidEncryptAllowDecrypt;
             EncryptionMaterials encryptMaterials = easyGenMaterials(
                     builder -> builder.setRequestedAlgorithm(algorithm)
             );
 
-            DecryptionMaterials decryptMaterials
-                    = new DefaultCryptoMaterialsManager(mk1).decryptMaterials(decryptReqFromMaterials(encryptMaterials));
+            DecryptionMaterials decryptMaterials = new DefaultCryptoMaterialsManager(mk1)
+                    .decryptMaterials(decryptReqFromMaterials(encryptMaterials));
 
             assertArrayEquals(decryptMaterials.getDataKey().getKey().getEncoded(),
                               encryptMaterials.getCleartextDataKey().getEncoded());

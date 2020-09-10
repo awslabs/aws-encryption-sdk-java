@@ -358,7 +358,6 @@ public class KmsMasterKeyTest {
         assertArrayEquals(edk.getProviderInformation(), actualDecryptRequest.getKeyId().getBytes(StandardCharsets.UTF_8));
     }
 
-
     private void assertUserAgent(AmazonWebServiceRequest request) {
         assertTrue(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT)
                 .contains(VersionInfo.USER_AGENT));

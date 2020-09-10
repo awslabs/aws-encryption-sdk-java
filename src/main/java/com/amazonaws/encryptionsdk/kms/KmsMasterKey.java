@@ -60,24 +60,6 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         return request;
     }
 
-    /**
-     *
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentials creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
-    }
-
-    /**
-     *
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentialsProvider creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
-    }
-
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
         return new KmsMasterKey(kms, id, provider);

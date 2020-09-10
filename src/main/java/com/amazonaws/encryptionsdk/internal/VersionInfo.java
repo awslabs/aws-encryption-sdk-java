@@ -18,9 +18,9 @@ package com.amazonaws.encryptionsdk.internal;
  */
 public class VersionInfo {
     // incremented for major changes to the implementation
-    public static final String MAJOR_REVISION_NUM = "1";
+    public static final String MAJOR_REVISION_NUM = "2";
     // incremented for minor changes to the implementation
-    public static final String MINOR_REVISION_NUM = "7";
+    public static final String MINOR_REVISION_NUM = "0";
     // incremented for releases containing an immediate bug fix.
     public static final String BUGFIX_REVISION_NUM = "0";
 
@@ -28,12 +28,4 @@ public class VersionInfo {
             + "." + BUGFIX_REVISION_NUM;
 
     public static final String USER_AGENT = "AwsCrypto/" + RELEASE_VERSION;
-    /**
-     * The current version number of the ciphertext produced by this library.
-     * 
-     * @deprecated This value is now controlled by {@link com.amazonaws.encryptionsdk.CryptoAlgorithm#getMessageFormatVersion()}
-     */
-    @Deprecated
-    public static final byte CURRENT_CIPHERTEXT_VERSION = 1;
-
 }

@@ -49,8 +49,12 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
         Map<String, String> context = request.getContext();
 
         CryptoAlgorithm algo = request.getRequestedAlgorithm();
-        if (algo == null) {
-            algo = DEFAULT_CRYPTO_ALGORITHM;
+        CommitmentPolicy commitmentPolicy = request.getCommitmentPolicy();
+        // Set default according to commitment policy
+        if (algo == null && commitmentPolicy == CommitmentPolicy.ForbidEncryptAllowDecrypt) {
+            algo = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        } else if (algo == null) {
+            algo = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384;
         }
 
         KeyPair trailingKeys = null;
