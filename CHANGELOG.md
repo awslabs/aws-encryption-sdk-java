@@ -2,7 +2,7 @@
 
 ## 1.7.0 -- 2020-09-24
 
-* feat: Updates to the AWS Encryption SDK.
+* feat: Updates to the AWS Encryption SDK. bdb31dc
 
 ## 1.6.2 -- 2020-05-26
 
