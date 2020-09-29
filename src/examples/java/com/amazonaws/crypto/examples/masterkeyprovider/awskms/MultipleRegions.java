@@ -43,7 +43,7 @@ public class MultipleRegions {
      */
     public static void run(final AwsKmsCmkId awsKmsGeneratorCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, final byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.
@@ -61,15 +61,14 @@ public class MultipleRegions {
         final List<String> awsKmsCmks = new ArrayList<>();
         awsKmsCmks.add(awsKmsGeneratorCmk.toString());
         awsKmsCmks.addAll(awsKmsAdditionalCmks.stream().map(AwsKmsCmkId::toString).collect(toList()));
-        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsCmks).build();
+        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(awsKmsCmks);
 
         // Create master key providers that each only use one of the CMKs.
         // We will use these later to demonstrate that any of the CMKs can be used to decrypt the message.
         final KmsMasterKeyProvider singleCmkMasterKeyThatGenerated = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsGeneratorCmk.toString()).build();
+                .buildStrict(awsKmsGeneratorCmk.toString());
         final KmsMasterKeyProvider singleCmkMasterKeyThatEncrypted = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsAdditionalCmks.get(0).toString()).build();
+                .buildStrict(awsKmsAdditionalCmks.get(0).toString());
 
         // Encrypt your plaintext data using the master key provider that uses all requests CMKs.
         final CryptoResult<byte[], KmsMasterKey> encryptResult = awsEncryptionSdk.encryptData(

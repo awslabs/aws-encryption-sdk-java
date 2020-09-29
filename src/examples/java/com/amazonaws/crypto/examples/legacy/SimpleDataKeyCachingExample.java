@@ -60,11 +60,11 @@ public class SimpleDataKeyCachingExample {
     }
 
     static byte[] encryptWithCaching(AwsKmsCmkId kmsCmkArn) {
-
-        // Instantiate the AWS Encryption SDK.
-        final AwsCrypto crypto = new AwsCrypto();
-
-        // Create an encryption context.
+        // Encryption context
+        // Most encrypted data should have an associated encryption context
+        // to protect integrity. This sample uses placeholder values.
+        // For more information see:
+        // blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
         final Map<String, String> encryptionContext = Collections.singletonMap("purpose", "test");
 
         // Create a keyring.
@@ -82,9 +82,12 @@ public class SimpleDataKeyCachingExample {
                         .withMessageUseLimit(MAX_ENTRY_MESSAGES)
                         .build();
 
+        // Instantiate the AWS Encryption SDK.
+        final AwsCrypto encryptionSdk = AwsCrypto.standard();
+
         // When the call to encrypt specifies a caching CMM,
         // the encryption operation uses the data key cache.
-        return crypto.encrypt(EncryptRequest.builder()
+        return encryptionSdk.encrypt(EncryptRequest.builder()
                 .cryptoMaterialsManager(cachingCmm)
                 .plaintext(EXAMPLE_DATA)
                 .encryptionContext(encryptionContext)

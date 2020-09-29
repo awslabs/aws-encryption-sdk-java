@@ -1,5 +1,6 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.crypto.examples.legacy;
 
 import java.io.FileInputStream;
@@ -16,6 +17,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoInputStream;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.util.IOUtils;
 
 /**
@@ -49,8 +51,15 @@ public class FileStreamingExample {
         // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm.
         JceMasterKey masterKey = JceMasterKey.getInstance(cryptoKey, "Example", "RandomKey", "AES/GCM/NoPadding");
 
-        // Instantiate the AWS Encryption SDK.
-        AwsCrypto crypto = new AwsCrypto();
+        // Instantiate the SDK.
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
         // Create an encryption context to identify this ciphertext.
         Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");

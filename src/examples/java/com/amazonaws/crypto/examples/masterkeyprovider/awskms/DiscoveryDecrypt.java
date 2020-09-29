@@ -42,7 +42,7 @@ public class DiscoveryDecrypt {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.
@@ -55,11 +55,10 @@ public class DiscoveryDecrypt {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the master key that determines how your data keys are protected.
-        final KmsMasterKeyProvider encryptMasterKeyProvider = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsCmk.toString()).build();
+        final KmsMasterKeyProvider encryptMasterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(awsKmsCmk.toString());
 
         // Create an AWS KMS master key provider to use on decrypt.
-        final KmsMasterKeyProvider decryptMasterKeyProvider = KmsMasterKeyProvider.builder().build();
+        final KmsMasterKeyProvider decryptMasterKeyProvider = KmsMasterKeyProvider.builder().buildDiscovery();
 
         // Encrypt your plaintext data.
         final CryptoResult<byte[], KmsMasterKey> encryptResult = awsEncryptionSdk.encryptData(

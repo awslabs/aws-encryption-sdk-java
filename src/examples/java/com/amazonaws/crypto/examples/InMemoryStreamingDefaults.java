@@ -41,7 +41,7 @@ public class InMemoryStreamingDefaults {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) throws IOException {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.

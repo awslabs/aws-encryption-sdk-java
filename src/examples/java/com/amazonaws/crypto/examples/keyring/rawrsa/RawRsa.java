@@ -37,7 +37,7 @@ public class RawRsa {
      */
     public static void run(final byte[] sourcePlaintext) throws GeneralSecurityException {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.

@@ -1,21 +1,15 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.internal;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.ParsedCiphertext;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import org.junit.Before;
@@ -25,17 +19,25 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.MasterKey;
+import com.amazonaws.encryptionsdk.TestUtils;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
+import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class DecryptionHandlerTest {
     private StaticMasterKey masterKeyProvider_;
     private Keyring keyring;
+    private final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
+    private final CommitmentPolicy requireReadPolicy = CommitmentPolicy.RequireEncryptRequireDecrypt;
+    private final List<CommitmentPolicy> allowReadPolicies = Arrays.asList(CommitmentPolicy.RequireEncryptAllowDecrypt,
+            CommitmentPolicy.ForbidEncryptAllowDecrypt);
 
     @Before
     public void init() {
@@ -45,12 +47,21 @@ public class DecryptionHandlerTest {
 
     @Test(expected = NullPointerException.class)
     public void nullMasterKey() {
-        DecryptionHandler.create((MasterKey)null);
+        DecryptionHandler.create((MasterKey)null, commitmentPolicy);
     }
+
+    @Test
+    public void nullCommitment() {
+        final byte[] ciphertext = getTestHeaders(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+
+        assertThrows(NullPointerException.class, () -> DecryptionHandler.create(masterKeyProvider_, new ParsedCiphertext(ciphertext), null));
+        assertThrows(NullPointerException.class, () -> DecryptionHandler.create(masterKeyProvider_, null));
+    }
+
 
     @Test(expected = AwsCryptoException.class)
     public void invalidLenProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
         decryptionHandler.processBytes(in, 0, -1, out, 0);
@@ -58,7 +69,7 @@ public class DecryptionHandlerTest {
 
     @Test(expected = AwsCryptoException.class)
     public void maxLenProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         // Create input of size 3 bytes: 1 byte containing version, 1 byte
         // containing type, and 1 byte containing half of the algoId short
         // primitive. Only 1 byte of the algoId is provided because this
@@ -83,7 +94,7 @@ public class DecryptionHandlerTest {
         ciphertext[5] += 1;
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
@@ -94,10 +105,10 @@ public class DecryptionHandlerTest {
         byte[] ciphertext = getTestHeaders();
 
         // set byte containing version to invalid value.
-        ciphertext[0] += VersionInfo.CURRENT_CIPHERTEXT_VERSION + 1;
+        ciphertext[0] = 0; // NOTE: This will need to be updated should 0 ever be a valid version
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
@@ -106,30 +117,82 @@ public class DecryptionHandlerTest {
     @Test(expected = AwsCryptoException.class)
     public void invalidCMK() {
         final byte[] ciphertext = getTestHeaders();
-        
+
         masterKeyProvider_.setKeyId(masterKeyProvider_.getKeyId() + "nonsense");
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
     }
 
+    @Test
+    public void validAlgForCommitmentPolicyCreate() {
+        // ensure we can decrypt non-committing algs with the policies that allow it
+        final CryptoAlgorithm nonCommittingAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
+        for (CommitmentPolicy policy : allowReadPolicies) {
+            final byte[] ciphertext = getTestHeaders(nonCommittingAlg, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+            final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, policy);
+            // expected plaintext is zero length
+            final byte[] plaintext = new byte[0];
+            ProcessingSummary processingSummary = decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
+            assertEquals(ciphertext.length, processingSummary.getBytesProcessed());
+            assertArrayEquals(new byte[0], plaintext);
+        }
+
+        // ensure we can decrypt committing algs with all policies
+        final CryptoAlgorithm committingAlg = CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY;
+        for (CommitmentPolicy policy : CommitmentPolicy.values()) {
+            final byte[] ciphertext = getTestHeaders(committingAlg, CommitmentPolicy.RequireEncryptRequireDecrypt);
+            final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, policy);
+            // expected plaintext is zero length
+            final byte[] plaintext = new byte[0];
+            ProcessingSummary processingSummary = decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
+            assertEquals(ciphertext.length, processingSummary.getBytesProcessed());
+            assertArrayEquals(new byte[0], plaintext);
+        }
+    }
+
+    @Test
+    public void invalidAlgForCommitmentPolicyCreateWithoutHeaders() {
+        final CryptoAlgorithm nonCommittingAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        final byte[] ciphertext = getTestHeaders(nonCommittingAlg, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, requireReadPolicy);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+
+        assertThrows(AwsCryptoException.class, () -> decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
+    public void invalidAlgForCommitmentPolicyCreateWithHeaders() {
+        final CryptoAlgorithm nonCommittingAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        final byte[] ciphertext = getTestHeaders(nonCommittingAlg, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+
+        assertThrows(AwsCryptoException.class,
+                () -> DecryptionHandler.create(masterKeyProvider_, new ParsedCiphertext(ciphertext), requireReadPolicy));
+    }
+
     private byte[] getTestHeaders() {
-        final CryptoAlgorithm cryptoAlgorithm_ = AwsCrypto.getDefaultCryptoAlgorithm();
+        return getTestHeaders(TestUtils.DEFAULT_TEST_CRYPTO_ALG, TestUtils.DEFAULT_TEST_COMMITMENT_POLICY);
+    }
+
+    private byte[] getTestHeaders(CryptoAlgorithm cryptoAlgorithm, CommitmentPolicy policy) {
         final int frameSize_ = AwsCrypto.getDefaultFrameSize();
         final Map<String, String> encryptionContext = Collections.<String, String> emptyMap();
 
         final EncryptionMaterialsRequest encryptionMaterialsRequest = EncryptionMaterialsRequest.newBuilder()
                                                                                                 .setContext(encryptionContext)
-                                                                                                .setRequestedAlgorithm(cryptoAlgorithm_)
+                                                                                                .setRequestedAlgorithm(cryptoAlgorithm)
+                                                                                                .setCommitmentPolicy(policy)
                                                                                                 .build();
 
         final EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider_)
                 .getMaterialsForEncrypt(encryptionMaterialsRequest);
 
-        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, encryptionMaterials);
+        final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, encryptionMaterials, policy);
 
         // create the ciphertext headers by calling encryption handler.
         final byte[] in = new byte[0];
@@ -141,7 +204,7 @@ public class DecryptionHandlerTest {
 
     @Test(expected = AwsCryptoException.class)
     public void invalidOffsetProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
         decryptionHandler.processBytes(in, -1, in.length, out, 0);
@@ -154,7 +217,7 @@ public class DecryptionHandlerTest {
         CiphertextHeaders h = new CiphertextHeaders();
         h.deserialize(ciphertext, 0);
 
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy);
         final byte[] out = new byte[1];
 
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
@@ -162,8 +225,59 @@ public class DecryptionHandlerTest {
     }
 
     @Test
+    public void incompleteCiphertextV2() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.RequireEncryptRequireDecrypt);
+        final byte[] out = new byte[1];
+
+        decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
+        assertThrows(BadCiphertextException.class, "Unable to process entire ciphertext.",
+                () -> decryptionHandler.doFinal(out, 0));
+    }
+
+    @Test
+    public void headerV2HeaderIntegrityFailure() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+
+        // Tamper the bytes that corresponds to the frame length.
+        // This is the only reasonable way to tamper with this handcrafted message's
+        // header which can still be successfully parsed.
+        ciphertext[134] += 1;
+
+        // attempt to decrypt with the tampered header.
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.RequireEncryptRequireDecrypt);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        assertThrows(BadCiphertextException.class, "Header integrity check failed", () ->
+                decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
+    public void headerV2BodyIntegrityFailure() {
+        byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
+
+        // Tamper the bytes that corresponds to the body auth
+        ciphertext[ciphertext.length - 1] += 1;
+
+        // attempt to decrypt with the tampered header.
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.RequireEncryptRequireDecrypt);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        assertThrows(BadCiphertextException.class, "Tag mismatch", () ->
+                decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
     public void testNullMasterKey() {
-        final DecryptionHandler decryptionHandler = DecryptionHandler.create(new DefaultCryptoMaterialsManager(keyring));
+        final DecryptionHandler decryptionHandler = DecryptionHandler.create(
+            new DefaultCryptoMaterialsManager(keyring),
+            CommitmentPolicy.RequireEncryptRequireDecrypt);
         final byte[] out = new byte[1];
         final byte[] testHeaders = getTestHeaders();
         decryptionHandler.processBytes(getTestHeaders(), 0, testHeaders.length, out, 0);

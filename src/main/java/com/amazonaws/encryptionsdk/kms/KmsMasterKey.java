@@ -1,27 +1,16 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk.kms;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
@@ -46,22 +35,6 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     private final AwsKmsDataKeyEncryptionDao dataKeyEncryptionDao_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
-
-    /**
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentials creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
-    }
-
-    /**
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentialsProvider creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
-    }
 
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
                                     final MasterKeyProvider<KmsMasterKey> provider) {
@@ -128,11 +101,14 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     @Override
     public DataKey<KmsMasterKey> decryptDataKey(final CryptoAlgorithm algorithm,
                                                 final Collection<? extends EncryptedDataKey> encryptedDataKeys,
-                                                final Map<String, String> encryptionContext)
-        throws UnsupportedProviderException, AwsCryptoException {
+                                                final Map<String, String> encryptionContext) throws AwsCryptoException {
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
+                final String edkKeyId = new String(edk.getProviderInformation(), StandardCharsets.UTF_8);
+                if (!edkKeyId.equals(id_)) {
+                    continue;
+                }
                 final DataKeyEncryptionDao.DecryptDataKeyResult result = dataKeyEncryptionDao_.decryptDataKey(edk, algorithm, encryptionContext);
                 return new DataKey<>(
                     result.getPlaintextDataKey(),

@@ -13,11 +13,15 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
+
 public final class Constants {
     /**
      * Default length of the message identifier used to uniquely identify every
      * ciphertext created by this library.
+     * @deprecated This value may change based on {@link CryptoAlgorithm#getMessageIdLength()}
      */
+    @Deprecated
     public static final int MESSAGE_ID_LEN = 16;
 
     private Constants() {

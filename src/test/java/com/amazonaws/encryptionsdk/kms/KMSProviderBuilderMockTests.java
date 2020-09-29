@@ -1,8 +1,9 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk.kms;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
-import static com.amazonaws.regions.Region.getRegion;
-import static com.amazonaws.regions.Regions.fromName;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -17,9 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,9 +28,8 @@ import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider.RegionalClientSupplier;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.model.CreateAliasRequest;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.EncryptRequest;
@@ -52,32 +50,11 @@ public class KMSProviderBuilderMockTests {
         );
 
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
-                                                        .withKeysForEncryption("alias/foo")
                                                         .withCustomClientFactory(supplier)
                                                         .withDefaultRegion("us-west-2")
-                                                        .build();
+                                                        .buildStrict("alias/foo");
 
-        new AwsCrypto().encryptData(mkp0, new byte[0]);
-    }
-
-    @Test
-    public void testBareAliasMapping_withLegacyCtor() {
-        MockKMSClient client = spy(new MockKMSClient());
-
-        RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
-        when(supplier.getClient(any())).thenReturn(client);
-
-        String key1 = client.createKey().getKeyMetadata().getKeyId();
-        client.createAlias(new CreateAliasRequest()
-            .withAliasName("foo")
-            .withTargetKeyId(key1)
-        );
-
-        KmsMasterKeyProvider mkp0 = new KmsMasterKeyProvider(
-                client, Region.getRegion(Regions.DEFAULT_REGION), Arrays.asList("alias/foo")
-        );
-
-        new AwsCrypto().encryptData(mkp0, new byte[0]);
+        AwsCrypto.standard().encryptData(mkp0, new byte[0]);
     }
 
     @Test
@@ -93,8 +70,7 @@ public class KMSProviderBuilderMockTests {
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
                                                        .withDefaultRegion("us-west-2")
                                                        .withCustomClientFactory(supplier)
-                                                       .withKeysForEncryption(key1, key2)
-                                                       .build();
+                                                       .buildStrict(key1, key2);
         KmsMasterKey mk1 = mkp0.getMasterKey(key1);
         KmsMasterKey mk2 = mkp0.getMasterKey(key2);
 
@@ -103,7 +79,7 @@ public class KMSProviderBuilderMockTests {
 
         MasterKeyProvider<?> mkp = buildMultiProvider(mk1, mk2);
 
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
+        byte[] ciphertext = AwsCrypto.standard().encryptData(mkp, new byte[0]).getResult();
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
@@ -119,7 +95,7 @@ public class KMSProviderBuilderMockTests {
         assertEquals(1, er.getValue().getGrantTokens().size());
         assertEquals("foo", er.getValue().getGrantTokens().get(0));
 
-        new AwsCrypto().decryptData(mkp, ciphertext);
+        AwsCrypto.standard().decryptData(mkp, ciphertext);
 
         ArgumentCaptor<DecryptRequest> decrypt = ArgumentCaptor.forClass(DecryptRequest.class);
         verify(client, times(1)).decrypt(decrypt.capture());
@@ -144,12 +120,11 @@ public class KMSProviderBuilderMockTests {
         KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
                                                         .withDefaultRegion("us-west-2")
                                                         .withCustomClientFactory(supplier)
-                                                        .withKeysForEncryption(key1, key2)
-                                                        .build();
+                                                        .buildStrict(key1, key2);
 
         MasterKeyProvider<?> mkp = mkp0.withGrantTokens("foo");
 
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
+        byte[] ciphertext = AwsCrypto.standard().encryptData(mkp, new byte[0]).getResult();
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
@@ -167,7 +142,7 @@ public class KMSProviderBuilderMockTests {
 
         mkp = mkp0.withGrantTokens(Arrays.asList("bar"));
 
-        new AwsCrypto().decryptData(mkp, ciphertext);
+        AwsCrypto.standard().decryptData(mkp, ciphertext);
 
         ArgumentCaptor<DecryptRequest> decrypt = ArgumentCaptor.forClass(DecryptRequest.class);
         verify(client, times(1)).decrypt(decrypt.capture());
@@ -180,32 +155,6 @@ public class KMSProviderBuilderMockTests {
     }
 
     @Test
-    public void testLegacyGrantTokenPassthrough() throws Exception {
-        MockKMSClient client = spy(new MockKMSClient());
-
-        String key1 = client.createKey().getKeyMetadata().getArn();
-
-        KmsMasterKeyProvider mkp = new KmsMasterKeyProvider(client, getRegion(fromName("us-west-2")), singletonList(key1));
-
-        mkp.addGrantToken("x");
-        mkp.setGrantTokens(new ArrayList<>(Arrays.asList("y")));
-        mkp.setGrantTokens(new ArrayList<>(Arrays.asList("a", "b")));
-        mkp.addGrantToken("c");
-
-        byte[] ciphertext = new AwsCrypto().encryptData(mkp, new byte[0]).getResult();
-
-        ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
-        verify(client, times(1)).generateDataKey(gdkr.capture());
-
-        List<String> grantTokens = gdkr.getValue().getGrantTokens();
-        assertTrue(grantTokens.contains("a"));
-        assertTrue(grantTokens.contains("b"));
-        assertTrue(grantTokens.contains("c"));
-        assertFalse(grantTokens.contains("x"));
-        assertFalse(grantTokens.contains("z"));
-    }
-
-    @Test
     public void testUserAgentPassthrough() throws Exception {
         MockKMSClient client = spy(new MockKMSClient());
 
@@ -213,11 +162,10 @@ public class KMSProviderBuilderMockTests {
         String key2 = client.createKey().getKeyMetadata().getArn();
 
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
-                                                       .withKeysForEncryption(key1, key2)
                                                        .withCustomClientFactory(ignored -> client)
-                                                       .build();
+                                                       .buildStrict(key1, key2);
 
-        new AwsCrypto().decryptData(mkp, new AwsCrypto().encryptData(mkp, new byte[0]).getResult());
+        AwsCrypto.standard().decryptData(mkp, AwsCrypto.standard().encryptData(mkp, new byte[0]).getResult());
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());

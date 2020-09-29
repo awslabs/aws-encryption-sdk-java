@@ -54,7 +54,7 @@ public class AwsKmsWithEscrow {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) throws GeneralSecurityException {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.
@@ -103,8 +103,7 @@ public class AwsKmsWithEscrow {
 
 
         // Create the AWS KMS master key that you will use for decryption during normal operations.
-        final KmsMasterKeyProvider kmsMasterKeyProvider = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsCmk.toString()).build();
+        final KmsMasterKeyProvider kmsMasterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(awsKmsCmk.toString());
 
         // Combine the AWS KMS and escrow providers into a single master key provider.
         final MasterKeyProvider<?> masterKeyProvider = MultipleProviderFactory.buildMultiProvider(

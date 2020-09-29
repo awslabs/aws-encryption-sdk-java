@@ -70,7 +70,7 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final List<AwsKmsCmkId> awsKmsAdditionalCmks, byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.
@@ -91,8 +91,7 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         final List<String> masterKeyProviderCmks = new ArrayList<>();
         masterKeyProviderCmks.add(awsKmsCmk.toString());
         masterKeyProviderCmks.addAll(awsKmsAdditionalCmks.stream().map(AwsKmsCmkId::toString).collect(toList()));
-        final KmsMasterKeyProvider masterKeyProviderToReplicate = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(masterKeyProviderCmks).build();
+        final KmsMasterKeyProvider masterKeyProviderToReplicate = KmsMasterKeyProvider.builder().buildStrict(masterKeyProviderCmks);
 
         // Create a CMK keyring that encrypts and decrypts using the specified AWS KMS CMKs.
         //

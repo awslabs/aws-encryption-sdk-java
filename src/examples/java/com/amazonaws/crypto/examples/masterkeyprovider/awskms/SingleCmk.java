@@ -38,7 +38,7 @@ public class SingleCmk {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = new AwsCrypto();
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.
@@ -51,8 +51,7 @@ public class SingleCmk {
         encryptionContext.put("the data you are handling", "is what you think it is");
 
         // Create the master key provider that determines how your data keys are protected.
-        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(awsKmsCmk.toString()).build();
+        final KmsMasterKeyProvider masterKeyProvider = KmsMasterKeyProvider.builder().buildStrict(awsKmsCmk.toString());
 
         // Encrypt your plaintext data.
         final CryptoResult<byte[], KmsMasterKey> encryptResult = awsEncryptionSdk.encryptData(

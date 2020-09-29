@@ -1,4 +1,7 @@
-package com.amazonaws.encryptionsdk;
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+package com.amazonaws.encryptionsdk.internal;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -8,12 +11,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import org.junit.Test;
 
-import com.amazonaws.encryptionsdk.internal.Utils;
-
+/**
+ * Unit tests for {@link Utils}
+ */
 public class UtilsTest {
     @Test
     public void compareObjectIdentityTest()  {
@@ -34,7 +37,7 @@ public class UtilsTest {
             testArray[i] = new Object();
         }
 
-        Arrays.sort(testArray, Utils::compareObjectIdentity);
+        java.util.Arrays.sort(testArray, Utils::compareObjectIdentity);
 
         // Verify that we do not have any objects that are equal (compare to zero) in the array.
         // We know the primary sort is by hashcode, so we'll just do exhaustive comparison within each hashcode.
@@ -133,6 +136,4 @@ public class UtilsTest {
         assertTrue(Utils.arrayPrefixEquals(a, b, 4));
         assertFalse(Utils.arrayPrefixEquals(a, b, 5));
     }
-
 }
-

@@ -1,4 +1,4 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples.legacy;
@@ -17,6 +17,7 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.util.IOUtils;
 
 /**
@@ -39,6 +40,10 @@ import com.amazonaws.util.IOUtils;
  * You might use AWS Key Management Service (AWS KMS) for most encryption and decryption operations, but
  * still want the option of decrypting your data offline independently of AWS KMS. This sample
  * demonstrates one way to do this.
+ *
+ * The sample encrypts data under both an AWS KMS customer master key (CMK) and an "escrowed" RSA key pair
+ * so that either key alone can decrypt it. You might commonly use the AWS KMS CMK for decryption. However,
+ * at any time, you can use the private RSA key to decrypt the ciphertext independent of AWS KMS.
  *
  * The sample encrypts data under both an AWS KMS customer master key (CMK) and an "escrowed" RSA key pair
  * so that either key alone can decrypt it. You might commonly use the AWS KMS CMK for decryption. However,
@@ -69,21 +74,31 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
-        // Encrypt with the AWS KMS CMK and the escrowed public key
-        // 1. Instantiate the AWS Encryption SDK.
-        final AwsCrypto crypto = new AwsCrypto();
+        // Encrypt with the KMS CMK and the escrowed public key
+        // 1. Instantiate the SDK
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
-        // 2. Instantiate a KMS master key provider.
-        final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
+        // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
+        //
+        // In strict mode, the AWS KMS master key provider encrypts and decrypts only by using the key
+        // indicated by kmsArn.
+        final KmsMasterKeyProvider keyProvider = KmsMasterKeyProvider.builder().buildStrict(kmsArn);
 
-        // 3. Instantiate a JCE master key provider.
+        // 3. Instantiate a JCE master key provider
         // Because the user does not have access to the private escrow key,
         // they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 4. Combine the providers into a single master key provider.
-        final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(kms, escrowPub);
+        // 4. Combine the providers into a single master key provider
+        final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(keyProvider, escrowPub);
 
         // 5. Encrypt the file.
         // To simplify the code, we omit the encryption context. Production code should always
@@ -99,22 +114,32 @@ public class EscrowedEncryptExample {
 
     private static void standardDecrypt(final String kmsArn, final String fileName) throws Exception {
         // Decrypt with the AWS KMS CMK and the escrow public key. You can use a combined provider,
-        // as shown here, or just the KMS master key provider.
+        // as shown here, or just the AWS KMS master key provider.
 
-        // 1. Instantiate the AWS Encryption SDK.
-        final AwsCrypto crypto = new AwsCrypto();
+        // 1. Instantiate the SDK.
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .build();
 
-        // 2. Instantiate a KMS master key provider.
-        final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
+        // 2. Instantiate an AWS KMS master key provider in strict mode using buildStrict()
+        //
+        // In strict mode, the AWS KMS master key provider encrypts and decrypts only by using the key
+        // indicated by kmsArn.
+        final KmsMasterKeyProvider keyProvider = KmsMasterKeyProvider.builder().buildStrict(kmsArn);
 
-        // 3. Instantiate a JCE master key provider.
+        // 3. Instantiate a JCE master key provider
         // Because the user does not have access to the private
         // escrow key, they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
-        // 4. Combine the providers into a single master key provider.
-        final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(kms, escrowPub);
+        // 4. Combine the providers into a single master key provider
+        final MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(keyProvider, escrowPub);
 
         // 5. Decrypt the file.
         // To simplify the code, we omit the encryption context. Production code should always
@@ -131,8 +156,8 @@ public class EscrowedEncryptExample {
         // You can decrypt the stream using only the private key.
         // This method does not call AWS KMS.
 
-        // 1. Instantiate the AWS Encryption SDK.
-        final AwsCrypto crypto = new AwsCrypto();
+        // 1. Instantiate the SDK
+        final AwsCrypto crypto = AwsCrypto.standard();
 
         // 2. Instantiate a JCE master key provider.
         // This method call uses the escrowed private key, not null.
