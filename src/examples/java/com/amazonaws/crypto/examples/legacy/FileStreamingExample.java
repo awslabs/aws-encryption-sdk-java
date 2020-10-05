@@ -3,6 +3,7 @@
 
 package com.amazonaws.crypto.examples.legacy;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,10 +40,9 @@ import com.amazonaws.util.IOUtils;
  * encrypt and decrypt streaming data.
  */
 public class FileStreamingExample {
-    private static String srcFile;
 
-    public static void main(String[] args) throws IOException {
-        srcFile = args[0];
+    public static void run(final File sourcePlaintextFile) throws IOException {
+        final String srcFile = sourcePlaintextFile.getAbsolutePath();
 
         // In this example, we generate a random key. In practice,
         // you would get a key from an existing store.

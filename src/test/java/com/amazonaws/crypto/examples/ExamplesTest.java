@@ -83,7 +83,7 @@ class ExamplesTest {
             if (parameterTypes[i].isAssignableFrom(AwsKmsCmkId.class)) {
                 parameterValues[i] = AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]);
             } else if (parameterTypes[i].isAssignableFrom(List.class)) {
-                parameterValues[i] = Collections.singletonList(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[1]));
+                parameterValues[i] = Arrays.asList(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]), AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[1]));
             } else if (parameterTypes[i].isAssignableFrom(byte[].class)) {
                 parameterValues[i] = STATIC_PLAINTEXT;
             } else if (parameterTypes[i].isAssignableFrom(File.class)) {

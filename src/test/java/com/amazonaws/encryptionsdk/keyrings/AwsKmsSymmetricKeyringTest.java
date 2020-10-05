@@ -161,6 +161,21 @@ class AwsKmsSymmetricKeyringTest {
     }
 
     @Test
+    void testGenerateDataKeyFailsWhenEncryptionMaterialsHaveEncryptedDataKeys() {
+        List<KeyBlob> encryptedDataKeys = new ArrayList<>();
+        encryptedDataKeys.add((KeyBlob)ENCRYPTED_KEY);
+
+        EncryptionMaterials encryptionMaterials = EncryptionMaterials.newBuilder()
+            .setAlgorithm(ALGORITHM_SUITE)
+            .setEncryptionContext(ENCRYPTION_CONTEXT)
+            // Purposely provide encrypted data keys without a cleartext data key
+            .setEncryptedDataKeys(encryptedDataKeys)
+            .build();
+
+        assertThrows(IllegalStateException.class, () -> keyring.onEncrypt(encryptionMaterials));
+    }
+
+    @Test
     void testDecryptFirstKeyFails() {
         DecryptionMaterials decryptionMaterials = DecryptionMaterials.newBuilder()
             .setAlgorithm(ALGORITHM_SUITE)

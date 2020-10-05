@@ -6,6 +6,7 @@ package com.amazonaws.crypto.examples.legacy;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.EncryptRequest;
+import com.amazonaws.encryptionsdk.ParsedCiphertext;
 import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
@@ -14,6 +15,7 @@ import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -55,8 +57,12 @@ public class SimpleDataKeyCachingExample {
      */
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-    public static void main(final String[] args) {
-        encryptWithCaching(AwsKmsCmkId.fromString(args[0]));
+    public static void run(AwsKmsCmkId kmsCmkArn) {
+        final byte[] result = encryptWithCaching(kmsCmkArn);
+        assert result != null;
+        final ParsedCiphertext parsedResult = new ParsedCiphertext(result);
+        assert 1 == parsedResult.getEncryptedKeyBlobs().size();
+        assert Arrays.equals(kmsCmkArn.toString().getBytes(), parsedResult.getEncryptedKeyBlobs().get(0).getProviderInformation());
     }
 
     static byte[] encryptWithCaching(AwsKmsCmkId kmsCmkArn) {

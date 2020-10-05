@@ -53,6 +53,10 @@ public class AwsKmsSymmetricKeyring implements Keyring {
     }
 
     private EncryptionMaterials generateDataKey(final EncryptionMaterials encryptionMaterials) {
+        // Ensure the materials do not already have EDKs
+        if (encryptionMaterials.getEncryptedDataKeys() != null && encryptionMaterials.getEncryptedDataKeys().size() > 0) {
+            throw new IllegalStateException("Attempting to generate data keys for EncryptionMaterials that already have them");
+        }
         final DataKeyEncryptionDao.GenerateDataKeyResult result = this.dataKeyEncryptionDao.generateDataKey(
             this.keyName, encryptionMaterials.getAlgorithm(), encryptionMaterials.getEncryptionContext());
         return encryptionMaterials

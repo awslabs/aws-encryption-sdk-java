@@ -3,13 +3,7 @@
 
 package com.amazonaws.crypto.examples.cryptomaterialsmanager.custom;
 
-import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.AwsCryptoResult;
-import com.amazonaws.encryptionsdk.CryptoAlgorithm;
-import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
-import com.amazonaws.encryptionsdk.DecryptRequest;
-import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
-import com.amazonaws.encryptionsdk.EncryptRequest;
+import com.amazonaws.encryptionsdk.*;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
 import com.amazonaws.encryptionsdk.keyrings.StandardKeyrings;
 import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
@@ -65,8 +59,8 @@ public class AlgorithmSuiteEnforcement {
 
         private final CryptoMaterialsManager cmm;
         private final Set<CryptoAlgorithm> ALLOWED_ALGORITHM_SUITES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,  // the default algorithm suite
-                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256)));          // the recommended unsigned algorithm suite
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,  // the default non-committing algorithm suite
+                CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256)));          // the recommended unsigned non-committing algorithm suite
 
         /**
          * Set up the inner cryptographic materials manager using the provided keyring.
@@ -111,7 +105,20 @@ public class AlgorithmSuiteEnforcement {
      */
     public static void run(final AwsKmsCmkId awsKmsCmk, final byte[] sourcePlaintext) {
         // Instantiate the AWS Encryption SDK.
-        final AwsCrypto awsEncryptionSdk = AwsCrypto.standard();
+        // `withCommitmentPolicy(CommitmentPolicy)` configures the client with
+        // a commitment policy that dictates whether the client is required to encrypt
+        // using committing algorithms and whether the client must require that the messages
+        // it decrypts were encrypted using committing algorithms.
+        // In this example, we set the commitment policy to `ForbidEncryptAllowDecrypt`.
+        // This policy enforces that the client writes using non-committing algorithms,
+        // and allows decrypting of messages created with committing algorithms.
+        //
+        // If this value is not set, the client is configured to use our recommended default:
+        // `RequireEncryptRequireDecrypt`.
+        // This policy enforces that the client uses committing algorithms
+        // to encrypt and enforces that the client only decrypts messages created with committing algorithms.
+        // We recommend using the default whenever possible.
+        final AwsCrypto awsEncryptionSdk = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
 
         // Prepare your encryption context.
         // Remember that your encryption context is NOT SECRET.

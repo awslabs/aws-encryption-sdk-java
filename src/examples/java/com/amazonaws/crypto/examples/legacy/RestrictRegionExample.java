@@ -11,6 +11,7 @@ import java.util.Map;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.CommitmentPolicy;
@@ -37,18 +38,12 @@ import com.amazonaws.services.kms.AWSKMS;
  */
 public class RestrictRegionExample {
 
+    private static final String ACCOUNT_ID = "658956600833";
+    private static final String PARTITION = "aws";
+    private static final String US_WEST_2 = "us-west-2";
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-    public static void main(final String[] args) {
-        final String keyName = args[0];
-        final String partition = args[1];
-        final String accountId = args[2];
-        final String region = args[3];
-
-        encryptAndDecrypt(keyName, partition, accountId, region);
-    }
-
-    static void encryptAndDecrypt(final String keyName, final String partition, final String accountId, final String region) {
+    public static void run(final AwsKmsCmkId keyName) {
         // Instantiate the SDK.
         // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
         // which enforces that this client only encrypts using committing algorithm suites and enforces
@@ -60,7 +55,7 @@ public class RestrictRegionExample {
                 .build();
 
         // 2. Instantiate the AWS KMS client for the desired region
-        final AWSKMS kmsClient = AWSKMSClientBuilder.standard().withRegion(region).build();
+        final AWSKMS kmsClient = AWSKMSClientBuilder.standard().withRegion(US_WEST_2).build();
 
         // 3. Instantiate an AWS KMS master key provider for encryption.
         //
@@ -68,7 +63,7 @@ public class RestrictRegionExample {
         // indicated by keyName.
         // This example uses an AWS KMS CMK ARN. Because this master key provider will
         // only be used for encryption, an AWS KMS CMK alias could also be used.
-        final KmsMasterKeyProvider encryptingKeyProvider = KmsMasterKeyProvider.builder().buildStrict(keyName);
+        final KmsMasterKeyProvider encryptingKeyProvider = KmsMasterKeyProvider.builder().buildStrict(keyName.toString());
 
         // 4. Create an encryption context
         //
@@ -87,7 +82,7 @@ public class RestrictRegionExample {
         // is allowed to attempt decryption with to a particular partition and account.
         // Configuring a Discovery AWS KMS master key provider with a Discovery Filter is a best practice,
         // but is not required to restrict the CMKs by region.
-        final DiscoveryFilter discoveryFilter = new DiscoveryFilter(partition, accountId);
+        final DiscoveryFilter discoveryFilter = new DiscoveryFilter(PARTITION, ACCOUNT_ID);
 
         // 7. Instantiate an AWS KMS master key provider for decryption in discovery mode (`buildDiscovery`) with a
         // custom client factory for the desired region.
@@ -102,13 +97,13 @@ public class RestrictRegionExample {
         // the attempted AWS KMS CMKs to a particular partition and account.
         final KmsMasterKeyProvider decryptingKeyProvider = KmsMasterKeyProvider.builder()
                 .withCustomClientFactory(cmkRegion -> {
-                    if(cmkRegion.equals(region)) {
+                    if(cmkRegion.equals(US_WEST_2)) {
                         // return the previously built AWS KMS client so that we do
                         // not create a new client on every decrypt call.
                         return kmsClient;
                     }
 
-                    throw new AwsCryptoException("Only " + region + " is supported");
+                    throw new AwsCryptoException("Only " + US_WEST_2 + " is supported");
                 })
                 .buildDiscovery(discoveryFilter);
 

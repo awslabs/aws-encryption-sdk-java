@@ -10,6 +10,7 @@ import java.util.Map;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.CommitmentPolicy;
@@ -34,17 +35,11 @@ import com.amazonaws.encryptionsdk.kms.DiscoveryFilter;
  */
 public class DiscoveryDecryptionExample {
 
+    private static final String ACCOUNT_ID = "658956600833";
+    private static final String PARTITION = "aws";
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-    public static void main(final String[] args) {
-        final String keyName = args[0];
-        final String partition = args[1];
-        final String accountId = args[2];
-
-        encryptAndDecrypt(keyName, partition, accountId);
-    }
-
-    static void encryptAndDecrypt(final String keyName, final String partition, final String accountId) {
+    public static void run(final AwsKmsCmkId keyName) {
         // 1. Instantiate the SDK
         // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
         // which enforces that this client only encrypts using committing algorithm suites and enforces
@@ -59,7 +54,7 @@ public class DiscoveryDecryptionExample {
         //
         // In strict mode (`buildStrict`), the AWS KMS master key provider encrypts and decrypts only by using the key
         // indicated by keyName.
-        final KmsMasterKeyProvider encryptingKeyProvider = KmsMasterKeyProvider.builder().buildStrict(keyName);
+        final KmsMasterKeyProvider encryptingKeyProvider = KmsMasterKeyProvider.builder().buildStrict(keyName.toString());
 
         // 3. Create an encryption context
         //
@@ -80,7 +75,7 @@ public class DiscoveryDecryptionExample {
         // This example only configures the filter with one account, but more may be specified
         // as long as they exist within the same partition.
         // This filter is not required for Discovery mode, but is a best practice.
-        final DiscoveryFilter discoveryFilter = new DiscoveryFilter(partition, accountId);
+        final DiscoveryFilter discoveryFilter = new DiscoveryFilter(PARTITION, ACCOUNT_ID);
 
         // 6. Instantiate an AWS KMS master key provider for decryption in discovery mode (`buildDiscovery`) with a
         // Discovery Filter.

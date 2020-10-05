@@ -4,6 +4,7 @@
 package com.amazonaws.crypto.examples.keyring.awskms;
 
 import com.amazonaws.arn.Arn;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.encryptionsdk.*;
 import com.amazonaws.encryptionsdk.keyrings.Keyring;
@@ -46,10 +47,9 @@ import java.util.*;
  * see the {@link CustomKmsClientConfig} example.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
- * see the {@link DiscoveryDecryptInRegionOnly}
- * and {@link DiscoveryDecryptWithPreferredRegions} examples.
+ * see the {@link DiscoveryDecryptInRegionOnly} example.
  */
-public class CustomDataKeyEncryptionDao {
+public class CustomCredentialProvider {
 
     static class CustomMultiPartitionDao implements DataKeyEncryptionDao {
 
@@ -120,6 +120,10 @@ public class CustomDataKeyEncryptionDao {
 
         // Create the keyring that determines how your data keys are protected.
         final String region = Arn.fromString(awsKmsCmk.toString()).getRegion();
+        // We only need a custom DAO because we want different credentials for different regions.
+        // If we want the same AWSCredentialsProvider for all regions,
+        // we can just use
+        // StandardKeyrings.awsKmsSymmetricMultiCmkBuilder().credentialsProvider(awsCredentialsProvider).build();
         final Keyring keyring = StandardKeyrings.awsKmsSymmetric(
             CustomMultiPartitionDao.daoGivenRegionId(region),
             awsKmsCmk);

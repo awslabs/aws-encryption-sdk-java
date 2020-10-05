@@ -11,6 +11,7 @@ import java.util.Map;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 
@@ -31,13 +32,7 @@ public class SetEncryptionAlgorithmExample {
 
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-    public static void main(final String[] args) {
-        final String keyArn = args[0];
-
-        encryptAndDecrypt(keyArn);
-    }
-
-    static void encryptAndDecrypt(final String keyArn) {
+    public static void run(final AwsKmsCmkId keyArn) {
         // 1. Instantiate the SDK with the algorithm for encryption
         //
         // `withEncryptionAlgorithm(cryptoAlgorithm)` configures the client to encrypt
@@ -62,7 +57,7 @@ public class SetEncryptionAlgorithmExample {
         // indicated by keyArn.
         // To encrypt and decrypt with this master key provider, use an AWS KMS key ARN to identify the CMKs.
         // In strict mode, the decrypt operation requires a key ARN.
-        final KmsMasterKeyProvider keyProvider = KmsMasterKeyProvider.builder().buildStrict(keyArn);
+        final KmsMasterKeyProvider keyProvider = KmsMasterKeyProvider.builder().buildStrict(keyArn.toString());
 
         // 3. Create an encryption context
         // Most encrypted data should have an associated encryption context

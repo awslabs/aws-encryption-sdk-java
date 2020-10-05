@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.amazonaws.encryptionsdk.TestUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.Before;
 import org.mockito.ArgumentCaptor;
 
 import com.amazonaws.AbortedException;
@@ -57,25 +56,8 @@ import com.amazonaws.services.kms.AWSKMSClientBuilder;
 class KMSProviderBuilderIntegrationTests {
 
     private static final String AWS_KMS_PROVIDER_ID = "aws-kms";
-
-    private AWSKMS testUSWestClient__;
-    private AWSKMS testEUCentralClient__;
-    private RegionalClientSupplier testClientSupplier__;
-
-    @Before
-    void setup() {
-        testUSWestClient__ = spy(AWSKMSClientBuilder.standard().withRegion("us-west-2").build());
-        testEUCentralClient__ = spy(AWSKMSClientBuilder.standard().withRegion("eu-central-1").build());
-        testClientSupplier__ = regionName -> {
-            if (regionName.equals("us-west-2")) {
-                return testUSWestClient__;
-            } else if (regionName.equals("eu-central-1")) {
-                return testEUCentralClient__;
-            } else {
-                throw new AwsCryptoException("test supplier only configured for us-west-2 and eu-central-1");
-            }
-        };
-    }
+    private final AWSKMS testUSWestClient__ = spy(AWSKMSClientBuilder.standard().withRegion("us-west-2").build());
+    private final AWSKMS testEUCentralClient__ = spy(AWSKMSClientBuilder.standard().withRegion("eu-central-1").build());
 
     @Test
     void whenBogusRegionsDecrypted_doesNotLeakClients() {
@@ -150,6 +132,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInStrictMode_encryptDecrypt() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .buildStrict(KMSTestFixtures.TEST_KEY_IDS[0]);
@@ -163,6 +146,15 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInStrictMode_encryptDecryptMultipleCmks() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> {
+            if (regionName.equals("us-west-2")) {
+                return testUSWestClient__;
+            } else if (regionName.equals("eu-central-1")) {
+                return testEUCentralClient__;
+            } else {
+                throw new AwsCryptoException("test supplier only configured for us-west-2 and eu-central-1");
+            }
+        };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .buildStrict(
@@ -179,6 +171,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInStrictMode_encryptSingleBadKeyIdFails() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .withDefaultRegion("us-west-2")
@@ -193,6 +186,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInStrictMode_decryptBadEDKFails() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .withDefaultRegion("us-west-2")
@@ -210,6 +204,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInDiscoveryMode_decrypt() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider singleCmkMkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .buildStrict(KMSTestFixtures.TEST_KEY_IDS[0]);
@@ -224,6 +219,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedInDiscoveryMode_decryptBadEDKFails() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .withDefaultRegion("us-west-2")
@@ -242,6 +238,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedWithDiscoveryFilter_decrypt() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider singleCmkMkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .buildStrict(KMSTestFixtures.TEST_KEY_IDS[0]);
@@ -260,6 +257,7 @@ class KMSProviderBuilderIntegrationTests {
 
     @Test
     void whenConstructedWithDiscoveryFilter_decryptBadEDKFails() {
+        RegionalClientSupplier testClientSupplier__ = regionName -> { return testUSWestClient__; };
         KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
             .withCustomClientFactory(testClientSupplier__)
             .withDefaultRegion("us-west-2")

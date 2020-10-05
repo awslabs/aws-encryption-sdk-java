@@ -37,14 +37,12 @@ We start with AWS KMS examples, then show how to use other wrapping keys.
         * [with master key providers](./java/com/amazonaws/crypto/examples/masterkeyprovider/awskms/DiscoveryDecrypt.java)
     * How to decrypt within a region
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptInRegionOnly.java)
-    * How to decrypt with a preferred region but failover to others
-        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/DiscoveryDecryptWithPreferredRegions.java)
     * How to reproduce the behavior of an AWS KMS master key provider
-        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/ActSimilarToAwsKmsMasterKeyProvider.java)
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/ActLikeAwsKmsMasterKeyProvider.java)
     * How to use AWS KMS clients with custom configuration
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/CustomKmsClientConfig.java)
-    * How to use different AWS KMS client for different regions
-        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/CustomDataKeyEncryptionDao.java)
+    * How to use different credentials per regions
+        * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/awskms/CustomCredentialProvider.java)
 * Using raw wrapping keys
     * How to use a raw AES wrapping key
         * [with keyrings](./java/com/amazonaws/crypto/examples/keyring/rawaes/RawAes.java)

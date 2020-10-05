@@ -363,7 +363,7 @@ public class DefaultCryptoMaterialsManagerTest {
     }
 
     private EncryptionMaterials easyGenMaterialsForKeyring(Consumer<EncryptionMaterialsRequest.Builder> customizer) {
-        EncryptionMaterialsRequest.Builder request = EncryptionMaterialsRequest.newBuilder();
+        EncryptionMaterialsRequest.Builder request = EncryptionMaterialsRequest.newBuilder().setCommitmentPolicy(commitmentPolicy);
 
         customizer.accept(request);
 
@@ -381,7 +381,6 @@ public class DefaultCryptoMaterialsManagerTest {
     @Test
     public void decrypt_testSimpleRoundTrip() throws Exception {
         for (CryptoAlgorithm algorithm : CryptoAlgorithm.values()) {
-            CommitmentPolicy policy = algorithm.isCommitting() ? CommitmentPolicy.RequireEncryptRequireDecrypt : CommitmentPolicy.ForbidEncryptAllowDecrypt;
             EncryptionMaterials encryptMaterials = easyGenMaterials(
                     builder -> builder.setRequestedAlgorithm(algorithm)
             );

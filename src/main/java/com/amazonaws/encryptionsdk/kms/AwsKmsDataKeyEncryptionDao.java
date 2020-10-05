@@ -133,6 +133,9 @@ public class AwsKmsDataKeyEncryptionDao implements DataKeyEncryptionDao, KmsMeth
         } catch (final AmazonServiceException | UnsupportedRegionException ex) {
             throw new CannotUnwrapDataKeyException(ex);
         }
+        if (kmsResult == null) {
+            throw new IllegalStateException("Received an empty response from KMS");
+        }
         if (kmsResult.getKeyId() == null) {
             throw new IllegalStateException("Received an empty keyId from KMS");
         }

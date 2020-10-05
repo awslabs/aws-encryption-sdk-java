@@ -31,11 +31,10 @@ import java.util.Map;
  * see the {@link MultipleRegions} example.
  * <p>
  * For another example of how to use the AWS KMS symmetric keyring with a custom client configuration,
- * see the {@link CustomDataKeyEncryptionDao} example.
+ * see the {@link CustomCredentialProvider} example.
  * <p>
  * For examples of how to use the AWS KMS symmetric multi-region discovery keyring on decrypt,
- * see the {@link DiscoveryDecryptInRegionOnly}
- * and {@link DiscoveryDecryptWithPreferredRegions} examples.
+ * see the {@link DiscoveryDecryptInRegionOnly} example.
  */
 public class CustomKmsClientConfig {
 

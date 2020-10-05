@@ -3,6 +3,7 @@
 
 package com.amazonaws.crypto.examples.legacy;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.GeneralSecurityException;
@@ -15,6 +16,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoOutputStream;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.encryptionsdk.CommitmentPolicy;
@@ -58,14 +60,14 @@ public class EscrowedEncryptExample {
     private static PublicKey publicEscrowKey;
     private static PrivateKey privateEscrowKey;
 
-    public static void main(final String[] args) throws Exception {
+    public static void run(final AwsKmsCmkId awsKmsCmkm, final File sourcePlaintextFile) throws Exception {
         // This sample generates a new random key for each operation.
         // In practice, you would distribute the public key and save the private key in secure
         // storage.
         generateEscrowKeyPair();
 
-        final String kmsArn = args[0];
-        final String fileName = args[1];
+        final String kmsArn = awsKmsCmkm.toString();
+        final String fileName = sourcePlaintextFile.getAbsolutePath();
 
         standardEncrypt(kmsArn, fileName);
         standardDecrypt(kmsArn, fileName);

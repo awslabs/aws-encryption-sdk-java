@@ -51,7 +51,7 @@ class DecryptRequestTest {
     @Test
     void testKeyringUsesDefaultCmm() {
 
-        byte[] ciphertext = new AwsCrypto().encrypt(EncryptRequest.builder()
+        byte[] ciphertext = AwsCrypto.standard().encrypt(EncryptRequest.builder()
                 .keyring(new TestKeyring("keyId"))
                 .plaintext(new byte[]{4, 5, 6})
                 .build()).getResult();

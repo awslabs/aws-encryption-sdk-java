@@ -6,10 +6,12 @@ package com.amazonaws.crypto.examples.legacy;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
+import com.amazonaws.encryptionsdk.kms.AwsKmsCmkId;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.CommitmentPolicy;
@@ -33,14 +35,10 @@ public class MultipleCmkEncryptExample {
 
     private static final byte[] EXAMPLE_DATA = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-    public static void main(final String[] args) {
-        final String keyArn1 = args[0];
-        final String keyArn2 = args[1];
+    public static void run(final List<AwsKmsCmkId> keyArns) {
+        final String keyArn1 = keyArns.get(0).toString();
+        final String keyArn2 = keyArns.get(1).toString();
 
-        encryptAndDecrypt(keyArn1, keyArn2);
-    }
-
-    static void encryptAndDecrypt(final String keyArn1, final String keyArn2) {
         // Instantiate the SDK.
         // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
         // which enforces that this client only encrypts using committing algorithm suites and enforces

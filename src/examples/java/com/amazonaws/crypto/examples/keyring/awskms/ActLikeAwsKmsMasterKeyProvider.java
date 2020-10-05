@@ -24,30 +24,23 @@ import static java.util.stream.Collectors.toList;
 /**
  * You might have used master key providers to protect your data keys
  * in an earlier version of the AWS Encryption SDK.
- * This example shows how to configure a keyring that behaves similarly to an AWS KMS master key provider.
+ * This example shows how to configure a keyring that behaves similarly to an AWS KMS master key provider in strict mode.
  * <p>
  * The AWS Encryption SDK provided an AWS KMS master key provider for
  * interacting with AWS Key Management Service (AWS KMS).
  *
- * On encrypt, the AWS KMS master key provider behaves like the AWS KMS symmetric multi-CMK keyring
+ * On encrypt, the AWS KMS master key provider in strict mode behaves like the AWS KMS symmetric multi-CMK keyring
  * and encrypts with all CMKs that you identify.
  *
- * However, on decrypt,
- * the AWS KMS master key provider reviews each encrypted data key (EDK).
+ * On decrypt, the AWS KMS master key provider in discovery reviews each encrypted data key (EDK).
  * If the EDK was encrypted under an AWS KMS CMK,
  * the AWS KMS master key provider attempts to decrypt it.
  * Whether decryption succeeds depends on permissions on the CMK.
- * This continues until the AWS KMS master key provider either runs out of EDKs
+ * This continues until the AWS KMS master key provider in discovery mode either runs out of EDKs
  * or succeeds in decrypting an EDK.
  * In order to maintain a similar behavior,
  * we use an AWS KMS symmetric multi-region keyring
  * that has a list of regions it will attempt decryption in.
- *
- * We have found that separating these two behaviors
- * makes the expected behavior clearer,
- * so that is what we did with the AWS KMS symmetric keyring and the AWS KMS region discovery keyring.
- * However, as you migrate from master key providers to keyrings,
- * you might want a keyring that behaves similarly the AWS KMS master key provider.
  *
  * The AWS KMS symmetric multi-region keyring throws an error on encryption,
  * so it cannot be combined with an AWS KMS symmetric multi-CMK in a multi-keyring,
@@ -59,10 +52,10 @@ import static java.util.stream.Collectors.toList;
  * For more examples of how to use the AWS KMS keyrings,
  * see the 'keyring/awskms' directory.
  */
-public class ActSimilarToAwsKmsMasterKeyProvider {
+public class ActLikeAwsKmsMasterKeyProvider {
 
     /**
-     * Demonstrate how to create a keyring that behaves like an AWS KMS master key provider.
+     * Demonstrate how to create keyrings that behave like an AWS KMS master key provider.
      *
      * @param awsKmsCmk             The ARN of an AWS KMS CMK that protects data keys
      * @param awsKmsAdditionalCmks  Additional ARNs of secondary AWS KMS CMKs
@@ -86,16 +79,14 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         //
         // When encrypting, this master key provider generates the data key using the first CMK in the list
         // and encrypts the data key using all specified CMKs.
-        // However, when decrypting, this master key provider attempts to decrypt
-        // any data keys that were encrypted under an AWS KMS CMK.
         final List<String> masterKeyProviderCmks = new ArrayList<>();
         masterKeyProviderCmks.add(awsKmsCmk.toString());
         masterKeyProviderCmks.addAll(awsKmsAdditionalCmks.stream().map(AwsKmsCmkId::toString).collect(toList()));
         final KmsMasterKeyProvider masterKeyProviderToReplicate = KmsMasterKeyProvider.builder().buildStrict(masterKeyProviderCmks);
 
-        // Create a CMK keyring that encrypts and decrypts using the specified AWS KMS CMKs.
+        // Create a keyring that encrypts and decrypts using the specified AWS KMS CMKs.
         //
-        // This keyring reproduces the encryption behavior of the AWS KMS master key provider.
+        // This keyring reproduces the encryption behavior of the AWS KMS master key provider in strict mode.
         //
         // The AWS KMS symmetric multi-CMK keyring requires that you explicitly identify the CMK
         // that you want the keyring to use to generate the data key.
@@ -137,14 +128,9 @@ public class ActSimilarToAwsKmsMasterKeyProvider {
         //
         // Therefore, you should use these keyrings separately (one for encrypt and one for decrypt).
         //
-        // The CMK keyring reproduces the encryption behavior
-        // and the discovery keyring reproduces the decryption behavior.
-        // This also means that it does not matter if the CMK keyring fails to decrypt.
-        // For example, if you configured the CMK keyring with aliases,
-        // it works on encrypt but fails to match any encrypted data keys on decrypt
-        // because the serialized key name is the resulting CMK ARN rather than the alias name.
-        // However, because the discovery keyring attempts to decrypt any AWS KMS-encrypted
-        // data keys that it finds, you are still able to successfully decrypt the message.
+        // cmkKeyring reproduces the encryption behavior of the master key provider in strict mode
+        // and discoveryKeyring reproduces the decryption behavior of the master key provider in discovery mode
+        // with additional filtering.
 
         // Encrypt your plaintext data.
         final AwsCryptoResult<byte[]> encryptResult = awsEncryptionSdk.encrypt(

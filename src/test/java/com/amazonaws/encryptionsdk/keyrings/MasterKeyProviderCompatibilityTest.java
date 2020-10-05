@@ -47,13 +47,12 @@ class MasterKeyProviderCompatibilityTest {
     private static final String KEY_NAMESPACE = "TestKeyNamespace";
     private static final String KEY_NAME = "TestKeyName";
     private static final byte[] PLAINTEXT = RandomBytesGenerator.generate(1000);
-    private final AwsCrypto awsCrypto = new AwsCrypto();
+    private final AwsCrypto awsCrypto = AwsCrypto.standard();
 
     @Tag(TestUtils.TAG_INTEGRATION)
     @Test
     void testAwsKmsKeyringCompatibility() {
-        MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
+        MasterKeyProvider<KmsMasterKey> mkp = KmsMasterKeyProvider.builder().buildStrict(KMSTestFixtures.TEST_KEY_IDS[0]);
         Keyring keyring = StandardKeyrings.awsKmsSymmetricMultiCmk(AwsKmsCmkId.fromString(KMSTestFixtures.TEST_KEY_IDS[0]));
 
         testCompatibility(keyring, mkp);
@@ -97,8 +96,7 @@ class MasterKeyProviderCompatibilityTest {
     @Test
     void testMultiKeyringCompatibility() {
         SecretKey key = generateRandomKey();
-        MasterKeyProvider<KmsMasterKey> mkp1 = KmsMasterKeyProvider.builder()
-                .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0]).build();
+        MasterKeyProvider<KmsMasterKey> mkp1 = KmsMasterKeyProvider.builder().buildStrict(KMSTestFixtures.TEST_KEY_IDS[0]);
         JceMasterKey mkp2 = JceMasterKey.getInstance(key, KEY_NAMESPACE, KEY_NAME, "AES/GCM/NoPadding");
 
         MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mkp1, mkp2);
