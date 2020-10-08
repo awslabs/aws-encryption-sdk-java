@@ -2,7 +2,7 @@
 
 ## 2.0.0 -- 2020-09-24
 
-* feat!: Updates to the AWS Encryption SDK. d60db0b
+* feat!: Updates to the AWS Encryption SDK. 4678ffa
 
 ### BREAKING CHANGES
 
@@ -13,7 +13,7 @@ See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/migration
 
 ## 1.7.0 -- 2020-09-24
 
-* feat: Updates to the AWS Encryption SDK. bdb31dc
+* feat: Updates to the AWS Encryption SDK. a6be12a
 
 ## 1.6.2 -- 2020-05-26
 
