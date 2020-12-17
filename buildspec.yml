@@ -1,0 +1,25 @@
+version: 0.2
+
+batch:
+  fast-fail: false
+  build-list:
+    - identifier: openjdk8
+      buildspec: codebuild/openjdk8.yml
+      env:
+        env:
+        image: aws/codebuild/standard:3.0
+    - identifier: openjdk11
+      buildspec: codebuild/openjdk11.yml
+      env:
+        env:
+        image: aws/codebuild/standard:3.0
+    - identifier: corretto8
+      buildspec: codebuild/corretto8.yml
+      env:
+        env:
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+    - identifier: corretto11
+      buildspec: codebuild/corretto11.yml
+      env:
+        env:
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
