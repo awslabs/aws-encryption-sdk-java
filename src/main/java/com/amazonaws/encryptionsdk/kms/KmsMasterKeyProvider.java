@@ -245,10 +245,17 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
 
         /**
          * Builds the master key provider in Strict Mode.
-         * KMS Master Key Providers in Strict Mode will only attempt to decrypt using the
-         * keys listed in {@code keyIds}.
+         * KMS Master Key Providers in Strict Mode will only attempt to decrypt using
+         * key ARNs listed in {@code keyIds}.
          * KMS Master Key Providers in Strict Mode will encrypt data keys using the keys
          * listed in {@code keyIds}
+         *
+         * In Strict Mode, one or more CMKs must be provided.
+         * For providers that will only be used for encryption,
+         * you can use any valid KMS key identifier.
+         * For providers that will be used for decryption,
+         * you must use the key ARN;
+         * key ids, alias names, and alias ARNs are not supported.
          *
          * @param keyIds
          * @return
@@ -267,10 +274,17 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
 
         /**
          * Builds the master key provider in strict mode.
-         * KMS Master Key Providers in Strict Mode will only attempt to decrypt using the
-         * keys listed in {@code keyIds}.
+         * KMS Master Key Providers in Strict Mode will only attempt to decrypt using
+         * key ARNs listed in {@code keyIds}.
          * KMS Master Key Providers in Strict Mode will encrypt data keys using the keys
          * listed in {@code keyIds}
+         *
+         * In Strict Mode, one or more CMKs must be provided.
+         * For providers that will only be used for encryption,
+         * you can use any valid KMS key identifier.
+         * For providers that will be used for decryption,
+         * you must use the key ARN;
+         * key ids, alias names, and alias ARNs are not supported.
          *
          * @param keyIds
          * @return
