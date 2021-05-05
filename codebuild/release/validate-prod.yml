@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: $JAVA_ENV_VERSION
+  pre_build:
+    commands:
+      - git clone https://github.com/aws-samples/busy-engineers-document-bucket.git
+      - cd busy-engineers-document-bucket/exercises/java/encryption-context-complete
+  build:
+    commands:
+      - |
+        mvn verify \
+          -Dcheckstyle.skip \
+          -Desdk.version=$VERSION \
+          -Dmaven.compiler.target=$JAVA_NUMERIC_VERSION \
+          -Dmaven.compiler.source=$JAVA_NUMERIC_VERSION

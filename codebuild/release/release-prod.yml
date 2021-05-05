@@ -1,0 +1,65 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    SONA_USERNAME: Sonatype-Team-Account:Username 
+    SONA_PASS: Sonatype-Team-Account:Password
+
+phases:
+  install:
+    runtime-versions:
+      java: openjdk8
+  pre_build:
+    commands:
+      - git checkout $COMMIT_ID
+      - FOUND_VERSION=$(grep version pom.xml | head -n 1 | sed -n 's/[ \t]*<version>\(.*\)<\/version>/\1/p')
+      - |
+        if expr ${FOUND_VERSION} != ${VERSION}; then
+          echo "pom.xml version (${FOUND_VERSION}) does not match expected version (${VERSION}), stopping"
+          exit 1;
+        fi
+  build:
+    commands:
+      - echo "Doing nothing, release step is currently a no-op"
+
+
+batch:
+  fast-fail: false
+  build-graph:
+    - identifier: release_to_prod
+    - identifier: validate_prod_release_openjdk8
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: openjdk8
+          JAVA_NUMERIC_VERSION: 8
+        image: aws/codebuild/standard:3.0
+    - identifier: validate_prod_release_openjdk11
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: openjdk11
+          JAVA_NUMERIC_VERSION: 11
+        image: aws/codebuild/standard:3.0
+    - identifier: validate_prod_release_corretto8
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: corretto8
+          JAVA_NUMERIC_VERSION: 8
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+    - identifier: validate_prod_release_corretto11
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: corretto11
+          JAVA_NUMERIC_VERSION: 11
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
