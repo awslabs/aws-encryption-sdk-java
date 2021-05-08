@@ -6,7 +6,7 @@ env:
     DOMAIN: crypto-tools-internal
     REPOSITORY: java-esdk-staging
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
-    MVN_GPG: ~/mvn_gpg
+    MVN_GPG: mvn_gpg
   parameter-store:
     ACCOUNT: /CodeBuild/AccountId
   secrets-manager:
@@ -28,8 +28,8 @@ phases:
         fi
       - export CODEARTIFACT_TOKEN=$(aws codeartifact get-authorization-token --domain $DOMAIN --domain-owner $ACCOUNT --query authorizationToken --output text --region ${REGION})
       - export CODEARTIFACT_REPO_URL=https://${DOMAIN}-${ACCOUNT}.d.codeartifact.${REGION}.amazonaws.com/maven/${REPOSITORY}
-      - aws secretsmanager get-secret-value --region us-west-2 --secret-id Maven-GPG-Keys --query SecretBinary --output text | base64 -d > ~/mvn_gpg.tgz
-      - tar -xvf ~/mvn_gpg.tgz -C ~
+      - aws secretsmanager get-secret-value --region us-west-2 --secret-id Maven-GPG-Keys --query SecretBinary --output text | base64 -d > mvn_gpg.tgz
+      - tar -xvf mvn_gpg.tgz
   build:
     commands:
       - |
@@ -37,7 +37,7 @@ phases:
           -PpublishingCodeArtifact \
           -Pfast-tests-only \
           -DperformRelease \
-          -Dgpg.homedir="$MVN_GPG" \
+          -Dgpg.homedir="$CODEBUILD_SRC_DIR/$MVN_GPG" \
           -DautoReleaseAfterClose=true \
           -Dgpg.keyname="$GPG_KEY" \
           -Dgpg.passphrase="$GPG_PASS" \
