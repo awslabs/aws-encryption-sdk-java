@@ -35,6 +35,7 @@ phases:
       - |
         mvn deploy \
           -PpublishingCodeArtifact \
+          -Pfast-tests-only \
           -DperformRelease \
           -Dgpg.homedir="$MVN_GPG" \
           -DautoReleaseAfterClose=true \
