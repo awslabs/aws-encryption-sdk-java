@@ -5,6 +5,7 @@ env:
     REGION: us-east-1
     DOMAIN: crypto-tools-internal
     REPOSITORY: java-esdk-staging
+    ROLE: Admin
     MVN_GPG: mvn_gpg
   parameter-store:
     ACCOUNT: /CodeBuild/AccountId
