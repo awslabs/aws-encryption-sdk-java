@@ -25,8 +25,8 @@ phases:
           echo "pom.xml version (${FOUND_VERSION}) does not match expected version (${VERSION}), stopping"
           exit 1;
         fi
-      - apt remove gpg
-      - apt install gnupg1
+      - apt remove gpg -y
+      - apt install gnupg1 -y
       - export CODEARTIFACT_TOKEN=$(aws codeartifact get-authorization-token --domain $DOMAIN --domain-owner $ACCOUNT --query authorizationToken --output text --region ${REGION})
       - export CODEARTIFACT_REPO_URL=https://${DOMAIN}-${ACCOUNT}.d.codeartifact.${REGION}.amazonaws.com/maven/${REPOSITORY}
       - aws secretsmanager get-secret-value --region us-west-2 --secret-id Maven-GPG-Keys --query SecretBinary --output text | base64 -d > mvn_gpg.tgz
