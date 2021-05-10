@@ -8,6 +8,11 @@
       <username>aws</username>
       <password>${codeartifact.token}</password>
     </server>
+    <server>
+      <id>sonatype-nexus-staging</id>
+      <username>${sonatype.username}</username>
+      <password>${sonatype.password}</password>
+    </server>
   </servers>
 
   <profiles>
