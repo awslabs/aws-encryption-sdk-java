@@ -5,8 +5,6 @@ env:
     REGION: us-east-1
     DOMAIN: crypto-tools-internal
     REPOSITORY: java-esdk-staging
-    ROLE: Admin
-    MVN_GPG: mvn_gpg
   parameter-store:
     ACCOUNT: /CodeBuild/AccountId
   secrets-manager:
@@ -16,7 +14,7 @@ env:
 phases:
   install:
     runtime-versions:
-      java: corretto11
+      java: openjdk11
   pre_build:
     commands:
       - git checkout $COMMIT_ID
@@ -38,7 +36,7 @@ phases:
           -PpublishingCodeArtifact \
           -Pfast-tests-only \
           -DperformRelease \
-          -Dgpg.homedir="$HOME/$MVN_GPG" \
+          -Dgpg.homedir="$HOME/mvn_gpg" \
           -DautoReleaseAfterClose=true \
           -Dgpg.keyname="$GPG_KEY" \
           -Dgpg.passphrase="$GPG_PASS" \

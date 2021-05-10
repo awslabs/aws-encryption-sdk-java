@@ -2,13 +2,15 @@ version: 0.2
 
 env:
   secrets-manager:
+    GPG_KEY: Maven-GPG-Keys-Credentials:Keyname
+    GPG_PASS: Maven-GPG-Keys-Credentials:Passphrase
     SONA_USERNAME: Sonatype-Team-Account:Username 
     SONA_PASS: Sonatype-Team-Account:Password
 
 phases:
   install:
     runtime-versions:
-      java: openjdk8
+      java: openjdk11
   pre_build:
     commands:
       - git checkout $COMMIT_ID
@@ -18,9 +20,23 @@ phases:
           echo "pom.xml version (${FOUND_VERSION}) does not match expected version (${VERSION}), stopping"
           exit 1;
         fi
+      - export SETTINGS_FILE=$(pwd)/codebuild/release/settings.xml
+      - aws secretsmanager get-secret-value --region us-west-2 --secret-id Maven-GPG-Keys --query SecretBinary --output text | base64 -d > ~/mvn_gpg.tgz
+      - tar -xvf ~/mvn_gpg.tgz -C ~
   build:
     commands:
-      - echo "Doing nothing, release step is currently a no-op"
+      - |
+        mvn deploy \
+          -PpublishingCodeArtifact \
+          -Pfast-tests-only \
+          -DperformRelease \
+          -Dgpg.homedir="$HOME/mvn_gpg" \
+          -DautoReleaseAfterClose=true \
+          -Dgpg.keyname="$GPG_KEY" \
+          -Dgpg.passphrase="$GPG_PASS" \
+          -Dsonatype.username="$SONA_USERNAME" \
+          -Dsonatype.password="$SONA_PASSWORD" \
+          -s $SETTINGS_FILE
 
 
 batch:
