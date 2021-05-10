@@ -27,7 +27,7 @@ phases:
     commands:
       - |
         mvn deploy \
-          -PpublishingCodeArtifact \
+          -Ppublishing \
           -Pfast-tests-only \
           -DperformRelease \
           -Dgpg.homedir="$HOME/mvn_gpg" \
