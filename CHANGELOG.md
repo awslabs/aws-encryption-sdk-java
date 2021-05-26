@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.0 -- 2021-05-27
+
+* feat: Improvements to the message decryption process. 
+  
+  See https://github.com/aws/aws-encryption-sdk-java/security/advisories/GHSA-55xh-53m6-936r
+
 ## 1.7.0 -- 2020-09-24
 
 * feat: Updates to the AWS Encryption SDK. bdb31dc
