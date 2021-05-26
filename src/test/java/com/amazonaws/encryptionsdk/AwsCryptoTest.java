@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -31,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import com.amazonaws.util.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,7 +54,10 @@ public class AwsCryptoTest {
     private StaticMasterKey masterKeyProvider;
     private AwsCrypto forbidCommitmentClient_;
     private AwsCrypto encryptionClient_;
+    private AwsCrypto noMaxEdksClient_;
+    private AwsCrypto maxEdksClient_;
     private static final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
+    private static final int MESSAGE_FORMAT_MAX_EDKS = (1 << 16) - 1;
 
     List<CommitmentPolicy> requireWriteCommitmentPolicies = Arrays.asList(
             CommitmentPolicy.RequireEncryptAllowDecrypt, CommitmentPolicy.RequireEncryptRequireDecrypt);
@@ -64,6 +70,18 @@ public class AwsCryptoTest {
         forbidCommitmentClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
         encryptionClient_ = AwsCrypto.standard();
         encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY);
+
+        noMaxEdksClient_ = AwsCrypto
+                .builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptAllowDecrypt)
+                .withEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
+                .build();
+        maxEdksClient_ = AwsCrypto
+                .builder()
+                .withMaxEncryptedDataKeys(3)
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptAllowDecrypt)
+                .withEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
+                .build();
     }
 
     private void doEncryptDecrypt(final CryptoAlgorithm cryptoAlg, final int byteSize, final int frameSize) {
@@ -984,5 +1002,148 @@ public class AwsCryptoTest {
                     "not match the identity asserted in the message. Halting processing of this message.",
                     () -> encryptionClient_.decryptData(masterKeyProvider, cipherText));
         }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void setNegativeMaxEdks() {
+        AwsCrypto.builder().withMaxEncryptedDataKeys(-1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void setZeroMaxEdks() {
+        AwsCrypto.builder().withMaxEncryptedDataKeys(0);
+    }
+
+    @Test
+    public void setValidMaxEdks() {
+        for (final int i : new int[]{1, 10, MESSAGE_FORMAT_MAX_EDKS, MESSAGE_FORMAT_MAX_EDKS + 1, Integer.MAX_VALUE}) {
+            AwsCrypto.builder().withMaxEncryptedDataKeys(i);
+        }
+    }
+
+    private MasterKeyProvider<?> providerWithEdks(int numEdks) {
+        List<MasterKeyProvider<?>> providers = new ArrayList<>();
+        for (int i = 0; i < numEdks; i++) {
+            providers.add(masterKeyProvider);
+        }
+        return MultipleProviderFactory.buildMultiProvider(providers);
+    }
+
+    @Test
+    public void encryptDecryptWithLessThanMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(2);
+        CryptoResult<byte[], ?> result = maxEdksClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult());
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), 2);
+        maxEdksClient_.decryptData(provider, ciphertext);
+    }
+
+    @Test
+    public void encryptDecryptWithMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(3);
+        CryptoResult<byte[], ?> result = maxEdksClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult());
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), 3);
+        maxEdksClient_.decryptData(provider, ciphertext);
+    }
+
+    @Test
+    public void noEncryptWithMoreThanMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(4);
+        assertThrows(AwsCryptoException.class, "Encrypted data keys exceed maxEncryptedDataKeys", () ->
+                maxEdksClient_.encryptData(provider, new byte[] {1}));
+    }
+
+    @Test
+    public void noDecryptWithMoreThanMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(4);
+        CryptoResult<byte[], ?> result = noMaxEdksClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult());
+        assertThrows(AwsCryptoException.class, "Ciphertext encrypted data keys exceed maxEncryptedDataKeys", () ->
+                maxEdksClient_.decryptData(provider, ciphertext));
+    }
+
+    @Test
+    public void encryptDecryptWithNoMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(MESSAGE_FORMAT_MAX_EDKS);
+        CryptoResult<byte[], ?> result = noMaxEdksClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult());
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), MESSAGE_FORMAT_MAX_EDKS);
+        noMaxEdksClient_.decryptData(provider, ciphertext);
+    }
+
+    @Test
+    public void encryptDecryptStreamWithLessThanMaxEdks() throws IOException {
+        MasterKeyProvider<?> provider = providerWithEdks(2);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CryptoOutputStream<?> encryptStream = maxEdksClient_.createEncryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(new byte[] {1}), encryptStream);
+        encryptStream.close();
+
+        byte[] ciphertext = byteArrayOutputStream.toByteArray();
+        assertEquals(new ParsedCiphertext(ciphertext).getEncryptedKeyBlobCount(), 2);
+
+        byteArrayOutputStream.reset();
+        CryptoOutputStream<?> decryptStream = maxEdksClient_.createDecryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(ciphertext), decryptStream);
+        decryptStream.close();
+    }
+
+    @Test
+    public void encryptDecryptStreamWithMaxEdks() throws IOException {
+        MasterKeyProvider<?> provider = providerWithEdks(3);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CryptoOutputStream<?> encryptStream = maxEdksClient_.createEncryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(new byte[] {1}), encryptStream);
+        encryptStream.close();
+
+        byte[] ciphertext = byteArrayOutputStream.toByteArray();
+        assertEquals(new ParsedCiphertext(ciphertext).getEncryptedKeyBlobCount(), 3);
+
+        byteArrayOutputStream.reset();
+        CryptoOutputStream<?> decryptStream = maxEdksClient_.createDecryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(ciphertext), decryptStream);
+        decryptStream.close();
+    }
+
+    @Test
+    public void noEncryptStreamWithMoreThanMaxEdks() {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CryptoOutputStream<?> encryptStream = maxEdksClient_.createEncryptingStream(providerWithEdks(4), byteArrayOutputStream);
+        assertThrows(AwsCryptoException.class, "Encrypted data keys exceed maxEncryptedDataKeys", () ->
+                IOUtils.copy(new ByteArrayInputStream(new byte[] {1}), encryptStream));
+    }
+
+    @Test
+    public void noDecryptStreamWithMoreThanMaxEdks() throws IOException {
+        MasterKeyProvider<?> provider = providerWithEdks(4);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CryptoOutputStream<?> encryptStream = noMaxEdksClient_.createEncryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(new byte[] {1}), encryptStream);
+        encryptStream.close();
+
+        byte[] ciphertext = byteArrayOutputStream.toByteArray();
+
+        byteArrayOutputStream.reset();
+        CryptoOutputStream<?> decryptStream = maxEdksClient_.createDecryptingStream(provider, byteArrayOutputStream);
+        assertThrows(AwsCryptoException.class, "Ciphertext encrypted data keys exceed maxEncryptedDataKeys", () ->
+                IOUtils.copy(new ByteArrayInputStream(ciphertext), decryptStream));
+    }
+
+    @Test
+    public void encryptDecryptStreamWithNoMaxEdks() throws IOException {
+        MasterKeyProvider<?> provider = providerWithEdks(MESSAGE_FORMAT_MAX_EDKS);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CryptoOutputStream<?> encryptStream = noMaxEdksClient_.createEncryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(new byte[] {1}), encryptStream);
+        encryptStream.close();
+
+        byte[] ciphertext = byteArrayOutputStream.toByteArray();
+        assertEquals(new ParsedCiphertext(ciphertext).getEncryptedKeyBlobCount(), MESSAGE_FORMAT_MAX_EDKS);
+
+        byteArrayOutputStream.reset();
+        CryptoOutputStream<?> decryptStream = noMaxEdksClient_.createDecryptingStream(provider, byteArrayOutputStream);
+        IOUtils.copy(new ByteArrayInputStream(ciphertext), decryptStream);
+        decryptStream.close();
     }
 }

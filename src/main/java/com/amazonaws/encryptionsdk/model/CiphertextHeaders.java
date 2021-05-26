@@ -35,6 +35,11 @@ import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
  * values supplied in the last two fields of the header.
  */
 public class CiphertextHeaders {
+    /**
+     * When passed as maxEncryptedDataKeys, indicates that no maximum should be enforced (i.e., any number of EDKs are allowed).
+     */
+    public static final int NO_MAX_ENCRYPTED_DATA_KEYS = 0;
+
     private static final SecureRandom RND = new SecureRandom();
     private byte version_ = -1;
     private byte typeVal_; // don't set this to -1 since Java byte is signed
@@ -59,6 +64,7 @@ public class CiphertextHeaders {
     // internal variables
     private int currKeyBlobIndex_ = 0;
     private boolean isComplete_;
+    private int maxEncryptedDataKeys_ = NO_MAX_ENCRYPTED_DATA_KEYS;
 
     /**
      * Default constructor.
@@ -339,6 +345,9 @@ public class CiphertextHeaders {
         if (cipherKeyCount_ < 0) {
             throw new BadCiphertextException("Invalid cipher key count in ciphertext");
         }
+        if (maxEncryptedDataKeys_ > 0 && cipherKeyCount_ > maxEncryptedDataKeys_) {
+            throw new AwsCryptoException("Ciphertext encrypted data keys exceed maxEncryptedDataKeys");
+        }
         cipherKeyBlobs_ = Arrays.asList(new KeyBlob[cipherKeyCount_]);
         return Short.SIZE / Byte.SIZE;
     }
@@ -523,13 +532,17 @@ public class CiphertextHeaders {
      *            the byte array to deserialize.
      * @param off
      *            the offset in the byte array to use for deserialization.
+     * @param maxEncryptedDataKeys
+     *            the maximum number of EDKs to deserialize; zero indicates no maximum
      * @return
      *         the number of bytes consumed in deserialization.
      */
-    public int deserialize(final byte[] b, final int off) throws ParseException {
+    public int deserialize(final byte[] b, final int off, int maxEncryptedDataKeys) throws ParseException {
         if (b == null) {
             return 0;
         }
+
+        maxEncryptedDataKeys_ = maxEncryptedDataKeys;
 
         int parsedBytes = 0;
         try {

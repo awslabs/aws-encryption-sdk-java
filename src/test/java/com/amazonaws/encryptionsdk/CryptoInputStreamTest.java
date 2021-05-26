@@ -150,12 +150,6 @@ public class CryptoInputStreamTest {
             boolean firstAlgorithm = true;
 
             for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-                // Only test with crypto algs without commitment, since those
-                // are the only ones we can encrypt with
-                if (cryptoAlg.getMessageFormatVersion() != 1) {
-                    continue;
-                }
-
                 final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
                 // Our bytesToTest and readLenVals arrays tend to have the bigger numbers towards the end - we'll chop off

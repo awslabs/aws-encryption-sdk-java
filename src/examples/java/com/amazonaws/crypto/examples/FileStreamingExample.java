@@ -14,6 +14,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoInputStream;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
@@ -53,8 +54,11 @@ public class FileStreamingExample {
         // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
         // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
         // or `AwsCrypto.standard()`.
+        // This also chooses to encrypt with an algorithm suite that doesn't include signing for faster decryption,
+        // since this use case assumes that the contexts that encrypt and decrypt are equally trusted.
         final AwsCrypto crypto = AwsCrypto.builder()
                 .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .withEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
                 .build();
 
         // Create an encryption context to identify this ciphertext
@@ -71,14 +75,16 @@ public class FileStreamingExample {
         out.close();
 
         // Decrypt the file. Verify the encryption context before returning the plaintext.
+        // Since we encrypted using an unsigned algorithm suite, we can use the recommended
+        // createUnsignedMessageDecryptingStream method that only accepts unsigned messages.
         in = new FileInputStream(srcFile + ".encrypted");
-        CryptoInputStream<JceMasterKey> decryptingStream = crypto.createDecryptingStream(masterKey, in);
+        CryptoInputStream<JceMasterKey> decryptingStream = crypto.createUnsignedMessageDecryptingStream(masterKey, in);
         // Does it contain the expected encryption context?
         if (!"FileStreaming".equals(decryptingStream.getCryptoResult().getEncryptionContext().get("Example"))) {
             throw new IllegalStateException("Bad encryption context");
         }
 
-        // Return the plaintext data
+        // Write the plaintext data to disk.
         out = new FileOutputStream(srcFile + ".decrypted");
         IOUtils.copy(decryptingStream, out);
         decryptingStream.close();

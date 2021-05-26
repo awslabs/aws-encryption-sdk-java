@@ -6,6 +6,7 @@ package com.amazonaws.encryptionsdk;
 import static java.lang.String.format;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.encryptionsdk.internal.SignaturePolicy;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
@@ -38,33 +39,37 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 @RunWith(Parameterized.class)
 public class TestVectorRunner {
+
+    private static final int MANIFEST_VERSION = 2;
+
     // We save the files in memory to avoid repeatedly retrieving them. This won't work if the plaintexts are too
     // large or numerous
     private static final Map<String, byte[]> cachedData = new HashMap<>();
 
     private final String testName;
     private final TestCase testCase;
+    private final DecryptionMethod decryptionMethod;
 
-    public TestVectorRunner(final String testName, TestCase testCase) {
+    public TestVectorRunner(final String testName, TestCase testCase, DecryptionMethod decryptionMethod) {
         this.testName = testName;
         this.testCase = testCase;
+        this.decryptionMethod = decryptionMethod;
     }
 
     @Test
-    public void decrypt() {
+    public void decrypt() throws Exception {
         AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
-        byte[] plaintext = crypto.decryptData(testCase.mkp, cachedData.get(testCase.ciphertextPath)).getResult();
-        final byte[] expectedPlaintext = cachedData.get(testCase.plaintextPath);
-
-        Assert.assertArrayEquals(expectedPlaintext, plaintext);
+        Callable<byte[]> decryptor = () -> decryptionMethod.decryptMessage(crypto, testCase.mkp, cachedData.get(testCase.ciphertextPath));
+        testCase.matcher.Match(decryptor);
     }
 
-    @Parameterized.Parameters(name="Compatibility Test: {0}")
+    @Parameterized.Parameters(name="Compatibility Test: {0} - {1}")
     @SuppressWarnings("unchecked")
     public static Collection<Object[]> data() throws Exception {
         final String zipPath = System.getProperty("testVectorZip");
@@ -84,7 +89,7 @@ public class TestVectorRunner {
                 throw new IllegalArgumentException("Unsupported manifest type: " + metaData.get("type"));
             }
 
-            if (!Integer.valueOf(1).equals(metaData.get("version"))) {
+            if (!Integer.valueOf(MANIFEST_VERSION).equals(metaData.get("version"))) {
                 throw new IllegalArgumentException("Unsupported manifest version: " + metaData.get("version"));
             }
 
@@ -98,8 +103,13 @@ public class TestVectorRunner {
             List<Object[]> testCases = new ArrayList<>();
             for (Map.Entry<String, Map<String, Object>> testEntry :
                     ((Map<String, Map<String, Object>>) manifest.get("tests")).entrySet()) {
-                testCases.add(new Object[]{testEntry.getKey(),
-                        parseTest(testEntry.getKey(), testEntry.getValue(), keys, jar, kmsProv)});
+                String testName = testEntry.getKey();
+                TestCase testCase = parseTest(testEntry.getKey(), testEntry.getValue(), keys, jar, kmsProv);
+                for (DecryptionMethod decryptionMethod : DecryptionMethod.values()) {
+                    if (testCase.signaturePolicy.equals(decryptionMethod.signaturePolicy())) {
+                        testCases.add(new Object[]{testName, testCase, decryptionMethod});
+                    }
+                }
             }
             return testCases;
         }
@@ -138,8 +148,6 @@ public class TestVectorRunner {
     @SuppressWarnings("unchecked")
     private static TestCase parseTest(String testName, Map<String, Object> data, Map<String, KeyEntry> keys,
                                       JarFile jar, KmsMasterKeyProvider kmsProv) throws IOException {
-        final String plaintextUrl = (String) data.get("plaintext");
-        cacheData(jar, plaintextUrl);
         final String ciphertextURL = (String) data.get("ciphertext");
         cacheData(jar, ciphertextURL);
 
@@ -189,7 +197,40 @@ public class TestVectorRunner {
             }
         }
 
-        return new TestCase(testName, ciphertextURL, plaintextUrl, mks);
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> resultSpec = (Map<String, Object>) data.get("result");
+        final ResultMatcher matcher = parseResultMatcher(jar, resultSpec);
+
+        String decryptionMethodSpec = (String) data.get("decryption-method");
+        SignaturePolicy signaturePolicy = SignaturePolicy.AllowEncryptAllowDecrypt;
+        if (decryptionMethodSpec != null) {
+            if ("streaming-unsigned-only".equals(decryptionMethodSpec)) {
+                signaturePolicy = SignaturePolicy.AllowEncryptForbidDecrypt;
+            } else {
+                throw new IllegalArgumentException("Unsupported Decryption Method: " + decryptionMethodSpec);
+            }
+        }
+
+        return new TestCase(testName, ciphertextURL, mks, matcher, signaturePolicy);
+    }
+
+    private static ResultMatcher parseResultMatcher(final JarFile jar, final Map<String, Object> result) throws IOException {
+        if (result.size() != 1) {
+            throw new IllegalArgumentException("Unsupported result specification: " + result);
+        }
+        Map.Entry<String, Object> pair = result.entrySet().iterator().next();
+        if (pair.getKey().equals("output")) {
+            Map<String, String> outputSpec = (Map<String, String>) pair.getValue();
+            String plaintextUrl = outputSpec.get("plaintext");
+            cacheData(jar, plaintextUrl);
+            return new OutputResultMatcher(plaintextUrl);
+        } else if (pair.getKey().equals("error")) {
+            Map<String, String> errorSpec = (Map<String, String>) pair.getValue();
+            String errorDescription = errorSpec.get("error-description");
+            return new ErrorResultMatcher(errorDescription);
+        } else {
+            throw new IllegalArgumentException("Unsupported result specification: " + result);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -280,18 +321,55 @@ public class TestVectorRunner {
     private static class TestCase {
         private final String name;
         private final String ciphertextPath;
-        private final String plaintextPath;
+        private final ResultMatcher matcher;
         private final MasterKeyProvider<?> mkp;
+        private final SignaturePolicy signaturePolicy;
 
-        private TestCase(String name, String ciphertextPath, String plaintextPath, List<MasterKey<?>> mks) {
-            this(name, ciphertextPath, plaintextPath, MultipleProviderFactory.buildMultiProvider(mks));
+        private TestCase(String name, String ciphertextPath, List<MasterKey<?>> mks, ResultMatcher matcher, SignaturePolicy signaturePolicy) {
+            this(name, ciphertextPath, MultipleProviderFactory.buildMultiProvider(mks), matcher, signaturePolicy);
         }
 
-        private TestCase(String name, String ciphertextPath, String plaintextPath, MasterKeyProvider<?> mkp) {
+        private TestCase(String name, String ciphertextPath, MasterKeyProvider<?> mkp, ResultMatcher matcher, SignaturePolicy signaturePolicy) {
             this.name = name;
             this.ciphertextPath = ciphertextPath;
-            this.plaintextPath = plaintextPath;
+            this.matcher = matcher;
             this.mkp = mkp;
+            this.signaturePolicy = signaturePolicy;
+        }
+    }
+
+    private interface ResultMatcher {
+        void Match(Callable<byte[]> decryptor) throws Exception;
+    }
+
+    private static class OutputResultMatcher implements ResultMatcher {
+
+        private final String plaintextPath;
+
+        private OutputResultMatcher(String plaintextPath) {
+            this.plaintextPath = plaintextPath;
+        }
+
+        @Override
+        public void Match(Callable<byte[]> decryptor) throws Exception {
+            final byte[] plaintext = decryptor.call();
+            final byte[] expectedPlaintext = cachedData.get(plaintextPath);
+            Assert.assertArrayEquals(expectedPlaintext, plaintext);
+        }
+    }
+
+    private static class ErrorResultMatcher implements ResultMatcher {
+
+        private final String errorDescription;
+
+        private ErrorResultMatcher(String errorDescription) {
+            this.errorDescription = errorDescription;
+        }
+
+        @Override
+        public void Match(Callable<byte[]> decryptor) {
+            Assert.assertThrows("Decryption expected to fail (" + errorDescription + ") but succeeded",
+                    Exception.class, decryptor::call);
         }
     }
 }

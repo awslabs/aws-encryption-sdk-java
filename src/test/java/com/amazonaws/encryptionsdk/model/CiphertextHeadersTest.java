@@ -59,7 +59,7 @@ public class CiphertextHeadersTest {
 
             final byte[] headerBytes = ciphertextHeaders.toByteArray();
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
-            reconstructedHeaders.deserialize(headerBytes, 0);
+            reconstructedHeaders.deserialize(headerBytes, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
             final byte[] reconstructedHeaderBytes = reconstructedHeaders.toByteArray();
 
             assertArrayEquals(headerBytes, reconstructedHeaderBytes);
@@ -85,7 +85,7 @@ public class CiphertextHeadersTest {
                 final byte[] bytesToParse = new byte[bytesToParseLen];
                 System.arraycopy(headerBytes, totalParsedBytes, bytesToParse, 0, bytesToParse.length);
 
-                bytesParsed = reconstructedHeaders.deserialize(bytesToParse, 0);
+                bytesParsed = reconstructedHeaders.deserialize(bytesToParse, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
                 if (bytesParsed == 0) {
                     bytesToParseLen++;
                 } else {
@@ -103,7 +103,7 @@ public class CiphertextHeadersTest {
     @Test
     public void deserializeNull() {
         final CiphertextHeaders ciphertextHeaders = new CiphertextHeaders();
-        final int deserializedBytes = ciphertextHeaders.deserialize(null, 0);
+        final int deserializedBytes = ciphertextHeaders.deserialize(null, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
 
         assertEquals(0, deserializedBytes);
     }
@@ -276,7 +276,7 @@ public class CiphertextHeadersTest {
             final byte[] headerBytes = ciphertextHeaders.toByteArray();
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
-            reconstructedHeaders.deserialize(headerBytes, 0);
+            reconstructedHeaders.deserialize(headerBytes, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
 
             assertEquals(encryptionContextLen, reconstructedHeaders.getEncryptionContextLen());
         }
@@ -292,7 +292,7 @@ public class CiphertextHeadersTest {
             final byte[] headerBytes = ciphertextHeaders.toByteArray();
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
-            reconstructedHeaders.deserialize(headerBytes, 0);
+            reconstructedHeaders.deserialize(headerBytes, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
 
             assertEquals(1, reconstructedHeaders.getEncryptedKeyBlobCount());
         }
@@ -423,7 +423,7 @@ public class CiphertextHeadersTest {
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
             assertThrows(BadCiphertextException.class, "Invalid version",
-                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
         }
     }
 
@@ -445,7 +445,7 @@ public class CiphertextHeadersTest {
 
         final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
         assertThrows(BadCiphertextException.class, "Invalid ciphertext type",
-                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
     }
 
     @Test
@@ -465,7 +465,7 @@ public class CiphertextHeadersTest {
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
             assertThrows(BadCiphertextException.class, "Invalid algorithm identifier in ciphertext",
-                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
         }
     }
 
@@ -486,7 +486,7 @@ public class CiphertextHeadersTest {
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
             assertThrows(BadCiphertextException.class, "Invalid content type in ciphertext.",
-                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
         }
     }
 
@@ -508,7 +508,7 @@ public class CiphertextHeadersTest {
 
         final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
         assertThrows(BadCiphertextException.class, "Invalid value for reserved field in ciphertext",
-                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
     }
 
     @Test
@@ -529,7 +529,7 @@ public class CiphertextHeadersTest {
 
         final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
         assertThrows(BadCiphertextException.class, "Invalid nonce length in ciphertext",
-                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
     }
 
     @Test
@@ -549,7 +549,7 @@ public class CiphertextHeadersTest {
 
             final CiphertextHeaders reconstructedHeaders = new CiphertextHeaders();
             assertThrows(BadCiphertextException.class, "Invalid frame length in ciphertext",
-                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0));
+                    () -> reconstructedHeaders.deserialize(headerBuff.array(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
         }
     }
 }
