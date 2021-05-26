@@ -230,6 +230,8 @@ public class CryptoInputStream<K extends MasterKey<K>> extends InputStream {
      *
      * If the input size set here is exceeded, an exception will be thrown, and the encyption or decryption will fail.
      *
+     * If this method is called multiple times, the smallest bound will be used.
+     *
      * @param size Maximum input size.
      */
     public void setMaxInputLength(long size) {

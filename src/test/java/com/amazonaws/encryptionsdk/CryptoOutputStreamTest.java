@@ -146,12 +146,13 @@ public class CryptoOutputStreamTest {
             ArrayList<Object[]> cases = new ArrayList<>();
 
             for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-              // Only test with crypto algs without commitment, since those
-              // are the only ones we can encrypt with
-              if (cryptoAlg.getMessageFormatVersion() != 1) {
-                  continue;
-              }
-              final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
+                // Only test with crypto algs without commitment, since those
+                // are the only ones we can encrypt with
+                if (cryptoAlg.getMessageFormatVersion() != 1) {
+                    continue;
+                }
+
+                final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
                 // iterate over frame size to test
                 for (int i = 0; i < frameSizeToTest.length; i++) {

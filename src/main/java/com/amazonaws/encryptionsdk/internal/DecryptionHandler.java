@@ -16,12 +16,7 @@ import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
-import com.amazonaws.encryptionsdk.CryptoAlgorithm;
-import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
-import com.amazonaws.encryptionsdk.DataKey;
-import com.amazonaws.encryptionsdk.DefaultCryptoMaterialsManager;
-import com.amazonaws.encryptionsdk.MasterKey;
-import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.*;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.model.CiphertextFooters;
@@ -44,6 +39,13 @@ import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
  */
 public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoHandler {
     private final CryptoMaterialsManager materialsManager_;
+    /**
+     * The maximum number of encrypted data keys to parse, if positive.
+     * If zero, do not limit EDKs.
+     */
+    private final int maxEncryptedDataKeys_;
+    private final CommitmentPolicy commitmentPolicy_;
+    private final SignaturePolicy signaturePolicy_;
 
     private final CiphertextHeaders ciphertextHeaders_;
     private final CiphertextFooters ciphertextFooters_;
@@ -67,22 +69,43 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
     // These ctors are private to ensure type safety - we must ensure construction using a CMM results in a
     // DecryptionHandler<?>, not a DecryptionHandler<SomeConcreteType>, since the CryptoMaterialsManager is not itself
     // genericized.
-    private DecryptionHandler(final CryptoMaterialsManager materialsManager) {
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CommitmentPolicy commitmentPolicy,
+                              final SignaturePolicy signaturePolicy, final int maxEncryptedDataKeys) {
         Utils.assertNonNull(materialsManager, "materialsManager");
+        Utils.assertNonNull(commitmentPolicy, "commitmentPolicy");
+        Utils.assertNonNull(signaturePolicy, "signaturePolicy");
 
         this.materialsManager_ = materialsManager;
+        this.maxEncryptedDataKeys_ = maxEncryptedDataKeys;
+        this.commitmentPolicy_ = commitmentPolicy;
+        this.signaturePolicy_ = signaturePolicy;
         ciphertextHeaders_ = new CiphertextHeaders();
         ciphertextFooters_ = new CiphertextFooters();
     }
 
-    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers)
+    private DecryptionHandler(final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers,
+                              final CommitmentPolicy commitmentPolicy, final SignaturePolicy signaturePolicy,
+                              final int maxEncryptedDataKeys)
             throws AwsCryptoException
     {
         Utils.assertNonNull(materialsManager, "materialsManager");
+        Utils.assertNonNull(commitmentPolicy, "commitmentPolicy");
+        Utils.assertNonNull(signaturePolicy, "signaturePolicy");
 
         materialsManager_ = materialsManager;
         ciphertextHeaders_ = headers;
+        maxEncryptedDataKeys_ = maxEncryptedDataKeys;
+        commitmentPolicy_ = commitmentPolicy;
+        signaturePolicy_ = signaturePolicy;
         ciphertextFooters_ = new CiphertextFooters();
+        if (headers instanceof ParsedCiphertext) {
+            ciphertextBytesSupplied_ = ((ParsedCiphertext)headers).getOffset();
+        } else {
+            // This is a little more expensive, hence the public create(...) methods
+            // that take a CiphertextHeaders instead of a ParsedCiphertext are
+            // deprecated.
+            ciphertextBytesSupplied_ = headers.toByteArray().length;
+        }
         readHeaderFields(headers);
         updateTrailingSignature(headers);
     }
@@ -97,16 +120,24 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * @param customerMasterKeyProvider
      *            the master key provider to use in picking a master key from
      *            the key blobs encoded in the provided ciphertext.
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
      * @throws AwsCryptoException
      *             if the master key is null.
      */
     @SuppressWarnings("unchecked")
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
-            final MasterKeyProvider<K> customerMasterKeyProvider
-    ) throws AwsCryptoException {
+            final MasterKeyProvider<K> customerMasterKeyProvider,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
+            ) throws AwsCryptoException {
         Utils.assertNonNull(customerMasterKeyProvider, "customerMasterKeyProvider");
 
-        return (DecryptionHandler<K>)create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider));
+        return (DecryptionHandler<K>)create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider),
+                                            commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
     }
 
     /**
@@ -122,16 +153,62 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * @param headers
      *            already parsed headers which will not be passed into
      *            {@link #processBytes(byte[], int, int, byte[], int)}
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
+     * @throws AwsCryptoException
+     *             if the master key is null.
+     * @deprecated This version may have to recalculate the number of bytes already parsed, which adds
+     *             a performance penalty. Use {@link #create(CryptoMaterialsManager, ParsedCiphertext,
+     *             CommitmentPolicy, SignaturePolicy, int)} instead, which makes the parsed byte count directly
+     *             available instead.
+     */
+    @SuppressWarnings("unchecked")
+    @Deprecated
+    public static <K extends MasterKey<K>> DecryptionHandler<K> create(
+            final MasterKeyProvider<K> customerMasterKeyProvider, final CiphertextHeaders headers,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
+    ) throws AwsCryptoException {
+        Utils.assertNonNull(customerMasterKeyProvider, "customerMasterKeyProvider");
+
+        return (DecryptionHandler<K>) create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), headers,
+                                             commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
+    }
+
+    /**
+     * Create a decryption handler using the provided master key and already parsed {@code headers}.
+     *
+     * <p>
+     * Note the methods in the provided master key are used in decrypting the encrypted data key
+     * parsed from the ciphertext headers.
+     *
+     * @param customerMasterKeyProvider
+     *            the master key provider to use in picking a master key from the key blobs encoded
+     *            in the provided ciphertext.
+     * @param headers
+     *            already parsed headers which will not be passed into
+     *            {@link #processBytes(byte[], int, int, byte[], int)}
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
      * @throws AwsCryptoException
      *             if the master key is null.
      */
     @SuppressWarnings("unchecked")
     public static <K extends MasterKey<K>> DecryptionHandler<K> create(
-            final MasterKeyProvider<K> customerMasterKeyProvider, final CiphertextHeaders headers
+            final MasterKeyProvider<K> customerMasterKeyProvider, final ParsedCiphertext headers,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
     ) throws AwsCryptoException {
         Utils.assertNonNull(customerMasterKeyProvider, "customerMasterKeyProvider");
 
-        return (DecryptionHandler<K>) create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), headers);
+        return (DecryptionHandler<K>) create(new DefaultCryptoMaterialsManager(customerMasterKeyProvider), headers,
+                                             commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
     }
 
     /**
@@ -144,13 +221,20 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * @param materialsManager
      *            the materials manager to use in decrypting the data key from the key blobs encoded
      *            in the provided ciphertext.
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
      * @throws AwsCryptoException
      *             if the master key is null.
      */
     public static DecryptionHandler<?> create(
-            final CryptoMaterialsManager materialsManager
+            final CryptoMaterialsManager materialsManager,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
     ) throws AwsCryptoException {
-        return new DecryptionHandler(materialsManager);
+        return new DecryptionHandler(materialsManager, commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
     }
 
     /**
@@ -166,13 +250,54 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      * @param headers
      *            already parsed headers which will not be passed into
      *            {@link #processBytes(byte[], int, int, byte[], int)}
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
+     * @throws AwsCryptoException
+     *             if the master key is null.
+     * @deprecated This version may have to recalculate the number of bytes already parsed, which adds
+     *             a performance penalty. Use {@link #create(CryptoMaterialsManager, ParsedCiphertext,
+     *             CommitmentPolicy, SignaturePolicy, int)} instead, which makes the parsed byte count directly
+     *             available instead.
+     */
+    @Deprecated
+    public static DecryptionHandler<?> create(
+            final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
+    ) throws AwsCryptoException {
+        return new DecryptionHandler(materialsManager, headers, commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
+    }
+
+    /**
+     * Create a decryption handler using the provided materials manager and already parsed {@code headers}.
+     *
+     * <p>
+     * Note the methods in the provided materials manager are used in decrypting the encrypted data key
+     * parsed from the ciphertext headers.
+     *
+     * @param materialsManager
+     *            the materials manager to use in decrypting the data key from the key blobs encoded
+     *            in the provided ciphertext.
+     * @param headers
+     *            already parsed headers which will not be passed into
+     *            {@link #processBytes(byte[], int, int, byte[], int)}
+     * @param commitmentPolicy The commitment policy to enforce during decryption
+     * @param signaturePolicy The signature policy to enforce during decryption
+     * @param maxEncryptedDataKeys
+     *            The maximum number of encrypted data keys to unwrap during decryption; zero indicates no maximum
      * @throws AwsCryptoException
      *             if the master key is null.
      */
     public static DecryptionHandler<?> create(
-            final CryptoMaterialsManager materialsManager, final CiphertextHeaders headers
+            final CryptoMaterialsManager materialsManager, final ParsedCiphertext headers,
+            final CommitmentPolicy commitmentPolicy,
+            final SignaturePolicy signaturePolicy,
+            final int maxEncryptedDataKeys
     ) throws AwsCryptoException {
-        return new DecryptionHandler(materialsManager, headers);
+        return new DecryptionHandler(materialsManager, headers, commitmentPolicy, signaturePolicy, maxEncryptedDataKeys);
     }
 
     /**
@@ -208,6 +333,15 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
             final int outOff)
             throws BadCiphertextException, AwsCryptoException {
 
+        // We should arguably check if we are already complete_ here as other handlers
+        // like FrameDecryptionHandler and BlockDecryptionHandler do.
+        // However, adding that now could potentially break customers who have extra trailing
+        // bytes in their decryption streams.
+        // The handlers are also inconsistent in general with this check. Even those that
+        // do raise an exception here if already complete will not complain if
+        // a single call to processBytes() completes the message and provides extra trailing bytes:
+        // in that case they will just indicate that they didn't process the extra bytes instead.
+
         if (len < 0 || off < 0) {
             throw new AwsCryptoException(String.format(
                     "Invalid values for input offset: %d and length: %d", off, len));
@@ -235,8 +369,8 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         System.arraycopy(in, off, bytesToParse, unparsedBytes_.length, len);
 
         int totalParsedBytes = 0;
-        if (ciphertextHeadersParsed_ == false) {
-            totalParsedBytes += ciphertextHeaders_.deserialize(bytesToParse, 0);
+        if (!ciphertextHeadersParsed_) {
+            totalParsedBytes += ciphertextHeaders_.deserialize(bytesToParse, 0, maxEncryptedDataKeys_);
             // When ciphertext headers are complete, we have the data
             // key and cipher mode to initialize the underlying cipher
             if (ciphertextHeaders_.isComplete() == true) {
@@ -265,7 +399,6 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
                 updateTrailingSignature(bytesToParse, totalParsedBytes, contentResult.getBytesProcessed());
                 actualOutLen = contentResult.getBytesWritten();
                 totalParsedBytes += contentResult.getBytesProcessed();
-                
             }
             if (contentCryptoHandler_.isComplete()) {
                 actualOutLen += contentCryptoHandler_.doFinal(out, outOff + actualOutLen);
@@ -277,7 +410,13 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
             // the footer of the message.
             if (cryptoAlgo_.getTrailingSignatureLength() > 0) {
                 totalParsedBytes += ciphertextFooters_.deserialize(bytesToParse, totalParsedBytes);
-                if (ciphertextFooters_.isComplete() && trailingSig_ != null) {
+                if (ciphertextFooters_.isComplete()) {
+                    // reset unparsed bytes as parsing of the ciphertext footer is
+                    // complete.
+                    // This isn't strictly necessary since processing any further data
+                    // should be an error.
+                    unparsedBytes_ = new byte[0];
+
                     try {
                         if (!trailingSig_.verify(ciphertextFooters_.getMAuth())) {
                             throw new BadCiphertextException("Bad trailing signature");
@@ -286,6 +425,12 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
                         throw new BadCiphertextException("Bad trailing signature", ex);
                     }
                     complete_ = true;
+                } else {
+                    // If there aren't enough bytes to parse the ciphertext
+                    // footer, we don't have any more bytes to continue parsing.
+                    // But first copy the leftover bytes to unparsed bytes.
+                    unparsedBytes_ = Arrays.copyOfRange(bytesToParse, totalParsedBytes, bytesToParse.length);
+                    return new ProcessingSummary(actualOutLen, len);
                 }
             } else {
                 complete_ = true;
@@ -308,15 +453,20 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
      */
     @Override
     public int doFinal(final byte[] out, final int outOff) throws BadCiphertextException {
+        // This is an unfortunate special case we have to support for backwards-compatibility.
+        if (ciphertextBytesSupplied_ == 0) {
+            return 0;
+        }
+
         // check if cryptohandler for content has been created. There are cases
         // when it might not have been created such as when doFinal() is called
         // before the ciphertext headers are fully received and parsed.
         if (contentCryptoHandler_ == null) {
-            return 0;
+            throw new BadCiphertextException("Unable to process entire ciphertext.");
         } else {
             int result = contentCryptoHandler_.doFinal(out, outOff);
 
-            if (!ciphertextHeaders_.isComplete() || !contentCryptoHandler_.isComplete()) {
+            if (!complete_) {
                 throw new BadCiphertextException("Unable to process entire ciphertext.");
             }
 
@@ -385,12 +535,16 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
             throw Utils.cannotBeNegative("Max input length");
         }
 
-        if (ciphertextSizeBound_ != -1 && ciphertextSizeBound_ < size) {
+        if (ciphertextSizeBound_ == -1 || ciphertextSizeBound_ > size) {
             ciphertextSizeBound_ = size;
         }
 
         // check that we haven't already exceeded the limit
         checkSizeBound(0);
+    }
+
+    long getMaxInputLength() {
+        return ciphertextSizeBound_;
     }
 
     /**
@@ -433,6 +587,17 @@ public class DecryptionHandler<K extends MasterKey<K>> implements MessageCryptoH
         }
 
         final byte[] messageId = ciphertextHeaders.getMessageId();
+
+        if (maxEncryptedDataKeys_ > 0 && ciphertextHeaders_.getEncryptedKeyBlobCount() > maxEncryptedDataKeys_) {
+            throw new AwsCryptoException("Ciphertext encrypted data keys exceed maxEncryptedDataKeys");
+        }
+
+        if (!signaturePolicy_.algorithmAllowedForDecrypt(cryptoAlgo_)) {
+            throw new AwsCryptoException("Configuration conflict. " +
+                    "Cannot decrypt message with ID " + messageId + " because AwsCrypto.createUnsignedMessageDecryptingStream() " +
+                    " accepts only unsigned messages. Algorithm ID was " +
+                    cryptoAlgo_ + ".");
+        }
 
         encryptionContext_ = ciphertextHeaders.getEncryptionContextMap();
 

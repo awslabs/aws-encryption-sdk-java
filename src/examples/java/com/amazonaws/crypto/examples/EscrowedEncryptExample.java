@@ -3,6 +3,8 @@
 
 package com.amazonaws.crypto.examples;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.GeneralSecurityException;
@@ -125,10 +127,16 @@ public class EscrowedEncryptExample {
         // use an encryption context. For an example, see the other SDK samples.
         final FileInputStream in = new FileInputStream(fileName + ".encrypted");
         final FileOutputStream out = new FileOutputStream(fileName + ".decrypted");
-        final CryptoOutputStream<?> decryptingStream = crypto.createDecryptingStream(provider, out);
+        // Since we are using a signing algorithm suite, we avoid streaming decryption directly to the output file,
+        // to ensure that the trailing signature is verified before writing any untrusted plaintext to disk.
+        final ByteArrayOutputStream plaintextBuffer = new ByteArrayOutputStream();
+        final CryptoOutputStream<?> decryptingStream = crypto.createDecryptingStream(provider, plaintextBuffer);
         IOUtils.copy(in, decryptingStream);
         in.close();
         decryptingStream.close();
+        final ByteArrayInputStream plaintextReader = new ByteArrayInputStream(plaintextBuffer.toByteArray());
+        IOUtils.copy(plaintextReader, out);
+        out.close();
     }
 
     private static void escrowDecrypt(final String fileName) throws Exception {

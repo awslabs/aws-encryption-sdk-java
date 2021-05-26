@@ -33,13 +33,26 @@ public class ParsedCiphertext extends CiphertextHeaders {
      * Parses {@code ciphertext}. Please note that this does <em>not</em> make a defensive copy of
      * {@code ciphertext} and that any changes made to the backing array will be reflected here as
      * well.
+     *
+     * @param ciphertext The ciphertext to parse
+     * @param maxEncryptedDataKeys The maximum number of encrypted data keys to parse.
+     *         Zero indicates no maximum.
      */
-    public ParsedCiphertext(final byte[] ciphertext) {
+    public ParsedCiphertext(final byte[] ciphertext, final int maxEncryptedDataKeys) {
         ciphertext_ = Utils.assertNonNull(ciphertext, "ciphertext");
-        offset_ = deserialize(ciphertext_, 0);
+        offset_ = deserialize(ciphertext_, 0, maxEncryptedDataKeys);
         if (!this.isComplete()) {
           throw new BadCiphertextException("Incomplete ciphertext.");
         }
+    }
+
+    /**
+     * Parses {@code ciphertext} without enforcing a max EDK count. Please note that this does
+     * <em>not</em> make a defensive copy of {@code ciphertext} and that any changes made to the
+     * backing array will be reflected here as well.
+     */
+    public ParsedCiphertext(final byte[] ciphertext) {
+        this(ciphertext, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
     }
 
     /**

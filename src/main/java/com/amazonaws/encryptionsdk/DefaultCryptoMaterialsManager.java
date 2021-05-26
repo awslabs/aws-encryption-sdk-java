@@ -133,6 +133,8 @@ public class DefaultCryptoMaterialsManager implements CryptoMaterialsManager {
             } catch (final IllegalStateException ex) {
                 throw new AwsCryptoException(ex);
             }
+        } else if (request.getEncryptionContext().containsKey(Constants.EC_PUBLIC_KEY_FIELD)) {
+            throw new AwsCryptoException("Trailing signature public key found for non-signed algorithm");
         }
 
         return DecryptionMaterials.newBuilder()

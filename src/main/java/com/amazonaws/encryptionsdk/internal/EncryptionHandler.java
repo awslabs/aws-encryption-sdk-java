@@ -354,6 +354,10 @@ public class EncryptionHandler implements MessageCryptoHandler {
         }
     }
 
+    long getMaxInputLength() {
+        return plaintextByteLimit_;
+    }
+
     /**
      * Compute the MAC tag of the header bytes using the provided key, nonce, AAD, and crypto
      * algorithm identifier.

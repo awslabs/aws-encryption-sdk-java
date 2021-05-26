@@ -3,11 +3,16 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.ParsedCiphertext;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
+import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,10 +29,14 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class DecryptionHandlerTest {
     private StaticMasterKey masterKeyProvider_;
     private final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
+    private final SignaturePolicy signaturePolicy = SignaturePolicy.AllowEncryptAllowDecrypt;
 
     @Before
     public void init() {
@@ -36,12 +45,37 @@ public class DecryptionHandlerTest {
 
     @Test(expected = NullPointerException.class)
     public void nullMasterKey() {
-        DecryptionHandler.create((MasterKey)null);
+        DecryptionHandler.create((MasterKey)null, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
     }
+
+    @Test
+    public void nullCommitment() {
+        final byte[] ciphertext = getTestHeaders(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+
+        assertThrows(NullPointerException.class, () ->
+                DecryptionHandler.create(masterKeyProvider_, new ParsedCiphertext(ciphertext),
+                         null, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
+        assertThrows(NullPointerException.class, () ->
+                DecryptionHandler.create(masterKeyProvider_,
+                         null, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
+    }
+
+    @Test
+    public void nullSignaturePolicy() {
+        final byte[] ciphertext = getTestHeaders(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+
+        assertThrows(NullPointerException.class, () ->
+                DecryptionHandler.create(masterKeyProvider_, new ParsedCiphertext(ciphertext),
+                                         commitmentPolicy, null, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
+        assertThrows(NullPointerException.class, () ->
+                DecryptionHandler.create(masterKeyProvider_,
+                                         commitmentPolicy, null, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));    }
+
 
     @Test(expected = AwsCryptoException.class)
     public void invalidLenProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler =
+                DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
         decryptionHandler.processBytes(in, 0, -1, out, 0);
@@ -49,7 +83,7 @@ public class DecryptionHandlerTest {
 
     @Test(expected = AwsCryptoException.class)
     public void maxLenProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         // Create input of size 3 bytes: 1 byte containing version, 1 byte
         // containing type, and 1 byte containing half of the algoId short
         // primitive. Only 1 byte of the algoId is provided because this
@@ -64,6 +98,45 @@ public class DecryptionHandlerTest {
         decryptionHandler.processBytes(in, 0, Integer.MAX_VALUE, out, 0);
     }
 
+    @Test
+    public void maxInputLength() {
+        final byte[] testMessage = getTestMessage(TestUtils.DEFAULT_TEST_CRYPTO_ALG, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final byte[] out = new byte[100];
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(testMessage.length - 1);
+
+        assertThrows(IllegalStateException.class, () ->
+                decryptionHandler.processBytes(testMessage, 0, testMessage.length, out, 0));
+    }
+
+    @Test
+    public void maxInputLengthIncludingParsedCiphertext() {
+        final byte[] testMessage = getTestMessage(TestUtils.DEFAULT_TEST_CRYPTO_ALG, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final byte[] out = new byte[100];
+        ParsedCiphertext parsedHeaders = new ParsedCiphertext(testMessage);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, parsedHeaders, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(testMessage.length - 1);
+
+        assertThrows(IllegalStateException.class, () ->
+                decryptionHandler.processBytes(testMessage, parsedHeaders.getOffset(), testMessage.length - parsedHeaders.getOffset(),
+                                               out, 0));
+    }
+
+    @Test
+    public void maxInputLengthIncludingCiphertextHeaders() {
+        final byte[] testMessage = getTestMessage(TestUtils.DEFAULT_TEST_CRYPTO_ALG, CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final byte[] out = new byte[100];
+        ParsedCiphertext parsedHeaders = new ParsedCiphertext(testMessage);
+        CiphertextHeaders headers = new CiphertextHeaders();
+        headers.deserialize(parsedHeaders.getCiphertext(), 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, headers, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(testMessage.length - 1);
+
+        assertThrows(IllegalStateException.class, () ->
+                decryptionHandler.processBytes(testMessage, parsedHeaders.getOffset(), testMessage.length - parsedHeaders.getOffset(),
+                                               out, 0));
+    }
+
     @Test(expected = BadCiphertextException.class)
     public void headerIntegrityFailure() {
         byte[] ciphertext = getTestHeaders();
@@ -74,7 +147,7 @@ public class DecryptionHandlerTest {
         ciphertext[5] += 1;
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
@@ -88,7 +161,7 @@ public class DecryptionHandlerTest {
         ciphertext[0] = 0; // NOTE: This will need to be updated should 0 ever be a valid version
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
@@ -101,23 +174,87 @@ public class DecryptionHandlerTest {
         masterKeyProvider_.setKeyId(masterKeyProvider_.getKeyId() + "nonsense");
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
     }
 
+    @Test
+    public void validAlgForSignaturePolicyCreate() {
+        // ensure we can decrypt non-signing algs with the policy that allows it
+        final CryptoAlgorithm nonSigningAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256;
+        final byte[] ciphertext = getTestHeaders(nonSigningAlg, commitmentPolicy);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler =
+                DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, SignaturePolicy.AllowEncryptAllowDecrypt, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        // expected plaintext is zero length
+        final byte[] plaintext = new byte[0];
+        ProcessingSummary processingSummary = decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0);
+        assertEquals(ciphertext.length, processingSummary.getBytesProcessed());
+        assertArrayEquals(new byte[0], plaintext);
+    }
+
+    @Test
+    public void invalidAlgForSignaturePolicyCreateWithoutHeaders() {
+        final CryptoAlgorithm signingAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        final byte[] ciphertext = getTestHeaders(signingAlg, commitmentPolicy);
+
+        final DecryptionHandler<StaticMasterKey> decryptionHandler =
+                DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, SignaturePolicy.AllowEncryptForbidDecrypt, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
+        final byte[] plaintext = new byte[plaintextLen];
+
+        assertThrows(AwsCryptoException.class, () -> decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
+    public void invalidAlgForSignaturePolicyCreateWithHeaders() {
+        final CryptoAlgorithm signingAlg = CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+        final byte[] ciphertext = getTestHeaders(signingAlg, commitmentPolicy);
+
+        assertThrows(AwsCryptoException.class,
+                () -> DecryptionHandler.create(masterKeyProvider_, new ParsedCiphertext(ciphertext),
+                                               commitmentPolicy, SignaturePolicy.AllowEncryptForbidDecrypt, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS));
+    }
+
     private byte[] getTestHeaders() {
-        final CryptoAlgorithm cryptoAlgorithm_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
+        return getTestHeaders(1);
+    }
+
+    private byte[] getTestHeaders(CryptoAlgorithm cryptoAlgorithm, CommitmentPolicy policy) {
+        return getTestHeaders(cryptoAlgorithm, policy, 1);
+    }
+
+    private byte[] getTestHeaders(int numEdks) {
+        return getTestHeaders(TestUtils.DEFAULT_TEST_CRYPTO_ALG, TestUtils.DEFAULT_TEST_COMMITMENT_POLICY, numEdks);
+    }
+
+    private byte[] getTestHeaders(CryptoAlgorithm cryptoAlgorithm, CommitmentPolicy policy, int numEdks) {
+        // Note that it's questionable to assume that failing to call doFinal() on the encryption handler
+        // always results in only outputting the header!
+        return getTestMessage(cryptoAlgorithm, policy, numEdks, false);
+    }
+
+    private byte[] getTestMessage(CryptoAlgorithm cryptoAlgorithm, CommitmentPolicy policy) {
+        return getTestMessage(cryptoAlgorithm, policy, 1, true);
+    }
+
+    private byte[] getTestMessage(CryptoAlgorithm cryptoAlgorithm, CommitmentPolicy policy, int numEdks, boolean doFinal) {
         final int frameSize_ = AwsCrypto.getDefaultFrameSize();
         final Map<String, String> encryptionContext = Collections.<String, String> emptyMap();
 
         final EncryptionMaterialsRequest encryptionMaterialsRequest = EncryptionMaterialsRequest.newBuilder()
                                                                                                 .setContext(encryptionContext)
-                                                                                                .setRequestedAlgorithm(cryptoAlgorithm_)
+                                                                                                .setRequestedAlgorithm(cryptoAlgorithm)
                                                                                                 .build();
 
-        final EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(masterKeyProvider_)
+        List<MasterKeyProvider<?>> providers = new ArrayList<>();
+        for (int i = 0; i < numEdks; i++) {
+            providers.add(masterKeyProvider_);
+        }
+        MasterKeyProvider<?> provider = MultipleProviderFactory.buildMultiProvider(providers);
+
+        final EncryptionMaterials encryptionMaterials = new DefaultCryptoMaterialsManager(provider)
                 .getMaterialsForEncrypt(encryptionMaterialsRequest);
 
         final EncryptionHandler encryptionHandler = new EncryptionHandler(frameSize_, encryptionMaterials);
@@ -126,13 +263,16 @@ public class DecryptionHandlerTest {
         final byte[] in = new byte[0];
         final int ciphertextLen = encryptionHandler.estimateOutputSize(in.length);
         final byte[] ciphertext = new byte[ciphertextLen];
-        encryptionHandler.processBytes(in, 0, in.length, ciphertext, 0);
+        ProcessingSummary summary = encryptionHandler.processBytes(in, 0, in.length, ciphertext, 0);
+        if (doFinal) {
+            encryptionHandler.doFinal(ciphertext, summary.getBytesWritten());
+        }
         return ciphertext;
     }
 
     @Test(expected = AwsCryptoException.class)
     public void invalidOffsetProcessBytes() {
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final byte[] in = new byte[1];
         final byte[] out = new byte[1];
         decryptionHandler.processBytes(in, -1, in.length, out, 0);
@@ -143,11 +283,13 @@ public class DecryptionHandlerTest {
         byte[] ciphertext = getTestHeaders();
 
         CiphertextHeaders h = new CiphertextHeaders();
-        h.deserialize(ciphertext, 0);
+        h.deserialize(ciphertext, 0, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
 
-        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final byte[] out = new byte[1];
 
+        // Note the " - 1" is a bit deceptive: the ciphertext SHOULD already be incomplete because we
+        // called getTestHeaders() above, so the whole body is missing!
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
         decryptionHandler.doFinal(out, 0);
     }
@@ -155,7 +297,27 @@ public class DecryptionHandlerTest {
     @Test
     public void incompleteCiphertextV2() {
         byte[] ciphertext = Utils.decodeBase64String(TestUtils.messageWithCommitKeyBase64);
-        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final byte[] out = new byte[1];
+
+        decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
+        assertThrows(BadCiphertextException.class, "Unable to process entire ciphertext.",
+                () -> decryptionHandler.doFinal(out, 0));
+    }
+
+    @Test
+    public void incompleteCiphertextSigned() {
+        byte[] ciphertext = getTestMessage(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                           CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final byte[] out = new byte[1];
 
         decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
@@ -173,7 +335,11 @@ public class DecryptionHandlerTest {
         ciphertext[134] += 1;
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         assertThrows(BadCiphertextException.class, "Header integrity check failed", () ->
@@ -188,10 +354,170 @@ public class DecryptionHandlerTest {
         ciphertext[ciphertext.length - 1] += 1;
 
         // attempt to decrypt with the tampered header.
-        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(TestUtils.messageWithCommitKeyMasterKey);
+        final DecryptionHandler<JceMasterKey> decryptionHandler = DecryptionHandler.create(
+                TestUtils.messageWithCommitKeyMasterKey,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
         final int plaintextLen = decryptionHandler.estimateOutputSize(ciphertext.length);
         final byte[] plaintext = new byte[plaintextLen];
         assertThrows(BadCiphertextException.class, "Tag mismatch", () ->
                 decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, plaintext, 0));
+    }
+
+    @Test
+    public void withLessThanMaxEdks() {
+        byte[] header = getTestHeaders(2);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, 3);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(header.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        decryptionHandler.processBytes(header, 0, header.length, plaintext, 0);
+    }
+
+    @Test
+    public void withMaxEdks() {
+        byte[] header = getTestHeaders(3);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, 3);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(header.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        decryptionHandler.processBytes(header, 0, header.length, plaintext, 0);
+    }
+
+    @Test
+    public void withMoreThanMaxEdks() {
+        byte[] header = getTestHeaders(4);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, 3);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(header.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        assertThrows(AwsCryptoException.class, "Ciphertext encrypted data keys exceed maxEncryptedDataKeys", () ->
+                decryptionHandler.processBytes(header, 0, header.length, plaintext, 0)
+        );
+    }
+
+    @Test
+    public void withNoMaxEdks() {
+        byte[] header = getTestHeaders(1 << 16 - 1);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(masterKeyProvider_, commitmentPolicy, signaturePolicy, CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final int plaintextLen = decryptionHandler.estimateOutputSize(header.length);
+        final byte[] plaintext = new byte[plaintextLen];
+        decryptionHandler.processBytes(header, 0, header.length, plaintext, 0);
+    }
+
+    public void validSignatureAcrossMultipleBlocks() {
+        byte[] ciphertext = getTestMessage(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final byte[] out = new byte[1];
+
+        // Parse the header and body
+        final int headerLength = 388;
+        decryptionHandler.processBytes(ciphertext, 0, headerLength, out, 0);
+
+        // Parse the footer across two calls
+        // This used to fail to verify the signature because partial bytes were dropped instead.
+        // The overall decryption would still succeed because the completeness check in doFinal
+        // used to not include the footer.
+        // The number of bytes read in the first chunk is completely arbitrary. The
+        // parameterized CryptoOutputStreamTest tests covers lots of possible chunk
+        // sizes much more thoroughly. This is just a very explicit regression unit test for a known
+        // issue that is now fixed.
+        final int firstChunkLength = 12;
+        final int firstChunkOffset = headerLength;
+        final int secondChunkOffset = headerLength + firstChunkLength;
+        final int secondChunkLength = ciphertext.length - secondChunkOffset;
+        decryptionHandler.processBytes(ciphertext, firstChunkOffset, firstChunkLength, out, 0);
+        decryptionHandler.processBytes(ciphertext, secondChunkOffset, secondChunkLength, out, 0);
+        decryptionHandler.doFinal(out, 0);
+    }
+
+    @Test
+    public void invalidSignatureAcrossMultipleBlocks() {
+        byte[] ciphertext = getTestMessage(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final byte[] out = new byte[1];
+
+        // Parse the header and body
+        decryptionHandler.processBytes(ciphertext, 0, 388, out, 0);
+
+        // Process extra bytes before processing the actual signature bytes.
+        // This used to actually work because the handler failed to buffer the unparsed bytes
+        // across calls. To regression test this properly we have to parse the two bytes for the length...
+        decryptionHandler.processBytes(ciphertext, 388, 2, out, 0);
+        // ...and after that any bytes fewer than that length would previously be dropped.
+        decryptionHandler.processBytes(new byte[10], 0, 10, out, 0);
+        assertThrows(BadCiphertextException.class, "Bad trailing signature", () ->
+                decryptionHandler.processBytes(ciphertext, 390, ciphertext.length - 390, out, 0));
+    }
+
+    @Test
+    public void setMaxInputLength() {
+        byte[] ciphertext = getTestMessage(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(ciphertext.length - 1);
+
+        assertEquals(decryptionHandler.getMaxInputLength(), (long)ciphertext.length - 1);
+
+        final byte[] out = new byte[1];
+        assertThrows(IllegalStateException.class, "Ciphertext size exceeds size bound", () ->
+                decryptionHandler.processBytes(ciphertext, 0, ciphertext.length, out, 0));
+    }
+
+    @Test
+    public void setMaxInputLengthThrowsIfAlreadyOver() {
+        byte[] ciphertext = getTestMessage(CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt);
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        final byte[] out = new byte[1];
+        decryptionHandler.processBytes(ciphertext, 0, ciphertext.length - 1, out, 0);
+        assertFalse(decryptionHandler.isComplete());
+
+        assertThrows(IllegalStateException.class, "Ciphertext size exceeds size bound", () ->
+                decryptionHandler.setMaxInputLength(ciphertext.length - 2));
+    }
+
+    @Test
+    public void setMaxInputLengthAcceptsSmallerValue() {
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(100);
+        assertEquals(decryptionHandler.getMaxInputLength(), 100);
+
+        decryptionHandler.setMaxInputLength(10);
+        assertEquals(decryptionHandler.getMaxInputLength(), 10);
+    }
+
+    @Test
+    public void setMaxInputLengthIgnoresLargerValue() {
+        final DecryptionHandler<StaticMasterKey> decryptionHandler = DecryptionHandler.create(
+                masterKeyProvider_,
+                CommitmentPolicy.ForbidEncryptAllowDecrypt,
+                signaturePolicy,
+                CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        decryptionHandler.setMaxInputLength(10);
+        assertEquals(decryptionHandler.getMaxInputLength(), 10);
+
+        decryptionHandler.setMaxInputLength(100);
+        assertEquals(decryptionHandler.getMaxInputLength(), 10);
     }
 }
