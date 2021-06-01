@@ -20,7 +20,7 @@ public class VersionInfo {
     // incremented for major changes to the implementation
     public static final String MAJOR_REVISION_NUM = "2";
     // incremented for minor changes to the implementation
-    public static final String MINOR_REVISION_NUM = "0";
+    public static final String MINOR_REVISION_NUM = "2";
     // incremented for releases containing an immediate bug fix.
     public static final String BUGFIX_REVISION_NUM = "0";
 
