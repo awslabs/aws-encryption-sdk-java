@@ -12,20 +12,25 @@
  */
 
 package com.amazonaws.encryptionsdk.internal;
+import java.util.Properties;
+import java.io.IOException;
 
 /**
  * This class specifies the versioning system for the AWS KMS encryption client.
  */
 public class VersionInfo {
-    // incremented for major changes to the implementation
-    public static final String MAJOR_REVISION_NUM = "2";
-    // incremented for minor changes to the implementation
-    public static final String MINOR_REVISION_NUM = "2";
-    // incremented for releases containing an immediate bug fix.
-    public static final String BUGFIX_REVISION_NUM = "0";
-
-    public static final String RELEASE_VERSION = MAJOR_REVISION_NUM + "." + MINOR_REVISION_NUM
-            + "." + BUGFIX_REVISION_NUM;
-
-    public static final String USER_AGENT = "AwsCrypto/" + RELEASE_VERSION;
+    public static final String USER_AGENT_PREFIX = "AwsCrypto/";
+    public static final String UNKNOWN_VERSION = "unknown";
+    /*
+     * Loads the version of the library
+     */
+    public static String loadUserAgent() {
+        try {
+            final Properties properties = new Properties();
+            properties.load(ClassLoader.getSystemResourceAsStream("project.properties"));
+            return USER_AGENT_PREFIX + properties.getProperty("version");
+        } catch (final IOException ex) {
+            return USER_AGENT_PREFIX + UNKNOWN_VERSION;
+        }
+    }
 }

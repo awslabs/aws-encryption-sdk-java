@@ -302,7 +302,7 @@ public class KmsMasterKeyProviderTest {
 
         private void assertUserAgent(AmazonWebServiceRequest request) {
             assertTrue(request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT)
-                    .contains(VersionInfo.USER_AGENT));
+                    .contains(VersionInfo.loadUserAgent()));
         }
     }
 

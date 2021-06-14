@@ -6,3 +6,6 @@ target/
 /bin/
 .idea/
 *.iml
+/.history
+/.DS_Store
+/specification_compliance_report.html

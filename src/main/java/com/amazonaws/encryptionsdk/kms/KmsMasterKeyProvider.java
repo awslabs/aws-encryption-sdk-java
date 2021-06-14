@@ -41,10 +41,14 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClient;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
+import static com.amazonaws.encryptionsdk.internal.AwsKmsCmkArnInfo.parseInfoFromKeyArn;
 
 /**
  * Provides {@link MasterKey}s backed by the AWS Key Management Service. This object is regional and
  * if you want to use keys from multiple regions, you'll need multiple copies of this object.
+ *
+ * This component is not multi-Region key aware, and will treat every AWS KMS identifier as
+ * regionally isolated.
  */
 public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implements KmsMethods {
     private static final String PROVIDER_NAME = "aws-kms";
@@ -186,7 +190,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             return this;
         }
 
-        private AWSKMSClientBuilder cloneClientBuilder(final AWSKMSClientBuilder builder) {
+        AWSKMSClientBuilder cloneClientBuilder(final AWSKMSClientBuilder builder) {
             // We need to copy all arguments out of the builder in case it's mutated later on.
             // Unfortunately AWSKMSClientBuilder doesn't support .clone() so we'll have to do it by hand.
 
@@ -293,7 +297,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             return buildStrict(asList(keyIds));
         }
 
-        private RegionalClientSupplier clientFactory() {
+        RegionalClientSupplier clientFactory() {
             if (regionalClientSupplier_ != null) {
                 return regionalClientSupplier_;
             }
@@ -324,9 +328,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
                         .withRegion(region)
                         .withRequestHandlers(handlers.toArray(new RequestHandler2[handlers.size()]))
                         .build();
-                cacher.client_ = kms;
 
-                return kms;
+                return cacher.setClient(kms);
             };
         }
 
@@ -335,19 +338,24 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         }
     }
 
-    private static class SuccessfulRequestCacher extends RequestHandler2 {
+    static class SuccessfulRequestCacher extends RequestHandler2 {
         private final ConcurrentHashMap<String, AWSKMS> cache_;
         private final String region_;
         private AWSKMS client_;
 
         volatile boolean ranBefore_ = false;
 
-        private SuccessfulRequestCacher(
+        SuccessfulRequestCacher(
                 final ConcurrentHashMap<String, AWSKMS> cache,
                 final String region
         ) {
             this.region_ = region;
             this.cache_ = cache;
+        }
+
+        public AWSKMS setClient(final AWSKMS client) {
+            client_ = client;
+            return client;
         }
 
         @Override public void afterResponse(final Request<?> request, final Response<?> response) {
@@ -370,7 +378,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         return new Builder();
     }
 
-    private KmsMasterKeyProvider(
+    KmsMasterKeyProvider(
             RegionalClientSupplier supplier,
             String defaultRegion,
             List<String> keyIds,
@@ -491,8 +499,8 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
                     final String keyArn = new String(edk.getProviderInformation(), StandardCharsets.UTF_8);
                     // This will throw if we can't use this key for whatever reason
                     return getMasterKey(keyArn).decryptDataKey(algorithm, singletonList(edk), encryptionContext);
-                } catch (final Exception asex) {
-                    exceptions.add(asex);
+                } catch (final Exception ex) {
+                    exceptions.add(ex);
                 }
             }
         }
@@ -563,18 +571,4 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         return withGrantTokens(asList(grantTokens));
     }
 
-    private static AwsKmsCmkArnInfo parseInfoFromKeyArn(final String keyArn) {
-        final String[] parts = keyArn.split(":", 6);
-        if (!parts[0].equals("arn") || parts.length < 6) {
-            return null;
-        }
-        if (!parts[2].equals("kms")) {
-            return null;
-        }
-        if (parts[1].isEmpty() || parts[3].isEmpty() || parts[4].isEmpty()) {
-            return null;
-        }
-
-        return new AwsKmsCmkArnInfo(parts[1], parts[3], parts[4]);
-    }
 }

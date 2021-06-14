@@ -169,15 +169,15 @@ public class KMSProviderBuilderMockTests {
 
         ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
         verify(client, times(1)).generateDataKey(gdkr.capture());
-        assertTrue(getUA(gdkr.getValue()).contains(VersionInfo.USER_AGENT));
+        assertTrue(getUA(gdkr.getValue()).contains(VersionInfo.loadUserAgent()));
 
         ArgumentCaptor<EncryptRequest> encr = ArgumentCaptor.forClass(EncryptRequest.class);
         verify(client, times(1)).encrypt(encr.capture());
-        assertTrue(getUA(encr.getValue()).contains(VersionInfo.USER_AGENT));
+        assertTrue(getUA(encr.getValue()).contains(VersionInfo.loadUserAgent()));
 
         ArgumentCaptor<DecryptRequest> decr = ArgumentCaptor.forClass(DecryptRequest.class);
         verify(client, times(1)).decrypt(decr.capture());
-        assertTrue(getUA(decr.getValue()).contains(VersionInfo.USER_AGENT));
+        assertTrue(getUA(decr.getValue()).contains(VersionInfo.loadUserAgent()));
     }
 
     private String getUA(AmazonWebServiceRequest request) {

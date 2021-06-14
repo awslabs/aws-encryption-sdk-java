@@ -422,7 +422,7 @@ public class KMSProviderBuilderIntegrationTests {
 
         assertTrue(ua.contains("TEST-UA-PREFIX"));
         assertTrue(ua.contains("TEST-UA-SUFFIX"));
-        assertTrue(ua.contains(VersionInfo.USER_AGENT));
+        assertTrue(ua.contains(VersionInfo.loadUserAgent()));
     }
 
     @Test
