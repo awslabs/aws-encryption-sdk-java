@@ -8,13 +8,12 @@ import org.junit.Test;
 
 public class DiscoveryMultiRegionDecryptionExampleTest {
 
-    @Test
-    public void testEncryptAndDecrypt() {
-        DiscoveryMultiRegionDecryptionExample.encryptAndDecrypt(
-          KMSTestFixtures.US_EAST_1_MULTI_REGION_KEY_ID,
-          KMSTestFixtures.PARTITION,
-          KMSTestFixtures.ACCOUNT_ID,
-          KMSTestFixtures.US_WEST_2
-        );
-    }
+  @Test
+  public void testEncryptAndDecrypt() {
+    DiscoveryMultiRegionDecryptionExample.encryptAndDecrypt(
+        KMSTestFixtures.US_EAST_1_MULTI_REGION_KEY_ID,
+        KMSTestFixtures.PARTITION,
+        KMSTestFixtures.ACCOUNT_ID,
+        KMSTestFixtures.US_WEST_2);
+  }
 }

@@ -11,22 +11,23 @@ import org.junit.Test;
 
 public class EncryptionMaterialsRequestTest {
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructWithNullCommitmentPolicy() {
-        EncryptionMaterialsRequest.newBuilder().setCommitmentPolicy(null).build();
-    }
+  @Test(expected = IllegalArgumentException.class)
+  public void testConstructWithNullCommitmentPolicy() {
+    EncryptionMaterialsRequest.newBuilder().setCommitmentPolicy(null).build();
+  }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructWithoutCommitmentPolicy() {
-        EncryptionMaterialsRequest.newBuilder().build();
-    }
+  @Test(expected = IllegalArgumentException.class)
+  public void testConstructWithoutCommitmentPolicy() {
+    EncryptionMaterialsRequest.newBuilder().build();
+  }
 
-    @Test
-    public void testConstructWithCommitmentPolicy() {
-        EncryptionMaterialsRequest req = EncryptionMaterialsRequest.newBuilder()
-                .setCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
-                .build();
-        assertNotNull(req);
-        assertEquals(CommitmentPolicy.ForbidEncryptAllowDecrypt, req.getCommitmentPolicy());
-    }
+  @Test
+  public void testConstructWithCommitmentPolicy() {
+    EncryptionMaterialsRequest req =
+        EncryptionMaterialsRequest.newBuilder()
+            .setCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt)
+            .build();
+    assertNotNull(req);
+    assertEquals(CommitmentPolicy.ForbidEncryptAllowDecrypt, req.getCommitmentPolicy());
+  }
 }

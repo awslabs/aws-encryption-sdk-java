@@ -8,8 +8,8 @@ import org.junit.Test;
 
 public class SetCommitmentPolicyExampleTest {
 
-    @Test
-    public void testEncryptAndDecrypt() {
-        SetCommitmentPolicyExample.encryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
-    }
+  @Test
+  public void testEncryptAndDecrypt() {
+    SetCommitmentPolicyExample.encryptAndDecrypt(KMSTestFixtures.TEST_KEY_IDS[0]);
+  }
 }

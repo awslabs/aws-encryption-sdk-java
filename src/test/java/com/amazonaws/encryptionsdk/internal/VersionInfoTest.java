@@ -3,16 +3,9 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
-import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.runner.RunWith;
-
-import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class VersionInfoTest {
 
@@ -23,6 +16,3 @@ public class VersionInfoTest {
     assertTrue(!userAgent.equals(VersionInfo.USER_AGENT_PREFIX + VersionInfo.UNKNOWN_VERSION));
   }
 }
-
-
-
