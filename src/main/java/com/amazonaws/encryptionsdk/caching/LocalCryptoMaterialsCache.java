@@ -15,7 +15,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
  * A simple implementation of the {@link CryptoMaterialsCache} using a basic LRU cache.
  *
  * Example usage:
- * {@code
+ * <pre>{@code
  *
  * LocalCryptoMaterialsCache cache = new LocalCryptoMaterialsCache(500);
  *
@@ -26,7 +26,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
  *      .build();
  *
  * byte[] data = new AwsCrypto().encryptData(materialsManager, plaintext).getResult();
- * }
+ * }</pre>
  */
 public class LocalCryptoMaterialsCache implements CryptoMaterialsCache {
     // The maximum number of entries to implicitly prune per access due to TTL expiration. We limit this to avoid

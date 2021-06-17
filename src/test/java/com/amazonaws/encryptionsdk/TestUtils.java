@@ -113,7 +113,7 @@ public class TestUtils {
      * Asserts that substituting any argument with null causes a NPE to be thrown.
      *
      * Usage:
-     * {@code
+     * <pre>{@code
      *
      * assertNullChecks(
      *   myAwsCrypto,
@@ -121,7 +121,7 @@ public class TestUtils {
      *   CryptoMaterialsManager.class, myCMM,
      *   InputStream.class, myIS
      * );
-     * }
+     * }</pre>
      * @param callee
      * @param methodName
      * @param args
