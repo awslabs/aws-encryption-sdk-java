@@ -1,15 +1,5 @@
-/*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.crypto.examples;
 
@@ -24,9 +14,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoInputStream;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import com.amazonaws.util.IOUtils;
 
 /**
@@ -56,8 +48,18 @@ public class FileStreamingExample {
         // Create a JCE master key provider using the random key and an AES-GCM encryption algorithm
         JceMasterKey masterKey = JceMasterKey.getInstance(cryptoKey, "Example", "RandomKey", "AES/GCM/NoPadding");
 
-        // Instantiate the SDK
-        AwsCrypto crypto = new AwsCrypto();
+        // Instantiate the SDK.
+        // This builds the AwsCrypto client with the RequireEncryptRequireDecrypt commitment policy,
+        // which enforces that this client only encrypts using committing algorithm suites and enforces
+        // that this client will only decrypt encrypted messages that were created with a committing algorithm suite.
+        // This is the default commitment policy if you build the client with `AwsCrypto.builder().build()`
+        // or `AwsCrypto.standard()`.
+        // This also chooses to encrypt with an algorithm suite that doesn't include signing for faster decryption,
+        // since this use case assumes that the contexts that encrypt and decrypt are equally trusted.
+        final AwsCrypto crypto = AwsCrypto.builder()
+                .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+                .withEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
+                .build();
 
         // Create an encryption context to identify this ciphertext
         Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");
@@ -73,14 +75,16 @@ public class FileStreamingExample {
         out.close();
 
         // Decrypt the file. Verify the encryption context before returning the plaintext.
+        // Since we encrypted using an unsigned algorithm suite, we can use the recommended
+        // createUnsignedMessageDecryptingStream method that only accepts unsigned messages.
         in = new FileInputStream(srcFile + ".encrypted");
-        CryptoInputStream<JceMasterKey> decryptingStream = crypto.createDecryptingStream(masterKey, in);
+        CryptoInputStream<JceMasterKey> decryptingStream = crypto.createUnsignedMessageDecryptingStream(masterKey, in);
         // Does it contain the expected encryption context?
         if (!"FileStreaming".equals(decryptingStream.getCryptoResult().getEncryptionContext().get("Example"))) {
             throw new IllegalStateException("Bad encryption context");
         }
 
-        // Return the plaintext data
+        // Write the plaintext data to disk.
         out = new FileOutputStream(srcFile + ".decrypted");
         IOUtils.copy(decryptingStream, out);
         decryptingStream.close();

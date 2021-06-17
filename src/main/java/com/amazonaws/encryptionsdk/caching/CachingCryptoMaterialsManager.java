@@ -77,7 +77,7 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
 
         /**
          * Sets the {@link CryptoMaterialsManager} that should be queried when the {@link CachingCryptoMaterialsManager}
-         * incurs a cache miss.
+         * (CCMM) incurs a cache miss.
          *
          * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
          * be used.
@@ -92,7 +92,7 @@ public class CachingCryptoMaterialsManager implements CryptoMaterialsManager {
 
         /**
          * Sets the {@link MasterKeyProvider} that should be queried when the {@link CachingCryptoMaterialsManager}
-         * incurs a cache miss.
+         * (CCMM) incurs a cache miss.
          *
          * You can set either a MasterKeyProvider or a CryptoMaterialsManager to back the CCMM - the last value set will
          * be used.

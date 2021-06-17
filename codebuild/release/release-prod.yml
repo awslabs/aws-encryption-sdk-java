@@ -1,0 +1,81 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    GPG_KEY: Maven-GPG-Keys-Credentials:Keyname
+    GPG_PASS: Maven-GPG-Keys-Credentials:Passphrase
+    SONA_USERNAME: Sonatype-Team-Account:Username 
+    SONA_PASSWORD: Sonatype-Team-Account:Password
+
+phases:
+  install:
+    runtime-versions:
+      java: openjdk11
+  pre_build:
+    commands:
+      - git checkout $COMMIT_ID
+      - FOUND_VERSION=$(grep version pom.xml | head -n 1 | sed -n 's/[ \t]*<version>\(.*\)<\/version>/\1/p')
+      - |
+        if expr ${FOUND_VERSION} != ${VERSION}; then
+          echo "pom.xml version (${FOUND_VERSION}) does not match expected version (${VERSION}), stopping"
+          exit 1;
+        fi
+      - export SETTINGS_FILE=$(pwd)/codebuild/release/settings.xml
+      - aws secretsmanager get-secret-value --region us-west-2 --secret-id Maven-GPG-Keys --query SecretBinary --output text | base64 -d > ~/mvn_gpg.tgz
+      - tar -xvf ~/mvn_gpg.tgz -C ~
+  build:
+    commands:
+      - |
+        mvn deploy \
+          -Ppublishing \
+          -Pfast-tests-only \
+          -DperformRelease \
+          -Dgpg.homedir="$HOME/mvn_gpg" \
+          -DautoReleaseAfterClose=true \
+          -Dgpg.keyname="$GPG_KEY" \
+          -Dgpg.passphrase="$GPG_PASS" \
+          -Dsonatype.username="$SONA_USERNAME" \
+          -Dsonatype.password="$SONA_PASSWORD" \
+          -s $SETTINGS_FILE
+
+
+batch:
+  fast-fail: false
+  build-graph:
+    - identifier: release_to_prod
+    - identifier: validate_prod_release_openjdk8
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: openjdk8
+          JAVA_NUMERIC_VERSION: 8
+        image: aws/codebuild/standard:3.0
+    - identifier: validate_prod_release_openjdk11
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: openjdk11
+          JAVA_NUMERIC_VERSION: 11
+        image: aws/codebuild/standard:3.0
+    - identifier: validate_prod_release_corretto8
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: corretto8
+          JAVA_NUMERIC_VERSION: 8
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+    - identifier: validate_prod_release_corretto11
+      depend-on:
+        - release_to_prod
+      buildspec: codebuild/release/validate-prod.yml
+      env:
+        variables:
+          JAVA_ENV_VERSION: corretto11
+          JAVA_NUMERIC_VERSION: 11
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0

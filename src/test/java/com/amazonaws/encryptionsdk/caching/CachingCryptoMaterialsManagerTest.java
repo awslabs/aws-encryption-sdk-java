@@ -4,8 +4,8 @@ import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -18,21 +18,21 @@ import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
+import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache.EncryptCacheEntry;
 import com.amazonaws.encryptionsdk.caching.CryptoMaterialsCache.UsageStats;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
-import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
 public class CachingCryptoMaterialsManagerTest {
     private static final String PARTITION_ID = "partition ID";
@@ -121,7 +121,16 @@ public class CachingCryptoMaterialsManagerTest {
                                                       .build();
         setupForCacheMiss(request, result);
 
-        assertEquals(result, cmm.getMaterialsForEncrypt(request));
+        CachingCryptoMaterialsManager allowNoKdfCMM = CachingCryptoMaterialsManager.newBuilder()
+                .withBackingMaterialsManager(delegate)
+                .withCache(cache)
+                .withPartitionId(PARTITION_ID)
+                .withMaxAge(maxAgeMs, TimeUnit.MILLISECONDS)
+                .withByteUseLimit(200)
+                .withMessageUseLimit(100)
+                .build();
+
+        assertEquals(result, allowNoKdfCMM.getMaterialsForEncrypt(request));
         verify(cache, never()).putEntryForEncrypt(any(), any(), any(), any());
     }
 
@@ -135,7 +144,7 @@ public class CachingCryptoMaterialsManagerTest {
                                                               .setPlaintextSize(200)
                                                               .build();
         EncryptionMaterials result = CacheTestFixtures.createMaterialsResult(request).toBuilder()
-                                                      .setAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF)
+                                                      .setAlgorithm(CryptoAlgorithm.ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY)
                                                       .build();
         setupForCacheMiss(request, result);
 
@@ -321,9 +330,9 @@ public class CachingCryptoMaterialsManagerTest {
     @Test
     public void whenMKPPassed_itIsUsed() throws Exception {
         JceMasterKey key = spy(JceMasterKey.getInstance(new SecretKeySpec(new byte[16], "AES"),
-                                                         "provider",
-                                                         "keyId",
-                                                         "AES/GCM/NoPadding"));
+                "provider",
+                "keyId",
+                "AES/GCM/NoPadding"));
         CryptoMaterialsManager cmm = CachingCryptoMaterialsManager.newBuilder()
                                                                   .withCache(cache)
                                                                   .withMasterKeyProvider(key)
@@ -396,4 +405,3 @@ public class CachingCryptoMaterialsManagerTest {
         }
     }
 }
-

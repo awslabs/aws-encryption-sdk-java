@@ -22,6 +22,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import java.lang.reflect.Field;
 
+import com.amazonaws.encryptionsdk.TestUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,8 +32,8 @@ import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.model.CipherFrameHeaders;
 
 public class FrameEncryptionHandlerTest {
-    private final CryptoAlgorithm cryptoAlgorithm_ = AwsCrypto.getDefaultCryptoAlgorithm();
-    private final byte[] messageId_ = RandomBytesGenerator.generate(Constants.MESSAGE_ID_LEN);
+    private final CryptoAlgorithm cryptoAlgorithm_ = TestUtils.DEFAULT_TEST_CRYPTO_ALG;
+    private final byte[] messageId_ = RandomBytesGenerator.generate(cryptoAlgorithm_.getMessageIdLength());
     private final byte nonceLen_ = cryptoAlgorithm_.getNonceLen();
     private final byte[] dataKeyBytes_ = RandomBytesGenerator.generate(cryptoAlgorithm_.getKeyLength());
     private final SecretKey encryptionKey_ = new SecretKeySpec(dataKeyBytes_, "AES");

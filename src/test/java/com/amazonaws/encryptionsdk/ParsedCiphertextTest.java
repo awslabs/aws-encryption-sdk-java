@@ -1,34 +1,31 @@
-/*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
+import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
-import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
+import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
+import com.amazonaws.util.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 
+import static com.amazonaws.encryptionsdk.TestUtils.assertThrows;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.spy;
 
 public class ParsedCiphertextTest extends CiphertextHeaders {
+    private static final int MESSAGE_FORMAT_MAX_EDKS = (1 << 16) - 1;
     private StaticMasterKey masterKeyProvider;
     private AwsCrypto encryptionClient_;
 
@@ -36,7 +33,7 @@ public class ParsedCiphertextTest extends CiphertextHeaders {
     public void init() {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
 
-        encryptionClient_ = new AwsCrypto();
+        encryptionClient_ = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
         encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
     }
 
@@ -69,7 +66,7 @@ public class ParsedCiphertextTest extends CiphertextHeaders {
 
     @Test(expected = BadCiphertextException.class)
     public void incompleteSingleByteCiphertext() {
-        final byte[] cipherText = {VersionInfo.CURRENT_CIPHERTEXT_VERSION};
+        final byte[] cipherText = {1 /* Original ciphertext version number */};
         ParsedCiphertext pCt = new ParsedCiphertext(cipherText);
     }
 
@@ -92,5 +89,51 @@ public class ParsedCiphertextTest extends CiphertextHeaders {
 
         byte[] incompleteCiphertext = Arrays.copyOf(pCt.getCiphertext(), pCt.getOffset() - 1);
         ParsedCiphertext badPCt = new ParsedCiphertext(incompleteCiphertext);
+    }
+
+    private MasterKeyProvider<?> providerWithEdks(int numEdks) {
+        List<MasterKeyProvider<?>> providers = new ArrayList<>();
+        for (int i = 0; i < numEdks; i++) {
+            providers.add(masterKeyProvider);
+        }
+        return MultipleProviderFactory.buildMultiProvider(providers);
+    }
+
+    @Test
+    public void lessThanMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(2);
+        CryptoResult<byte[], ?> result = encryptionClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult(), 3);
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), 2);
+    }
+
+    @Test
+    public void equalToMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(3);
+        CryptoResult<byte[], ?> result = encryptionClient_.encryptData(provider, new byte[] {1});
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult(), 3);
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), 3);
+    }
+
+    @Test
+    public void failMoreThanMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(4);
+        CryptoResult<byte[], ?> result = encryptionClient_.encryptData(provider, new byte[] {1});
+        assertThrows(AwsCryptoException.class, "Ciphertext encrypted data keys exceed maxEncryptedDataKeys", () ->
+                new ParsedCiphertext(result.getResult(), 3));
+    }
+
+    @Test
+    public void noMaxEdks() {
+        MasterKeyProvider<?> provider = providerWithEdks(MESSAGE_FORMAT_MAX_EDKS);
+        CryptoResult<byte[], ?> result = encryptionClient_.encryptData(provider, new byte[] {1});
+
+        // explicit no-max
+        ParsedCiphertext ciphertext = new ParsedCiphertext(result.getResult(), CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS);
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), MESSAGE_FORMAT_MAX_EDKS);
+
+        // implicit no-max
+        ciphertext = new ParsedCiphertext(result.getResult());
+        assertEquals(ciphertext.getEncryptedKeyBlobCount(), MESSAGE_FORMAT_MAX_EDKS);
     }
 }

@@ -1,9 +1,13 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
-import static java.lang.String.format;
-
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.encryptionsdk.internal.SignaturePolicy;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
+import com.amazonaws.encryptionsdk.kms.AwsKmsMrkAwareMasterKeyProvider;
+import com.amazonaws.encryptionsdk.kms.DiscoveryFilter;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.util.IOUtils;
@@ -22,11 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
@@ -35,33 +35,40 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
+import static java.lang.String.format;
+
 @RunWith(Parameterized.class)
 public class TestVectorRunner {
+
+    private static final int MANIFEST_VERSION = 2;
+
     // We save the files in memory to avoid repeatedly retrieving them. This won't work if the plaintexts are too
     // large or numerous
     private static final Map<String, byte[]> cachedData = new HashMap<>();
 
     private final String testName;
     private final TestCase testCase;
+    private final DecryptionMethod decryptionMethod;
 
-    public TestVectorRunner(final String testName, TestCase testCase) {
+    public TestVectorRunner(final String testName, TestCase testCase, DecryptionMethod decryptionMethod) {
         this.testName = testName;
         this.testCase = testCase;
+        this.decryptionMethod = decryptionMethod;
     }
 
     @Test
-    public void decrypt() {
-        AwsCrypto crypto = new AwsCrypto();
-        byte[] plaintext = crypto.decryptData(testCase.mkp, cachedData.get(testCase.ciphertextPath)).getResult();
-        final byte[] expectedPlaintext = cachedData.get(testCase.plaintextPath);
-
-        Assert.assertArrayEquals(expectedPlaintext, plaintext);
+    public void decrypt() throws Exception {
+        AwsCrypto crypto = AwsCrypto.builder().withCommitmentPolicy(CommitmentPolicy.ForbidEncryptAllowDecrypt).build();
+        Callable<byte[]> decryptor = () -> decryptionMethod.decryptMessage(crypto, testCase.mkpSupplier.get(), cachedData.get(testCase.ciphertextPath));
+        testCase.matcher.Match(decryptor);
     }
 
-    @Parameterized.Parameters(name="Compatibility Test: {0}")
+    @Parameterized.Parameters(name="Compatibility Test: {0} - {2}")
     @SuppressWarnings("unchecked")
     public static Collection<Object[]> data() throws Exception {
         final String zipPath = System.getProperty("testVectorZip");
@@ -81,7 +88,7 @@ public class TestVectorRunner {
                 throw new IllegalArgumentException("Unsupported manifest type: " + metaData.get("type"));
             }
 
-            if (!Integer.valueOf(1).equals(metaData.get("version"))) {
+            if (!Integer.valueOf(MANIFEST_VERSION).equals(metaData.get("version"))) {
                 throw new IllegalArgumentException("Unsupported manifest version: " + metaData.get("version"));
             }
 
@@ -90,13 +97,18 @@ public class TestVectorRunner {
             final KmsMasterKeyProvider kmsProv = KmsMasterKeyProvider
                                                          .builder()
                                                          .withCredentials(new DefaultAWSCredentialsProviderChain())
-                                                         .build();
+                                                         .buildDiscovery();
 
             List<Object[]> testCases = new ArrayList<>();
             for (Map.Entry<String, Map<String, Object>> testEntry :
                     ((Map<String, Map<String, Object>>) manifest.get("tests")).entrySet()) {
-                testCases.add(new Object[]{testEntry.getKey(),
-                        parseTest(testEntry.getKey(), testEntry.getValue(), keys, jar, kmsProv)});
+                String testName = testEntry.getKey();
+                TestCase testCase = parseTest(testEntry.getKey(), testEntry.getValue(), keys, jar, kmsProv);
+                for (DecryptionMethod decryptionMethod : DecryptionMethod.values()) {
+                    if (testCase.signaturePolicy.equals(decryptionMethod.signaturePolicy())) {
+                        testCases.add(new Object[]{testName, testCase, decryptionMethod});
+                    }
+                }
             }
             return testCases;
         }
@@ -135,58 +147,110 @@ public class TestVectorRunner {
     @SuppressWarnings("unchecked")
     private static TestCase parseTest(String testName, Map<String, Object> data, Map<String, KeyEntry> keys,
                                       JarFile jar, KmsMasterKeyProvider kmsProv) throws IOException {
-        final String plaintextUrl = (String) data.get("plaintext");
-        cacheData(jar, plaintextUrl);
         final String ciphertextURL = (String) data.get("ciphertext");
         cacheData(jar, ciphertextURL);
 
-        @SuppressWarnings("generic")
-        final List<MasterKey<?>> mks = new ArrayList<>();
+        Supplier<MasterKeyProvider<?>> mkpSupplier = () -> {
 
-        for (Map<String, String> mkEntry : (List<Map<String, String>>) data.get("master-keys")) {
-            final String type = mkEntry.get("type");
-            final String keyName = mkEntry.get("key");
-            final KeyEntry key = keys.get(keyName);
+            @SuppressWarnings("generic")
+            final List<MasterKey<?>> mks = new ArrayList<>();
 
-            if ("aws-kms".equals(type)) {
-                mks.add(kmsProv.getMasterKey(key.keyId));
-            } else if ("raw".equals(type)) {
-                final String provId = mkEntry.get("provider-id");
-                final String algorithm = mkEntry.get("encryption-algorithm");
-                if ("aes".equals(algorithm)) {
-                    mks.add(JceMasterKey.getInstance((SecretKey) key.key, provId, key.keyId, "AES/GCM/NoPadding"));
-                } else if ("rsa".equals(algorithm)) {
-                    String transformation = "RSA/ECB/";
-                    final String padding = mkEntry.get("padding-algorithm");
-                    if ("pkcs1".equals(padding)) {
-                        transformation += "PKCS1Padding";
-                    } else if ("oaep-mgf1".equals(padding)) {
-                        final String hashName = mkEntry.get("padding-hash")
-                                                       .replace("sha", "sha-")
-                                                       .toUpperCase();
-                        transformation += "OAEPWith" + hashName + "AndMGF1Padding";
+            for (Map<String, Object> mkEntry : (List<Map<String, Object>>) data.get("master-keys")) {
+                final String type = (String) mkEntry.get("type");
+                final String keyName =(String)  mkEntry.get("key");
+                final KeyEntry key = keys.get(keyName);
+
+                if ("aws-kms".equals(type)) {
+                    mks.add(kmsProv.getMasterKey(key.keyId));
+                } else if ("aws-kms-mrk-aware".equals(type)) {
+                    AwsKmsMrkAwareMasterKeyProvider provider = AwsKmsMrkAwareMasterKeyProvider.builder().buildStrict(key.keyId);
+                    mks.add(provider.getMasterKey(key.keyId));
+                } else if ("aws-kms-mrk-aware-discovery".equals(type)) {
+                    final String defaultMrkRegion = (String) mkEntry.get("default-mrk-region");
+                    final Map<String, Object> discoveryFilterSpec = (Map<String, Object>) mkEntry.get("aws-kms-discovery-filter");
+                    final DiscoveryFilter discoveryFilter;
+                    if (discoveryFilterSpec != null) {
+                        discoveryFilter = new DiscoveryFilter((String) discoveryFilterSpec.get("partition"),
+                                                              (List<String>) discoveryFilterSpec.get("account-ids"));
                     } else {
-                        throw new IllegalArgumentException("Unsupported padding:" + padding);
+                        discoveryFilter = null;
                     }
-                    final PublicKey wrappingKey;
-                    final PrivateKey unwrappingKey;
-                    if (key.key instanceof  PublicKey) {
-                        wrappingKey = (PublicKey) key.key;
-                        unwrappingKey = null;
+                    return AwsKmsMrkAwareMasterKeyProvider.builder()
+                            .withDiscoveryMrkRegion(defaultMrkRegion)
+                            .buildDiscovery(discoveryFilter);
+                } else if ("raw".equals(type)) {
+                    final String provId = (String) mkEntry.get("provider-id");
+                    final String algorithm = (String) mkEntry.get("encryption-algorithm");
+                    if ("aes".equals(algorithm)) {
+                        mks.add(JceMasterKey.getInstance((SecretKey) key.key, provId, key.keyId, "AES/GCM/NoPadding"));
+                    } else if ("rsa".equals(algorithm)) {
+                        String transformation = "RSA/ECB/";
+                        final String padding = (String) mkEntry.get("padding-algorithm");
+                        if ("pkcs1".equals(padding)) {
+                            transformation += "PKCS1Padding";
+                        } else if ("oaep-mgf1".equals(padding)) {
+                            final String hashName = ((String) mkEntry.get("padding-hash"))
+                                    .replace("sha", "sha-")
+                                    .toUpperCase();
+                            transformation += "OAEPWith" + hashName + "AndMGF1Padding";
+                        } else {
+                            throw new IllegalArgumentException("Unsupported padding:" + padding);
+                        }
+                        final PublicKey wrappingKey;
+                        final PrivateKey unwrappingKey;
+                        if (key.key instanceof PublicKey) {
+                            wrappingKey = (PublicKey) key.key;
+                            unwrappingKey = null;
+                        } else {
+                            wrappingKey = null;
+                            unwrappingKey = (PrivateKey) key.key;
+                        }
+                        mks.add(JceMasterKey.getInstance(wrappingKey, unwrappingKey, provId, key.keyId, transformation));
                     } else {
-                        wrappingKey = null;
-                        unwrappingKey = (PrivateKey) key.key;
+                        throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
                     }
-                    mks.add(JceMasterKey.getInstance(wrappingKey, unwrappingKey, provId, key.keyId, transformation));
                 } else {
-                    throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+                    throw new IllegalArgumentException("Unsupported Key Type: " + type);
                 }
+            }
+
+            return MultipleProviderFactory.buildMultiProvider(mks);
+        };
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> resultSpec = (Map<String, Object>) data.get("result");
+        final ResultMatcher matcher = parseResultMatcher(jar, resultSpec);
+
+        String decryptionMethodSpec = (String) data.get("decryption-method");
+        SignaturePolicy signaturePolicy = SignaturePolicy.AllowEncryptAllowDecrypt;
+        if (decryptionMethodSpec != null) {
+            if ("streaming-unsigned-only".equals(decryptionMethodSpec)) {
+                signaturePolicy = SignaturePolicy.AllowEncryptForbidDecrypt;
             } else {
-                throw new IllegalArgumentException("Unsupported Key Type: " + type);
+                throw new IllegalArgumentException("Unsupported Decryption Method: " + decryptionMethodSpec);
             }
         }
 
-        return new TestCase(testName, ciphertextURL, plaintextUrl, mks);
+        return new TestCase(testName, ciphertextURL, mkpSupplier, matcher, signaturePolicy);
+    }
+
+    private static ResultMatcher parseResultMatcher(final JarFile jar, final Map<String, Object> result) throws IOException {
+        if (result.size() != 1) {
+            throw new IllegalArgumentException("Unsupported result specification: " + result);
+        }
+        Map.Entry<String, Object> pair = result.entrySet().iterator().next();
+        if (pair.getKey().equals("output")) {
+            Map<String, String> outputSpec = (Map<String, String>) pair.getValue();
+            String plaintextUrl = outputSpec.get("plaintext");
+            cacheData(jar, plaintextUrl);
+            return new OutputResultMatcher(plaintextUrl);
+        } else if (pair.getKey().equals("error")) {
+            Map<String, String> errorSpec = (Map<String, String>) pair.getValue();
+            String errorDescription = errorSpec.get("error-description");
+            return new ErrorResultMatcher(errorDescription);
+        } else {
+            throw new IllegalArgumentException("Unsupported result specification: " + result);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -277,18 +341,51 @@ public class TestVectorRunner {
     private static class TestCase {
         private final String name;
         private final String ciphertextPath;
-        private final String plaintextPath;
-        private final MasterKeyProvider<?> mkp;
+        private final ResultMatcher matcher;
+        private final Supplier<MasterKeyProvider<?>> mkpSupplier;
+        private final SignaturePolicy signaturePolicy;
 
-        private TestCase(String name, String ciphertextPath, String plaintextPath, List<MasterKey<?>> mks) {
-            this(name, ciphertextPath, plaintextPath, MultipleProviderFactory.buildMultiProvider(mks));
-        }
-
-        private TestCase(String name, String ciphertextPath, String plaintextPath, MasterKeyProvider<?> mkp) {
+        private TestCase(String name, String ciphertextPath, Supplier<MasterKeyProvider<?>> mkpSupplier, ResultMatcher matcher, SignaturePolicy signaturePolicy) {
             this.name = name;
             this.ciphertextPath = ciphertextPath;
+            this.matcher = matcher;
+            this.mkpSupplier = mkpSupplier;
+            this.signaturePolicy = signaturePolicy;
+        }
+    }
+
+    private interface ResultMatcher {
+        void Match(Callable<byte[]> decryptor) throws Exception;
+    }
+
+    private static class OutputResultMatcher implements ResultMatcher {
+
+        private final String plaintextPath;
+
+        private OutputResultMatcher(String plaintextPath) {
             this.plaintextPath = plaintextPath;
-            this.mkp = mkp;
+        }
+
+        @Override
+        public void Match(Callable<byte[]> decryptor) throws Exception {
+            final byte[] plaintext = decryptor.call();
+            final byte[] expectedPlaintext = cachedData.get(plaintextPath);
+            Assert.assertArrayEquals(expectedPlaintext, plaintext);
+        }
+    }
+
+    private static class ErrorResultMatcher implements ResultMatcher {
+
+        private final String errorDescription;
+
+        private ErrorResultMatcher(String errorDescription) {
+            this.errorDescription = errorDescription;
+        }
+
+        @Override
+        public void Match(Callable<byte[]> decryptor) {
+            Assert.assertThrows("Decryption expected to fail (" + errorDescription + ") but succeeded",
+                    Exception.class, decryptor::call);
         }
     }
 }

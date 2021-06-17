@@ -1,3 +1,6 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package com.amazonaws.encryptionsdk;
 
 import java.util.Collections;
@@ -9,6 +12,7 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 
 public class RecordingMaterialsManager implements CryptoMaterialsManager {
     private final CryptoMaterialsManager delegate;
+    private final CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
 
     public boolean didDecrypt = false;
 

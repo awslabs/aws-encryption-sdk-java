@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.3.0 -- 2021-06-16
+
+* feat: AWS KMS multi-Region Key support
+        
+  Added new the master key AwsKmsMrkAwareMasterKey
+  and the new master key provider AwsKmsMrkAwareMasterKeyProvider
+  that support AWS KMS multi-Region Keys.
+
+  See https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
+  for more details about AWS KMS multi-Region Keys.
+  
+  See https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/configure.html#config-mrks
+  for more details about how the AWS Encryption SDK interoperates
+  with AWS KMS multi-Region keys.
+
+## 2.2.0 -- 2021-05-27
+
+* feat: Improvements to the message decryption process. 
+
+  See https://github.com/aws/aws-encryption-sdk-java/security/advisories/GHSA-55xh-53m6-936r
+
+
+## 2.0.0 -- 2020-09-24
+
+* feat!: Updates to the AWS Encryption SDK. 4678ffa
+
+### BREAKING CHANGES
+
+* AWS KMS KeyIDs must be specified explicitly or Discovery mode explicitly chosen.
+Key committing suites are now default. CommitmentPolicy requires commitment by default.
+
+See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/migration.html
+
+## 1.7.0 -- 2020-09-24
+
+* feat: Updates to the AWS Encryption SDK. a6be12a
+
 ## 1.6.2 -- 2020-05-26
 
 ### Patches

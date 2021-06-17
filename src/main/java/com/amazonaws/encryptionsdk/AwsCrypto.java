@@ -1,15 +1,5 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
- * in compliance with the License. A copy of the License is located at
- * 
- * http://aws.amazon.com/apache2.0
- * 
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package com.amazonaws.encryptionsdk;
 
@@ -21,12 +11,8 @@ import java.util.Map;
 
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
-import com.amazonaws.encryptionsdk.internal.DecryptionHandler;
-import com.amazonaws.encryptionsdk.internal.EncryptionHandler;
-import com.amazonaws.encryptionsdk.internal.LazyMessageCryptoHandler;
-import com.amazonaws.encryptionsdk.internal.MessageCryptoHandler;
-import com.amazonaws.encryptionsdk.internal.ProcessingSummary;
-import com.amazonaws.encryptionsdk.internal.Utils;
+import com.amazonaws.encryptionsdk.internal.*;
+import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 
@@ -88,12 +74,128 @@ import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 public class AwsCrypto {
     private static final Map<String, String> EMPTY_MAP = Collections.emptyMap();
 
+    // These are volatile because we allow unsynchronized writes via our setters,
+    // and without setting volatile we could see strange results.
+    // E.g. copying these to a local might give different values on subsequent reads from the local.
+    // By setting them volatile we ensure that proper memory barriers are applied
+    // to ensure things behave in a sensible manner.
+    private volatile CryptoAlgorithm encryptionAlgorithm_ = null;
+    private volatile int encryptionFrameSize_ = getDefaultFrameSize();
+
+    private static final CommitmentPolicy DEFAULT_COMMITMENT_POLICY = CommitmentPolicy.RequireEncryptRequireDecrypt;
+    private final CommitmentPolicy commitmentPolicy_;
+
     /**
-     * Returns the {@link CryptoAlgorithm} to be used for encryption when none is explicitly
-     * selected. Currently it is {@link CryptoAlgorithm#ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384}.
+     * The maximum number of encrypted data keys to unwrap (resp. wrap) on decrypt (resp. encrypt), if positive.
+     * If zero, do not limit EDKs.
      */
-    public static CryptoAlgorithm getDefaultCryptoAlgorithm() {
-        return CryptoAlgorithm.ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    private final int maxEncryptedDataKeys_;
+
+    private AwsCrypto(Builder builder) {
+        commitmentPolicy_ = builder.commitmentPolicy_ == null ? DEFAULT_COMMITMENT_POLICY : builder.commitmentPolicy_;
+        if (builder.encryptionAlgorithm_ != null && !commitmentPolicy_.algorithmAllowedForEncrypt(builder.encryptionAlgorithm_)) {
+            if (commitmentPolicy_ == CommitmentPolicy.ForbidEncryptAllowDecrypt) {
+                throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                        commitmentPolicy_ + " requiring only non-committed messages. Algorithm ID was " +
+                        builder.encryptionAlgorithm_ +
+                        ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+            } else {
+                throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                        commitmentPolicy_ + " requiring only committed messages. Algorithm ID was " +
+                        builder.encryptionAlgorithm_ +
+                        ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+            }
+        }
+        encryptionAlgorithm_ = builder.encryptionAlgorithm_;
+        encryptionFrameSize_ = builder.encryptionFrameSize_;
+        maxEncryptedDataKeys_ = builder.maxEncryptedDataKeys_;
+    }
+
+    public static class Builder {
+        private CryptoAlgorithm encryptionAlgorithm_;
+        private int encryptionFrameSize_ = getDefaultFrameSize();
+        private CommitmentPolicy commitmentPolicy_;
+        private int maxEncryptedDataKeys_ = CiphertextHeaders.NO_MAX_ENCRYPTED_DATA_KEYS;
+
+        private Builder() {}
+
+        private Builder(final AwsCrypto client) {
+            encryptionAlgorithm_ = client.encryptionAlgorithm_;
+            encryptionFrameSize_ = client.encryptionFrameSize_;
+            commitmentPolicy_ = client.commitmentPolicy_;
+            maxEncryptedDataKeys_ = client.maxEncryptedDataKeys_;
+        }
+
+        /**
+         * Sets the {@link CryptoAlgorithm} to encrypt with.
+         * The Aws Crypto client will use the last crypto algorithm set with
+         * either {@link AwsCrypto.Builder#withEncryptionAlgorithm(CryptoAlgorithm)} or
+         * {@link #setEncryptionAlgorithm(CryptoAlgorithm)} to encrypt with.
+         *
+         * @param encryptionAlgorithm The {@link CryptoAlgorithm}
+         * @return The Builder, for method chaining
+         */
+        public Builder withEncryptionAlgorithm(CryptoAlgorithm encryptionAlgorithm) {
+            this.encryptionAlgorithm_ = encryptionAlgorithm;
+            return this;
+        }
+
+        /**
+         * Sets the frame size of the encrypted messages that the Aws Crypto client produces.
+         * The Aws Crypto client will use the last frame size set with
+         * either {@link AwsCrypto.Builder#withEncryptionFrameSize(int)} or
+         * {@link #setEncryptionFrameSize(int)}.
+         *
+         * @param frameSize The frame size to produce encrypted messages with.
+         * @return The Builder, for method chaining
+         */
+        public Builder withEncryptionFrameSize(int frameSize) {
+            this.encryptionFrameSize_ = frameSize;
+            return this;
+        }
+
+        /**
+         * Sets the {@link CommitmentPolicy} of this Aws Crypto client.
+         *
+         * @param commitmentPolicy The commitment policy to enforce during encryption and decryption
+         * @return The Builder, for method chaining
+         */
+        public Builder withCommitmentPolicy(CommitmentPolicy commitmentPolicy) {
+            Utils.assertNonNull(commitmentPolicy, "commitmentPolicy");
+            this.commitmentPolicy_ = commitmentPolicy;
+            return this;
+        }
+
+        /**
+         * Sets the maximum number of encrypted data keys that this Aws Crypto client will wrap when
+         * encrypting, or unwrap when decrypting, a single message.
+         *
+         * @param maxEncryptedDataKeys The maximum number of encrypted data keys; must be positive
+         * @return The Builder, for method chaining
+         */
+        public Builder withMaxEncryptedDataKeys(int maxEncryptedDataKeys) {
+            if (maxEncryptedDataKeys < 1) {
+                throw new IllegalArgumentException("maxEncryptedDataKeys must be positive");
+            }
+            this.maxEncryptedDataKeys_ = maxEncryptedDataKeys;
+            return this;
+        }
+
+        public AwsCrypto build() {
+            return new AwsCrypto(this);
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
+    public static AwsCrypto standard() {
+        return AwsCrypto.builder().build();
     }
 
     /**
@@ -104,18 +206,22 @@ public class AwsCrypto {
         return 4096;
     }
 
-    // These are volatile because we allow unsynchronized writes via our setters, and without setting volatile we could
-    // see strange results - e.g. copying these to a local might give different values on subsequent reads from the
-    // local. By setting them volatile we ensure that proper memory barriers are applied to ensure things behave in a
-    // sensible manner.
-    private volatile CryptoAlgorithm encryptionAlgorithm_ = null;
-    private volatile int encryptionFrameSize_ = getDefaultFrameSize();
-
     /**
      * Sets the {@link CryptoAlgorithm} to use when <em>encrypting</em> data. This has no impact on
      * decryption.
      */
     public void setEncryptionAlgorithm(final CryptoAlgorithm alg) {
+        if (!commitmentPolicy_.algorithmAllowedForEncrypt(alg)) {
+            if (commitmentPolicy_ == CommitmentPolicy.ForbidEncryptAllowDecrypt) {
+                throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                        commitmentPolicy_ + " requiring only non-committed messages. Algorithm ID was " +
+                        alg + ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+            } else {
+                throw new AwsCryptoException("Configuration conflict. Cannot encrypt due to CommitmentPolicy " +
+                        commitmentPolicy_ + " requiring only committed messages. Algorithm ID was " +
+                        alg + ". See: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html");
+            }
+        }
         encryptionAlgorithm_ = alg;
     }
 
@@ -175,11 +281,13 @@ public class AwsCrypto {
         // pass /something/ though, or the cache will be bypassed (as it'll assume this is a streaming encrypt of
         // unknown size).
                                                                        .setPlaintextSize(0)
+                                                                       .setCommitmentPolicy(commitmentPolicy_)
                                                                        .build();
 
         final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
                 getEncryptionFrameSize(),
-                checkAlgorithm(materialsManager.getMaterialsForEncrypt(request))
+                checkAlgorithm(materialsManager.getMaterialsForEncrypt(request)),
+                commitmentPolicy_
         );
 
         return cryptoHandler.estimateOutputSize(plaintextSize);
@@ -240,11 +348,14 @@ public class AwsCrypto {
                                                                        .setContext(encryptionContext)
                                                                        .setRequestedAlgorithm(getEncryptionAlgorithm())
                                                                        .setPlaintext(plaintext)
+                                                                       .setCommitmentPolicy(commitmentPolicy_)
                                                                        .build();
 
+        EncryptionMaterials encryptionMaterials = checkMaxEncryptedDataKeys(checkAlgorithm(materialsManager.getMaterialsForEncrypt(request)));
         final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
                 getEncryptionFrameSize(),
-                checkAlgorithm(materialsManager.getMaterialsForEncrypt(request))
+                encryptionMaterials,
+                commitmentPolicy_
         );
 
         final int outSizeEstimate = cryptoHandler.estimateOutputSize(plaintext.length);
@@ -362,7 +473,7 @@ public class AwsCrypto {
     public <K extends MasterKey<K>> CryptoResult<byte[], K> decryptData(final MasterKeyProvider<K> provider,
             final byte[] ciphertext) {
         return decryptData(Utils.assertNonNull(provider, "provider"), new
-                ParsedCiphertext(ciphertext));
+                ParsedCiphertext(ciphertext, maxEncryptedDataKeys_));
     }
 
     /**
@@ -378,7 +489,7 @@ public class AwsCrypto {
             final byte[] ciphertext
     ) {
         return decryptData(Utils.assertNonNull(materialsManager, "materialsManager"),
-                           new ParsedCiphertext(ciphertext));
+                           new ParsedCiphertext(ciphertext, maxEncryptedDataKeys_));
     }
 
     /**
@@ -400,7 +511,9 @@ public class AwsCrypto {
     ) {
         Utils.assertNonNull(materialsManager, "materialsManager");
 
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager, ciphertext);
+        final MessageCryptoHandler cryptoHandler =
+                DecryptionHandler.create(materialsManager, ciphertext, commitmentPolicy_,
+                                         SignaturePolicy.AllowEncryptAllowDecrypt, maxEncryptedDataKeys_);
 
         final byte[] ciphertextBytes = ciphertext.getCiphertext();
         final int contentLen = ciphertextBytes.length - ciphertext.getOffset();
@@ -584,14 +697,90 @@ public class AwsCrypto {
 
     /**
      * Returns a {@link CryptoOutputStream} which decrypts the data prior to passing it onto the
-     * underlying {@link OutputStream}.
+     * underlying {@link OutputStream}. This version only accepts unsigned messages.
      *
      * @see #decryptData(MasterKeyProvider, byte[])
      * @see javax.crypto.CipherOutputStream
      */
+    public <K extends MasterKey<K>> CryptoOutputStream<K> createUnsignedMessageDecryptingStream(
+            final MasterKeyProvider<K> provider, final OutputStream os) {
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptForbidDecrypt,
+                                                                            maxEncryptedDataKeys_);
+        return new CryptoOutputStream<K>(os, cryptoHandler);
+    }
+
+    /**
+     * Returns a {@link CryptoInputStream} which decrypts the data after reading it from the
+     * underlying {@link InputStream}. This version only accepts unsigned messages.
+     *
+     * @see #decryptData(MasterKeyProvider, byte[])
+     * @see javax.crypto.CipherInputStream
+     */
+    public <K extends MasterKey<K>> CryptoInputStream<K> createUnsignedMessageDecryptingStream(
+            final MasterKeyProvider<K> provider, final InputStream is) {
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptForbidDecrypt,
+                                                                            maxEncryptedDataKeys_);
+        return new CryptoInputStream<K>(is, cryptoHandler);
+    }
+
+    /**
+     * Returns a {@link CryptoOutputStream} which decrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}. This version only accepts unsigned messages.
+     *
+     * @see #decryptData(CryptoMaterialsManager, byte[])
+     * @see javax.crypto.CipherOutputStream
+     */
+    public CryptoOutputStream<?> createUnsignedMessageDecryptingStream(
+            final CryptoMaterialsManager materialsManager, final OutputStream os
+    ) {
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptForbidDecrypt,
+                                                                            maxEncryptedDataKeys_);
+        return new CryptoOutputStream(os, cryptoHandler);
+    }
+
+    /**
+     * Returns a {@link CryptoInputStream} which decrypts the data after reading it from the
+     * underlying {@link InputStream}. This version only accepts unsigned messages.
+     *
+     * @see #encryptData(CryptoMaterialsManager, byte[], Map)
+     * @see javax.crypto.CipherInputStream
+     */
+    public CryptoInputStream<?> createUnsignedMessageDecryptingStream(
+            final CryptoMaterialsManager materialsManager, final InputStream is
+    ) {
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptForbidDecrypt,
+                                                                            maxEncryptedDataKeys_);
+        return new CryptoInputStream(is, cryptoHandler);
+    }
+
+    /**
+     * Returns a {@link CryptoOutputStream} which decrypts the data prior to passing it onto the
+     * underlying {@link OutputStream}.
+     * 
+     * Note that if the encrypted message includes a trailing signature, by necessity it cannot be verified until
+     * after the decrypted plaintext has been released to the underlying {@link OutputStream}! This behavior can
+     * be avoided by using the non-streaming #decryptData(MasterKeyProvider, byte[]) method instead, or
+     * #createUnsignedMessageDecryptingStream(MasterKeyProvider, OutputStream) if you do not need to decrypt
+     * signed messages.
+     *
+     * @see #decryptData(MasterKeyProvider, byte[])
+     * @see #createUnsignedMessageDecryptingStream(MasterKeyProvider, OutputStream)
+     * @see javax.crypto.CipherOutputStream
+     */
     public <K extends MasterKey<K>> CryptoOutputStream<K> createDecryptingStream(
             final MasterKeyProvider<K> provider, final OutputStream os) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider);
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptAllowDecrypt,
+                                                                            maxEncryptedDataKeys_);
         return new CryptoOutputStream<K>(os, cryptoHandler);
     }
 
@@ -599,12 +788,22 @@ public class AwsCrypto {
      * Returns a {@link CryptoInputStream} which decrypts the data after reading it from the
      * underlying {@link InputStream}.
      *
+     * Note that if the encrypted message includes a trailing signature, by necessity it cannot be verified until
+     * after the decrypted plaintext has been produced from the {@link InputStream}! This behavior can
+     * be avoided by using the non-streaming #decryptData(MasterKeyProvider, byte[]) method instead, or
+     * #createUnsignedMessageDecryptingStream(MasterKeyProvider, InputStream) if you do not need to decrypt
+     * signed messages.
+     *
      * @see #decryptData(MasterKeyProvider, byte[])
+     * @see #createUnsignedMessageDecryptingStream(MasterKeyProvider, InputStream)
      * @see javax.crypto.CipherInputStream
      */
     public <K extends MasterKey<K>> CryptoInputStream<K> createDecryptingStream(
             final MasterKeyProvider<K> provider, final InputStream is) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider);
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(provider,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptAllowDecrypt,
+                                                                            maxEncryptedDataKeys_);
         return new CryptoInputStream<K>(is, cryptoHandler);
     }
 
@@ -612,13 +811,23 @@ public class AwsCrypto {
      * Returns a {@link CryptoOutputStream} which decrypts the data prior to passing it onto the
      * underlying {@link OutputStream}.
      *
+     *  Note that if the encrypted message includes a trailing signature, by necessity it cannot be verified until
+     * after the decrypted plaintext has been released to the underlying {@link OutputStream}! This behavior can
+     * be avoided by using the non-streaming #decryptData(CryptoMaterialsManager, byte[]) method instead, or
+     * #createUnsignedMessageDecryptingStream(CryptoMaterialsManager, OutputStream) if you do not need to decrypt
+     * signed messages.
+     *
      * @see #decryptData(CryptoMaterialsManager, byte[])
+     * @see #createUnsignedMessageDecryptingStream(CryptoMaterialsManager, OutputStream)
      * @see javax.crypto.CipherOutputStream
      */
     public CryptoOutputStream<?> createDecryptingStream(
             final CryptoMaterialsManager materialsManager, final OutputStream os
     ) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager);
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptAllowDecrypt,
+                maxEncryptedDataKeys_);
         return new CryptoOutputStream(os, cryptoHandler);
     }
 
@@ -626,13 +835,23 @@ public class AwsCrypto {
      * Returns a {@link CryptoInputStream} which decrypts the data after reading it from the
      * underlying {@link InputStream}.
      *
-     * @see #encryptData(CryptoMaterialsManager, byte[], Map)
+     * Note that if the encrypted message includes a trailing signature, by necessity it cannot be verified until
+     * after the decrypted plaintext has been produced from the {@link InputStream}! This behavior can
+     * be avoided by using the non-streaming #decryptData(CryptoMaterialsManager, byte[]) method instead, or
+     * #createUnsignedMessageDecryptingStream(CryptoMaterialsManager, InputStream) if you do not need to decrypt
+     * signed messages.
+     *
+     * @see #decryptData(CryptoMaterialsManager, byte[])
+     * @see #createUnsignedMessageDecryptingStream(CryptoMaterialsManager, InputStream)
      * @see javax.crypto.CipherInputStream
      */
     public CryptoInputStream<?> createDecryptingStream(
             final CryptoMaterialsManager materialsManager, final InputStream is
     ) {
-        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager);
+        final MessageCryptoHandler cryptoHandler = DecryptionHandler.create(materialsManager,
+                                                                            commitmentPolicy_,
+                                                                            SignaturePolicy.AllowEncryptAllowDecrypt,
+                                                                            maxEncryptedDataKeys_);
         return new CryptoInputStream(is, cryptoHandler);
     }
 
@@ -644,7 +863,8 @@ public class AwsCrypto {
 
         EncryptionMaterialsRequest.Builder requestBuilder = EncryptionMaterialsRequest.newBuilder()
                                                                                       .setContext(encryptionContext)
-                                                                                      .setRequestedAlgorithm(getEncryptionAlgorithm());
+                                                                                      .setRequestedAlgorithm(getEncryptionAlgorithm())
+                                                                                      .setCommitmentPolicy(commitmentPolicy_);
 
         return new LazyMessageCryptoHandler(info -> {
             // Hopefully we know the input size now, so we can pass it along to the CMM.
@@ -654,7 +874,8 @@ public class AwsCrypto {
 
             return new EncryptionHandler(
                     getEncryptionFrameSize(),
-                    checkAlgorithm(materialsManager.getMaterialsForEncrypt(requestBuilder.build()))
+                    checkMaxEncryptedDataKeys(checkAlgorithm(materialsManager.getMaterialsForEncrypt(requestBuilder.build()))),
+                    commitmentPolicy_
             );
         });
     }
@@ -668,5 +889,12 @@ public class AwsCrypto {
         }
 
         return result;
+    }
+
+    private EncryptionMaterials checkMaxEncryptedDataKeys(EncryptionMaterials materials) {
+        if (maxEncryptedDataKeys_ > 0 && materials.getEncryptedDataKeys().size() > maxEncryptedDataKeys_) {
+            throw new AwsCryptoException("Encrypted data keys exceed maxEncryptedDataKeys");
+        }
+        return materials;
     }
 }

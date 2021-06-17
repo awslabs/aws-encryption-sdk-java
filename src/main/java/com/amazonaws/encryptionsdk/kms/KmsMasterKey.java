@@ -47,35 +47,21 @@ import com.amazonaws.services.kms.model.GenerateDataKeyResult;
 /**
  * Represents a single Customer Master Key (CMK) and is used to encrypt/decrypt data with
  * {@link AwsCrypto}.
+ *
+ * This component is not multi-Region key aware,
+ * and will treat every AWS KMS identifier as regionally isolated.
  */
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
+    private static final String USER_AGENT = VersionInfo.loadUserAgent();
     private final Supplier<AWSKMS> kms_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
     private final List<String> grantTokens_ = new ArrayList<>();
 
     private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
-        request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
+        request.getRequestClientOptions().appendUserAgent(USER_AGENT);
 
         return request;
-    }
-
-    /**
-     *
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentials creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
-    }
-
-    /**
-     *
-     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
-     */
-    @Deprecated
-    public static KmsMasterKey getInstance(final AWSCredentialsProvider creds, final String keyId) {
-        return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
     }
 
     static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
@@ -168,11 +154,19 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
+                final String edkKeyId = new String(edk.getProviderInformation(), StandardCharsets.UTF_8);
+                if (!edkKeyId.equals(id_)) {
+                    continue;
+                }
                 final DecryptResult decryptResult = kms_.get().decrypt(updateUserAgent(
                         new DecryptRequest()
                                 .withCiphertextBlob(ByteBuffer.wrap(edk.getEncryptedDataKey()))
                                 .withEncryptionContext(encryptionContext)
-                                .withGrantTokens(grantTokens_)));
+                                .withGrantTokens(grantTokens_)
+                                .withKeyId(edkKeyId)));
+                if (decryptResult.getKeyId() == null) {
+                    throw new IllegalStateException("Received an empty keyId from KMS");
+                }
                 if (decryptResult.getKeyId().equals(id_)) {
                     final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
                     decryptResult.getPlaintext().get(rawKey);

@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.encryptionsdk.TestUtils;
+import com.amazonaws.encryptionsdk.CommitmentPolicy;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 
@@ -30,6 +32,7 @@ public class CacheIdentifierTests {
     static String partitionName = "c15b9079-6d0e-42b6-8784-5e804b025692";
     static Map<String, String> contextEmpty = Collections.emptyMap();
     static Map<String, String> contextFull;
+    static CommitmentPolicy commitmentPolicy = TestUtils.DEFAULT_TEST_COMMITMENT_POLICY;
     static {
         contextFull = new HashMap<>();
         contextFull.put("this", "is");
@@ -91,6 +94,7 @@ public class CacheIdentifierTests {
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
                                                                        .setContext(context)
                                                                        .setRequestedAlgorithm(algo)
+                                                                       .setCommitmentPolicy(commitmentPolicy)
                                                                        .build();
 
         byte[] id = getCacheIdentifier(getCMM(partitionName), request);
@@ -112,6 +116,7 @@ public class CacheIdentifierTests {
                                        EncryptionMaterialsRequest.newBuilder()
                                                                  .setContext(contextMap)
                                                                  .setRequestedAlgorithm(null)
+                                                                 .setCommitmentPolicy(commitmentPolicy)
                                                                  .build()
         );
 
@@ -124,6 +129,7 @@ public class CacheIdentifierTests {
                                 EncryptionMaterialsRequest.newBuilder()
                                                           .setContext(contextMap)
                                                           .setRequestedAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256)
+                                                          .setCommitmentPolicy(commitmentPolicy)
                                                           .build()
         );
 
