@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1 -- 2021-06-29
+
+* fix: read project properties from package's own ClassLoader [(PR #269)](https://github.com/aws/aws-encryption-sdk-java/pull/269)
+
 ## 2.3.0 -- 2021-06-16
 
 * feat: AWS KMS multi-Region Key support
