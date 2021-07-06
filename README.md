@@ -6,6 +6,8 @@ For more details about the design and architecture of the SDK, see the [official
 
 [Security issue notifications](./CONTRIBUTING.md#security-issue-notifications)
 
+See [Support Policy](./SUPPORT_POLICY.rst) for for details on the current support status of all major versions of this library.
+
 ## Getting Started
 
 ### Required Prerequisites
